@@ -396,6 +396,31 @@ function localIsEmpty(){
     &&db.batches.length===0&&db.payments.length===0&&db.shipments.length===0
     &&db.prodOrders.length===0&&db.develop.length===0;
 }
+var MERGE_KEYS=['orders','customers','products','batches','payments','shipments','prodOrders','develop','logs','todos'];
+/* 多设备安全合并：按 id 取并集，冲突保留记录级 _t 较大者；
+   保证手机/电脑并发录入互不覆盖、记录不丢失（同 id 只保留一边，云端缺失的本地记录会补回云端） */
+function mergeCloud(cloud){
+  var any=false;
+  MERGE_KEYS.forEach(function(k){
+    var lm={},cm={},ids={};
+    (db[k]||[]).forEach(function(r){if(r&&r.id){lm[r.id]=r;ids[r.id]=1;}});
+    (cloud[k]||[]).forEach(function(r){if(r&&r.id){cm[r.id]=r;ids[r.id]=1;}});
+    var out=[],changed=false;
+    Object.keys(ids).forEach(function(id){
+      var lr=lm[id],cr=cm[id];
+      if(lr&&!cr)out.push(lr);                     // 本地独有：保留（并会随推送回传云端）
+      else if(cr&&!lr){out.push(cr);changed=true;} // 云端独有：并入本地
+      else{                                        // 两边都有：取记录级 _t 较大者，都不带 _t 则保留本地
+        var lt=Number(lr._t)||0,ct=Number(cr._t)||0;
+        if(ct>lt){out.push(cr);changed=true;}else out.push(lr);
+      }
+    });
+    if(changed||out.length!==(db[k]||[]).length){db[k]=out;any=true;}
+  });
+  var cs=Number(cloud.seq)||0;
+  if(cs> (Number(db.seq)||0)){db.seq=cs;any=true;}
+  return any;
+}
 function pullCloud(){
   if(!cloudReady||cloudPulling)return;
   cloudPulling=true;
@@ -416,20 +441,20 @@ function pullCloud(){
       try{cloud=JSON.parse(content);}catch(e){cloud=null;}
       if(cloud&&Array.isArray(cloud.orders)){
         var ct=Number(cloud._t)||0,lt=Number(db._t)||0;
-        // 本地有尚未上传的改动时以本地为准，避免拉取覆盖新录入
-        var modalOpen=false;try{modalOpen=document.getElementById('mask').classList.contains('show');}catch(e){}
-        if(!_dirty&&!modalOpen&&(localIsEmpty()||ct>lt)){
-          backupLocal(); // 覆盖前备份本地数据（救援保险）
-          ensureStruct(cloud);
-          db=cloud;
+        backupLocal(); // 合并前备份本地数据（救援保险）
+        ensureStruct(cloud);
+        var changed=mergeCloud(cloud);
+        var newT=Math.max(lt,ct);
+        if(newT>lt){db._t=newT;changed=true;}
+        if(changed){
           try{localStorage.setItem(DB_KEY,JSON.stringify(db));}catch(e){}
-          render();
-        }else if(!modalOpen&&!localIsEmpty()&&lt>ct&&!cloudPulling){
-          // 本地数据比云端新（如手机端录入后未同步成功）：自动推送本地数据到云端，防止"留在本地永不上传"
-          cloudStatus('本地数据更新，正在同步到云端…');
-          flushPush();
+          var modalOpen=false;try{modalOpen=document.getElementById('mask').classList.contains('show');}catch(e){}
+          if(!modalOpen)render();
+          _dirty=true;flushPush(); // 合并结果回传云端，两端保持一致（内容含云端全部记录，不会丢数据）
+          cloudStatus('已合并同步 · '+new Date().toLocaleTimeString('zh-CN',{hour12:false}));
+        }else{
+          cloudStatus('已连接云端 · '+new Date().toLocaleTimeString('zh-CN',{hour12:false}));
         }
-        cloudStatus('已连接云端 · '+new Date().toLocaleTimeString('zh-CN',{hour12:false}));
       }else{cloudStatus('已连接云端');}
     }else{
       // 云端还没有数据：本地有数据则首次上传建库
@@ -445,7 +470,7 @@ function pullCloud(){
 }
 /* ---- 多设备自动同步：每20秒静默拉取一次；窗口切回前台时立即拉取 ---- */
 function autoPull(){
-  if(!cloudReady||_dirty||_uploading||cloudPulling)return;
+  if(!cloudReady||_uploading||cloudPulling)return;
   pullCloud();
 }
 setInterval(autoPull,20000);
