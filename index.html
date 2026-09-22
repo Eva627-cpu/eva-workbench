@@ -2890,7 +2890,7 @@ function openPayForm(id,preOrderNo){
     shipNo:r?payShipNo(r):(preOrderNo||''),shipNos:r?payNos(r):(preOrderNo?[preOrderNo]:[]),rebateOn:!!(r&&r.rebateOn),rebatePer:r?(Number(r.rebatePer)||''):'',
     name:r?(r.name||''):'',spec:r?(r.spec||''):'',qty:r?(Number(r.qty)||0):0,
     basePrice:r?(Number(r.basePrice)||''):'',supplyPrice:r?(Number(r.supplyPrice)||''):'',invoicePrice:r?(Number(r.invoicePrice)||''):'',
-    subtotal:r?(Number(r.subtotal)||0):0,refundBase:0,rebate:0,items:[]};
+    subtotal:r?(Number(r.subtotal)||0):0,refundBase:0,rebate:0,items:[],taxManual:false,amountManual:!!id};
   if(r&&payType(r)==='prepay'&&r.items&&r.items.length){
     PF.items=r.items.slice();
     for(var qi=0;qi<PF.items.length;qi++){
@@ -2978,7 +2978,7 @@ function payShipSecHTML(){
     +'<span id="payRebatePerBox" style="display:'+(PF.rebateOn?'inline-flex':'none')+';gap:6px;align-items:center">每盒返利 <input type="number" step="any" data-k="rebatePer" style="width:90px" value="'+esc(PF.rebatePer||'')+'" oninput="payShipCalc()"></span>'
     +'<span style="display:inline-flex;gap:6px;align-items:center">返利金额 <input type="number" step="any" data-k="rebate" readonly style="width:110px" value="'+esc(PF.rebate||'')+'"></span></div></div>';
   h+='<div class="fitem"><label>回款日期 <b>*</b></label><input type="date" data-k="payDate" value="'+esc(PF.payDate)+'"></div>';
-  h+='<div class="fitem"><label>回款金额（元）<b>*</b></label><input type="number" step="any" data-k="amount" value="'+esc(PF.amount)+'"></div>';
+  h+='<div class="fitem"><label>回款金额（元）<b>*</b></label><input type="number" step="any" data-k="amount" value="'+esc(PF.amount)+'" oninput="payAmountInput(this)"><div class="hint">自动＝勾选发货单的产品小计合计，可手动修改；清空后恢复自动</div></div>';
   h+='<div class="fitem"><label>税金（元）</label><input type="number" step="any" data-k="tax" value="'+esc(PF.tax||'')+'" oninput="payShipCalc()"><div class="hint">默认自动计算，可手动修改</div></div>';
   h+='<div class="fitem"><label>返款金额（元，自动）</label><input type="number" step="any" data-k="refund" readonly value="'+esc(PF.refund||'')+'"></div>';
   h+='<div class="fitem full"><label>备注</label><textarea data-k="note">'+esc(PF.note)+'</textarea></div>';
@@ -3039,7 +3039,7 @@ function payShipFill(){
   box.innerHTML='<table class="pay-info"><tr><th>产品名称</th><th>规格</th><th>数量（盒）</th><th>底价</th><th>供货价</th><th>开票价</th><th>小计</th><th>返款</th></tr>'
     +rows.join('')+'</table>';
   payShipCalc();
-  var amtEl=document.querySelector('[data-k="amount"]');if(amtEl&&!amtEl.value)amtEl.value=PF.subtotal||'';
+  if(!PF.amountManual){PF.amount=PF.subtotal||0;setV('amount',PF.subtotal||'');}
 }
 function payRebateToggle(chk){
   PF.rebateOn=chk.checked;
@@ -3061,8 +3061,8 @@ function payPreSecHTML(){
   var h='';
   h+='<div class="fitem full"><label>产品明细（选填）</label><div id="payItems"></div><div style="margin-top:8px"><button type="button" class="btn sm" onclick="payAddItem()">＋ 添加产品</button></div></div>';
   h+='<div class="fitem"><label>回款日期 <b>*</b></label><input type="date" data-k="payDate" value="'+esc(PF.payDate)+'"></div>';
-  h+='<div class="fitem"><label>回款金额（元）<b>*</b></label><input type="number" step="any" data-k="amount" value="'+esc(PF.amount)+'"></div>';
-  h+='<div class="fitem"><label>税金（元，自动）</label><input type="number" step="any" data-k="tax" readonly value="'+esc(PF.tax||'')+'"><div class="hint">开票价高于供货价部分：50%以内（含）×数量×18%＋超出50%部分×数量×21%</div></div>';
+  h+='<div class="fitem"><label>回款金额（元）<b>*</b></label><input type="number" step="any" data-k="amount" value="'+esc(PF.amount)+'" oninput="payAmountInput(this)"><div class="hint">自动＝各产品小计合计，可手动修改；清空后恢复自动</div></div>';
+  h+='<div class="fitem"><label>税金（元）</label><input type="number" step="any" data-k="tax" value="'+esc(PF.tax||'')+'" oninput="payTaxInput(this)"><div class="hint">自动计算可改：开票价高于供货价部分50%以内×18%＋超出×21%；清空后恢复自动</div></div>';
   h+='<div class="fitem"><label>返款金额（元，自动）</label><input type="number" step="any" data-k="refund" readonly value="'+esc(PF.refund||'')+'"><div class="hint">＝各品种返款合计－税金</div></div>';
   h+='<div class="fitem full"><label>备注</label><textarea data-k="note">'+esc(PF.note)+'</textarea></div>';
   return h;
@@ -3148,16 +3148,38 @@ function payAddItem(){
   payRenderItems();
 }
 function payPreTotals(){
-  var tax=0,rf=0;
+  var tax=0,rf=0,amt=0;
   for(var i=0;i<PF.items.length;i++){
     var it=PF.items[i];if(!it.pid)continue;
     tax+=payTaxCalc(it.invoicePrice,it.supplyPrice,it.qty);
     rf+=Number(it.refund)||0;
+    amt+=Number(it.subtotal)||0;
   }
-  tax=r2(tax);
-  var total=r2(rf-tax);
-  PF.tax=tax;PF.refund=total;
-  setV('tax',tax||'');setV('refund',total||'');
+  tax=r2(tax);rf=r2(rf);amt=r2(amt);
+  if(!PF.amountManual){PF.amount=amt;setV('amount',amt||'');}
+  if(!PF.taxManual)PF.tax=tax;
+  PF.refund=r2(rf-(Number(PF.tax)||0));
+  setV('tax',PF.tax||'');setV('refund',PF.refund||'');
+}
+/* 税金/回款金额手动修改：手改后不再自动覆盖；清空输入框则恢复自动计算 */
+function payTaxInput(el){
+  var v=parseFloat(el.value);
+  if(isNaN(v)){PF.taxManual=false;payPreTotals();return;}
+  PF.taxManual=true;PF.tax=r2(v);
+  var rf=0;
+  for(var i=0;i<PF.items.length;i++){var it=PF.items[i];if(it.pid)rf+=Number(it.refund)||0;}
+  PF.refund=r2(rf-PF.tax);
+  setV('refund',PF.refund||'');
+}
+function payAmountInput(el){
+  var v=parseFloat(el.value);
+  if(isNaN(v)){
+    PF.amountManual=false;
+    if(PF.type==='ship'){if(PF.subtotal)setV('amount',PF.subtotal);}
+    else payPreTotals();
+    return;
+  }
+  PF.amountManual=true;PF.amount=r2(v);
 }
 function savePayForm(id){
   function gv(k){var el=document.querySelector('[data-k="'+k+'"]');return el?el.value:'';}
