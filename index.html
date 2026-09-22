@@ -2891,7 +2891,13 @@ function openPayForm(id,preOrderNo){
     name:r?(r.name||''):'',spec:r?(r.spec||''):'',qty:r?(Number(r.qty)||0):0,
     basePrice:r?(Number(r.basePrice)||''):'',supplyPrice:r?(Number(r.supplyPrice)||''):'',invoicePrice:r?(Number(r.invoicePrice)||''):'',
     subtotal:r?(Number(r.subtotal)||0):0,refundBase:0,rebate:0,items:[]};
-  if(r&&payType(r)==='prepay'&&r.items&&r.items.length){PF.items=r.items.slice();}
+  if(r&&payType(r)==='prepay'&&r.items&&r.items.length){
+    PF.items=r.items.slice();
+    for(var qi=0;qi<PF.items.length;qi++){
+      var qit=PF.items[qi];
+      if(!qit.cat&&qit.pid){var qp=findProd(qit.pid);qit.cat=(qp&&(qp.cat==='自销'||qp.cat==='OEM'))?qp.cat:'';}
+    }
+  }
   if(preOrderNo&&!r){var o=db.orders.filter(function(x){return x.no===preOrderNo;})[0];
     if(o){var cc=findCust(o.agentId);PF.cat=(cc&&cc.cat)||'';PF.agentName=o.agentName||'';PF.custName=o.custName||'';}}
   document.getElementById('mTitle').textContent=id?'编辑回款明细':'新增回款明细';
@@ -3073,14 +3079,21 @@ function payRenderItems(){
 }
 function payItemHTML(i){
   var it=PF.items[i];
-  var opts='<option value="">选择产品</option>';
-  for(var j=0;j<db.products.length;j++){var p=db.products[j];opts+='<option value="'+esc(p.id)+'"'+(it.pid===p.id?' selected':'')+'>'+esc(p.name+(p.spec?('　'+p.spec):''))+'</option>';}
+  var prods=it.cat?db.products.filter(function(p){return p.cat===it.cat;}):[];
+  prods.sort(function(a,b){return pyCmp((a.name||'')+(a.spec||''),(b.name||'')+(b.spec||''));});
+  var opts='<option value="">'+(it.cat?'选择产品':'请先选择产品分类')+'</option>';
+  for(var j=0;j<prods.length;j++){var p=prods[j];opts+='<option value="'+esc(p.id)+'"'+(it.pid===p.id?' selected':'')+'>'+esc(p.name+(p.spec?('　'+p.spec):''))+'</option>';}
+  var cats=['自销','OEM'];
+  var catH='<select data-f="cat" onchange="payItemCatSel('+i+',this)"><option value="">请选择</option>';
+  for(var c=0;c<cats.length;c++)catH+='<option value="'+esc(cats[c])+'"'+(it.cat===cats[c]?' selected':'')+'>'+esc(cats[c])+'</option>';
+  catH+='</select>';
   return '<div class="pay-item" data-i="'+i+'"><div class="fgrid">'
+    +'<div class="fitem"><label>产品分类</label>'+catH+'<div class="hint">选定后下方仅列出该分类的产品</div></div>'
     +'<div class="fitem"><label>产品名称</label><select onchange="payItemSel('+i+',this)">'+opts+'</select></div>'
     +'<div class="fitem"><label>规格（自动）</label><input data-f="spec" value="'+esc(it.spec||'')+'" readonly></div>'
     +'<div class="fitem"><label>数量（盒）</label><input type="number" step="any" data-f="qty" value="'+esc(it.qty||'')+'" oninput="payItemCalc('+i+')"></div>'
     +'<div class="fitem"><label>底价（自动）</label><input data-f="basePrice" value="'+esc(it.basePrice||'')+'" readonly></div>'
-    +'<div class="fitem"><label>供货价（自动）</label><input data-f="supplyPrice" value="'+esc(it.supplyPrice||'')+'" readonly></div>'
+    +'<div class="fitem"><label>供货价</label><input type="number" step="any" data-f="supplyPrice" value="'+esc(it.supplyPrice||'')+'" oninput="payItemCalc('+i+')"><div class="hint">按产品档案自动带出，可手动修改</div></div>'
     +'<div class="fitem"><label>开票价</label><input type="number" step="any" data-f="invoicePrice" value="'+esc(it.invoicePrice||'')+'" oninput="payItemCalc('+i+')"></div>'
     +'<div class="fitem"><label>小计（开票价×数量）</label><input data-f="subtotal" value="'+esc(it.subtotal||'')+'" readonly></div>'
     +'<div class="fitem"><label>返款（(开票价-供货价)×数量）</label><input data-f="refund" value="'+esc(it.refund||'')+'" readonly></div>'
@@ -3096,10 +3109,20 @@ function payItemSel(i,sel){
   it.pid=sel.value;
   var p=findProd(sel.value);
   if(p){
+    if(!it.cat&&(p.cat==='自销'||p.cat==='OEM'))it.cat=p.cat;
     it.name=p.name;it.spec=p.spec||'';it.basePrice=p.basePrice;it.supplyPrice=p.supplyPrice;it.invoicePrice=p.invoicePrice||'';
     itSet(i,'spec',it.spec);itSet(i,'basePrice',it.basePrice||'');itSet(i,'supplyPrice',it.supplyPrice||'');itSet(i,'invoicePrice',it.invoicePrice||'');
   }
   payItemCalc(i);
+}
+/* 产品分类切换：切换后清空已选产品与价格，产品下拉只列该分类 */
+function payItemCatSel(i,sel){
+  var it=PF.items[i];if(!it)return;
+  var v=sel?sel.value:'';
+  if(v!==it.cat){
+    it.cat=v;it.pid='';it.name='';it.spec='';it.basePrice='';it.supplyPrice='';it.invoicePrice='';it.subtotal='';it.refund='';it.rebate='';
+  }
+  payRenderItems();payPreTotals();
 }
 function payItemCalc(i){
   var it=PF.items[i];if(!it)return;
@@ -3121,7 +3144,7 @@ function payItemRebate(i,chk){
 }
 function payDelItem(i){PF.items.splice(i,1);payRenderItems();payPreTotals();}
 function payAddItem(){
-  PF.items.push({pid:'',name:'',spec:'',qty:'',basePrice:'',supplyPrice:'',invoicePrice:'',subtotal:'',refund:'',rebateOn:false,rebatePer:'',rebate:''});
+  PF.items.push({cat:'',pid:'',name:'',spec:'',qty:'',basePrice:'',supplyPrice:'',invoicePrice:'',subtotal:'',refund:'',rebateOn:false,rebatePer:'',rebate:''});
   payRenderItems();
 }
 function payPreTotals(){
@@ -3166,7 +3189,7 @@ function savePayForm(id){
     rec.shipNo='';rec.items=[];rec.rebate=0;
     for(var i=0;i<PF.items.length;i++){
       var it=PF.items[i];if(!it.pid)continue;
-      rec.items.push({pid:it.pid,name:it.name,spec:it.spec,qty:Number(it.qty)||0,basePrice:Number(it.basePrice)||0,
+      rec.items.push({cat:it.cat||'',pid:it.pid,name:it.name,spec:it.spec,qty:Number(it.qty)||0,basePrice:Number(it.basePrice)||0,
         supplyPrice:Number(it.supplyPrice)||0,invoicePrice:Number(it.invoicePrice)||0,subtotal:Number(it.subtotal)||0,
         refund:Number(it.refund)||0,rebateOn:!!it.rebateOn,rebatePer:Number(it.rebatePer)||0,rebate:Number(it.rebate)||0});
       rec.rebate+=Number(it.rebate)||0;
