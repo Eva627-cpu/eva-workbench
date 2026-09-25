@@ -330,6 +330,121 @@ table.matrix tfoot td{font-weight:700;background:#f6f9fc;border-top:2px solid va
 .pay-info th{background:#f3f4f6;font-weight:600}
 .pay-item{border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-bottom:10px}
 .pay-item .fgrid{margin-top:6px}
+/* ================= 可爱线条插画风主题（2026-09-25 整体改版） ================= */
+body{
+  font-family:"Yuanti SC","STYuanti","YouYuan","Varela Round",-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background-color:#fdf9f1;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' fill='none' stroke='%23ddcbab' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='22' cy='26' r='7'/%3E%3Cpath d='M84 14v14M77 21h14'/%3E%3Cpath d='M104 96q6-8 12 0t12 0'/%3E%3Cpath d='M36 102l7 12h-14z'/%3E%3Cpath d='M120 38c3-6 12-3 10 3-1 4-6 7-10 10-4-3-9-6-10-10-2-6 7-9 10-3z'/%3E%3C/svg%3E");
+  background-attachment:fixed;
+  color:#4a3f33;
+}
+/* —— 卡片：奶油底 + 彩色描边 + 贴纸式偏移阴影 —— */
+.card{background:#fffdf8;border:2px solid #e9dcc5;border-radius:18px;box-shadow:0 3px 0 rgba(166,138,99,.18)}
+.card .card-hd{background:transparent;border-bottom:2px dashed #efe3cd;border-radius:16px 16px 0 0}
+.card .card-hd h3{color:#5c4a38;font-weight:700}
+.card .card-hd h3::before{content:"✿";margin-right:7px;font-size:13px;color:var(--accent)}
+.card .card-bd{padding:15px 16px}
+/* —— 首页各卡片不同颜色区分 —— */
+.cx-mint{border-color:#b2dcc3;box-shadow:0 3px 0 #b2dcc3}
+.cx-mint>.card-hd h3{color:#2f8a5e}
+.cx-mint>.card-hd h3::before{color:#5cb88b}
+.cx-sun{border-color:#f0d18a;box-shadow:0 3px 0 #f0d18a}
+.cx-sun>.card-hd h3{color:#a87408}
+.cx-sun>.card-hd h3::before{color:#e8b84b}
+.cx-sky{border-color:#aedcef;box-shadow:0 3px 0 #aedcef}
+.cx-sky>.card-hd h3{color:#2c7ca3}
+.cx-sky>.card-hd h3::before{color:#6db8dd}
+.cx-lav{border-color:#d5c2ef;box-shadow:0 3px 0 #d5c2ef}
+.cx-lav>.card-hd h3{color:#7453b5}
+.cx-lav>.card-hd h3::before{color:#a98bd8}
+.cx-rose{border-color:#f2c1cf;box-shadow:0 3px 0 #f2c1cf}
+.cx-rose>.card-hd h3{color:#c2496e}
+.cx-rose>.card-hd h3::before{color:#e58aa6}
+/* —— 侧边栏 / 底部导航：奶油纸质感 —— */
+.sidebar{background:#fff8ec;color:#6b5a49;border-right:2px solid #ecdcc2;box-shadow:none}
+.sidebar .logo{color:#5c4a38;border-bottom:2px dashed #ecdcc2}
+.sidebar .logo small{color:#b39c7c}
+.nav a{color:#8a7660;border-radius:14px;margin:3px 10px;padding:10px 13px}
+.nav a:hover{background:#f6ead4;color:#5c4a38}
+.nav a.active{background:var(--accent-soft);color:var(--accent-d);border:2px solid var(--accent-g1);box-shadow:none}
+.nav .badge{background:var(--red)}
+.sidebar .foot{color:#b39c7c;border-top:2px dashed #ecdcc2}
+/* —— 顶栏 —— */
+.topbar{background:rgba(253,249,241,.88);border-bottom:2px dashed #ecdcc2}
+.topbar h2{color:#5c4a38}
+.topbar h2::before{content:"✿";width:auto;height:auto;background:none;color:var(--accent);margin-right:7px;vertical-align:1px}
+.topbar .date{color:#a58e6e}
+/* —— 按钮 / 页签：手绘圆角描边 —— */
+.btn{border-radius:999px;border:2px solid #ddc9a8;background:#fffdf8;color:#6b5a49;box-shadow:0 2px 0 #ddc9a8;transition:all .15s}
+.btn:hover{border-color:var(--accent);color:var(--accent-d);box-shadow:0 2px 0 var(--accent-g1);transform:translateY(-1px)}
+.btn.pri{background:linear-gradient(135deg,var(--accent-g1),var(--accent));border-color:var(--accent-d);color:#fff;box-shadow:0 2px 0 var(--accent-d)}
+.btn.pri:hover{background:linear-gradient(135deg,var(--accent),var(--accent-d));color:#fff;filter:brightness(1.04)}
+.btn.sm{border-radius:999px}
+.btn.ghost{background:rgba(255,255,255,.9);border:2px solid #fff;color:#6a4f8f;box-shadow:none}
+.btn.ghost:hover{background:#fff;color:#6a4f8f}
+.tabs span{border:2px solid #ecdcc2;background:#fffdf8;color:#8a7660}
+.tabs span.on{background:linear-gradient(135deg,var(--accent-g1),var(--accent));border-color:var(--accent-d);color:#fff}
+/* —— 表格：奶油表头 + 虚线分隔 —— */
+th{background:#fbf3e2;color:#8a7660;border-bottom:2px dashed #ecdcc2}
+td{border-bottom:1.5px dashed #f0e6d2}
+tr:hover td{background:#fdf3e1}
+tbody tr:nth-child(even) td{background:#fdf7ec}
+tbody tr:nth-child(even):hover td{background:#fdf3e1}
+/* —— 输入框 / 弹窗 —— */
+.search{border-radius:999px;border:2px solid #ecdcc2;background:#fffdf8}
+.fitem input,.fitem select,.fitem textarea{border-radius:12px;border:2px solid #ecdcc2;background:#fffdf8}
+.fitem input:focus,.fitem select:focus,.fitem textarea:focus{border-color:var(--accent);background:#fff}
+.todo-add input{border:2px solid #ecdcc2;background:#fffdf8;border-radius:999px}
+.modal{border:2px solid #e0cfa9;border-radius:22px}
+.mask{background:rgba(88,70,50,.42)}
+.fgroup{border:2px dashed var(--accent-g1)}
+/* —— 图表条形：圆头奶油轨道 —— */
+.bar-row .bt{background:#f4e9d3;border-radius:999px}
+.bar-row .bf{border-radius:999px;background:linear-gradient(90deg,var(--accent-g1),var(--accent))}
+.yw-track{background:#f4e9d3}
+/* —— 首页 Hero 回款卡：柔和紫+手绘虚线圆圈装饰 —— */
+.hero-card{border:2.5px solid #8a63b8;border-radius:24px;box-shadow:0 4px 0 rgba(138,99,184,.35);color:#4b3663;background:linear-gradient(135deg,#efe3fa 0%,#dcc4f0 55%,#c8a4e6 100%)}
+.hero-card::after,.hero-card::before{background:transparent;border:2px dashed rgba(255,255,255,.75)}
+.hero-lb{color:#6a4f8f;opacity:1}
+.hero-target{color:#4b3663}
+.hero-tgt{color:#6a4f8f;opacity:1}
+.hero-badge.ok{background:#fffdf8;color:#2f8a5e}
+.hero-badge.warn{background:rgba(255,255,255,.55);color:#6a4f8f;border:1.5px dashed #8a63b8}
+.hp-track{background:rgba(255,255,255,.65)}
+.hp-fill{background:linear-gradient(90deg,#9d76c9,#7a4fae)}
+.hp-meta{color:#6a4f8f;opacity:1}
+/* —— 移动端（iPhone）整版优化：一屏放下、不出横向滚动条 —— */
+@media(max-width:900px){
+  .sidebar{background:rgba(253,249,241,.96);border-top:2px dashed #ecdcc2;box-shadow:0 -6px 20px rgba(150,120,80,.14)}
+  .nav a.active{background:var(--accent-soft);color:var(--accent-d);border:2px solid var(--accent-g1)}
+  .card .card-hd h3::before{font-size:12px}
+}
+@media(max-width:520px){
+  .content{padding:10px 10px 26px}
+  .card{border-radius:16px;margin-bottom:12px}
+  .card .card-bd{padding:12px}
+  /* 产品一览：收起序号列与底价列，压窄宽度，440px 宽度内完整显示 */
+  .pov-tbl th:nth-child(1),.pov-tbl td:nth-child(1){display:none}
+  .pov-tbl th:nth-child(4),.pov-tbl td:nth-child(4){display:none}
+  .pov-tbl th,.pov-tbl td{padding:5px 4px;font-size:11.5px}
+  .pov-tbl th:nth-child(4),.pov-tbl td:nth-child(4){width:62px}
+  .pov-tbl th:nth-child(5),.pov-tbl td:nth-child(5){width:44px}
+  .pov-tbl th:nth-child(6),.pov-tbl td:nth-child(6){width:64px}
+  .pov-agent{display:none}
+  .pov-net{width:56px;padding:2px 4px;font-size:12px}
+  /* 年度销量条形行收窄 */
+  .yw-name{width:104px;font-size:12px}
+  .yw-name small{font-size:10px}
+  .yw-val{width:68px;font-size:11.5px}
+  /* Hero 回款卡紧凑化 */
+  .hero-card.sm{padding:13px 14px;border-radius:18px}
+  .hero-card.sm .hero-target{font-size:24px}
+  .hp-meta{font-size:11px;gap:10px}
+  .bar-row{font-size:11.5px}
+  .bar-row .bv{width:92px}
+  .topbar h2{font-size:14.5px}
+  .topbar{padding:10px 12px}
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.bootcdn.net/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';document.head.appendChild(s);"></script>
 </head>
@@ -1443,29 +1558,29 @@ function yearPayTrend(){
 function renderDash(c){
   var m=MODULES[0];
   setPage(m,function(root){
+    var h='';
+    h+=dashHero();
+
+    /* 产品一览（薄荷绿卡片） */
+    h+='<div class="card cx-mint"><div class="card-hd"><h3>产品一览</h3></div><div class="card-bd">'+prodOverviewHTML()+'</div></div>';
+
+    /* 待办明细（向日葵黄卡片） */
+    h+='<div class="card cx-sun"><div class="card-hd"><h3>今日待办</h3></div><div class="card-bd">'+todoHTML()+'</div></div>';
+
+    /* 年度动态表：自销 / OEM 分开两张（天蓝 / 薰衣草紫卡片） */
+    h+='<div class="chart-grid">';
+    h+='<div class="card cx-sky"><div class="card-hd"><h3>年度产品销量 · 自销</h3></div><div class="card-bd">'+yearProdWave('自销')+'</div></div>';
+    h+='<div class="card cx-lav"><div class="card-hd"><h3>年度产品销量 · OEM</h3></div><div class="card-bd">'+yearProdWave('OEM')+'</div></div>';
+    h+='</div>';
+    h+='<div class="card cx-rose"><div class="card-hd"><h3>月度回款</h3></div><div class="card-bd">'+yearPayTrend()+'</div></div>';
+
+    /* ===== 预警信息卡片 · 备份（2026-09-25 应要求移除，后期需要恢复时取消下面注释即可） =====
     var al=allAlerts();
     var red=al.filter(function(a){return a.lv==='red';}).length;
     var org=al.filter(function(a){return a.lv==='org';}).length;
     var yel=al.filter(function(a){return a.lv==='yel';}).length;
-
-    var h='';
-    h+=dashHero();
-
-    /* 产品一览 */
-    h+='<div class="card"><div class="card-hd"><h3>产品一览</h3></div><div class="card-bd">'+prodOverviewHTML()+'</div></div>';
-
-    /* 待办明细 */
-    h+='<div class="card"><div class="card-hd"><h3>今日待办</h3></div><div class="card-bd">'+todoHTML()+'</div></div>';
-
-    /* 年度动态表：自销 / OEM 分开两张 */
-    h+='<div class="chart-grid">';
-    h+='<div class="card"><div class="card-hd"><h3>年度产品销量 · 自销</h3></div><div class="card-bd">'+yearProdWave('自销')+'</div></div>';
-    h+='<div class="card"><div class="card-hd"><h3>年度产品销量 · OEM</h3></div><div class="card-bd">'+yearProdWave('OEM')+'</div></div>';
-    h+='</div>';
-    h+='<div class="card"><div class="card-hd"><h3>月度回款</h3></div><div class="card-bd">'+yearPayTrend()+'</div></div>';
-
-    /* 预警信息（放在动态表与回款统计表下面） */
     h+='<div class="card"><div class="card-hd"><h3>预警信息</h3><div class="sp"><span class="tag warn" style="margin-right:6px">红 '+red+'</span><span class="tag pend" style="margin-right:6px">橙 '+org+'</span><span class="tag c2">黄 '+yel+'</span></div></div><div class="card-bd">'+alertsHTML(al)+'</div></div>';
+    ===== 预警信息卡片备份结束 ===== */
 
     if(!db.customers.length&&!db.products.length){
       h+='<div class="card"><div class="card-bd" style="text-align:center"><p style="color:var(--sub);margin-bottom:12px">当前还没有任何数据。请先录入客户和产品，再创建订单。</p><button class="btn pri" onclick="loadDemo()">载入示例数据（了解功能）</button></div></div>';
