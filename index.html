@@ -209,6 +209,10 @@ tbody tr.grp:hover td{background:#f6faff}
 .pov-tag.zx{background:#e8f1fe;color:#1d4ed8}
 .pov-tag.oem{background:#fff3e8;color:#c2570a}
 .pov-agent{font-size:11px;color:var(--sub);margin-left:6px}
+/* 产品一览紧凑表格 */
+.pov-tbl th,.pov-tbl td{padding:5px 8px;font-size:12.5px}
+.pov-net{width:76px;padding:3px 7px;border-radius:8px;border:1px solid #e4eaf2;background:#fbfcfe;font-size:12.5px;text-align:center}
+.pov-net:focus{outline:none;border-color:var(--accent);background:#fff}
 /* 年度产品销量 · 横向条形（重设计） */
 .yw-row{display:flex;align-items:center;gap:10px;padding:5px 6px;cursor:pointer;border-radius:9px;transition:background .15s}
 .yw-row:hover{background:var(--accent-soft)}
@@ -1042,8 +1046,8 @@ function dashHero(){
   return h;
 }
 /* ================= 首页产品一览 ================= */
-/* 字段：产品名称/规格/底价/库存（同产品同规格各批号合计）/订单数量/挂网价格
-   排序：自销（拼音）→ OEM（代理商拼音 → 产品拼音） */
+/* 库存=销售库存各批号合计；订单数量=产品订单中同代理商同产品同规格条数；挂网价格=手改存入产品档案 netPrice */
+function povKey(p){return (p.name||'')+'｜'+(p.spec||'')+'｜'+(p.cat||'')+'｜'+(p.agent||'');}
 function prodOverviewHTML(){
   var stock={};
   for(var i=0;i<db.batches.length;i++){
@@ -1054,49 +1058,57 @@ function prodOverviewHTML(){
   var map={},keys=[];
   for(var j=0;j<db.products.length;j++){
     var p=db.products[j];
-    var key=(p.name||'')+'｜'+(p.spec||'')+'｜'+(p.cat||'');
+    var key=povKey(p);
     var o=map[key];
     if(!o){
-      o={name:p.name||'',spec:p.spec||'',cat:p.cat||'',agent:p.agent||'',
-         basePrice:Number(p.basePrice)||0,
-         net:Number(p.invoicePrice)>0?Number(p.invoicePrice):(Number(p.supplyPrice)||0),
-         stock:0,pids:{},oseen:{},per:prodPerBox(p)};
+      o={_key:key,name:p.name||'',spec:p.spec||'',cat:p.cat||'',agent:p.agent||'',
+         basePrice:Number(p.basePrice)||0,net:(p.netPrice!==undefined&&p.netPrice!==''&&p.netPrice!==null)?Number(p.netPrice):'',
+         stock:0,pids:{},per:prodPerBox(p)};
       map[key]=o;keys.push(key);
     }
     o.stock+=stock[p.id]||0;
     o.pids[p.id]=1;
     if(!o.basePrice&&Number(p.basePrice))o.basePrice=Number(p.basePrice);
-    if(!o.net&&Number(p.supplyPrice))o.net=Number(p.supplyPrice);
   }
-  var pidKey={};
-  for(var k=0;k<keys.length;k++){for(var pid in map[keys[k]].pids)pidKey[pid]=keys[k];}
-  for(var m=0;m<db.orders.length;m++){
-    var od=db.orders[m],kk=pidKey[od.pid];
-    if(kk)map[kk].oseen[od.no]=1;
+  for(var k=0;k<keys.length;k++){
+    var it=map[keys[k]];it.orders=0;it.qty=0;
+    for(var m=0;m<db.prodOrders.length;m++){
+      var po=db.prodOrders[m];
+      if(String(po.agent||'').trim()===String(it.agent).trim()&&po.name===it.name&&po.spec===it.spec){it.orders++;it.qty+=Number(po.qty)||0;}
+    }
   }
   var zx=[],oem=[];
-  for(var k2=0;k2<keys.length;k2++){
-    var it=map[keys[k2]];it.orders=0;for(var no in it.oseen)it.orders++;
-    if(it.cat==='OEM')oem.push(it);else zx.push(it);
-  }
+  for(var k2=0;k2<keys.length;k2++){var it2=map[keys[k2]];if(it2.cat==='OEM')oem.push(it2);else zx.push(it2);}
   zx.sort(function(a,b){return pyCmp(a.name+a.spec,b.name+b.spec);});
   oem.sort(function(a,b){var c=pyCmp(a.agent||'',b.agent||'');return c!==0?c:pyCmp(a.name+a.spec,b.name+b.spec);});
   var rows=zx.concat(oem);
-  if(!rows.length)return '<div class="empty">暂无产品数据，请先到「产品档案」录入产品</div>';
-  var h='<div class="tbl-scroll"><table><thead><tr><th style="width:40px">序号</th><th>产品名称</th><th>产品规格</th><th style="width:76px">底价</th><th style="width:110px">库存（批号合计）</th><th style="width:76px">订单数量</th><th style="width:88px">挂网价格</th></tr></thead><tbody>';
+  if(!rows.length)return '<div class="empty">暂无产品数据</div>';
+  var h='<div class="tbl-scroll"><table class="pov-tbl"><thead><tr><th style="width:38px">序号</th><th>产品名称</th><th>产品规格</th><th style="width:64px">底价</th><th style="width:92px">库存</th><th style="width:64px">订单数量</th><th style="width:96px">挂网价格</th></tr></thead><tbody>';
   for(var r=0;r<rows.length;r++){
     var o3=rows[r];
     var st=o3.stock>0?(Math.floor(o3.stock/o3.per)+'件'+(o3.stock%o3.per)+'盒'):'0';
-    h+='<tr><td>'+(r+1)+'</td>'
+    h+='<tr data-key="'+esc(o3._key)+'"><td>'+(r+1)+'</td>'
       +'<td><span class="pov-tag '+(o3.cat==='OEM'?'oem':'zx')+'">'+esc(o3.cat||'—')+'</span>'+(o3.cat==='OEM'?'<span class="pov-agent">'+esc(o3.agent||'未关联代理商')+'</span>':'')+' '+esc(o3.name)+'</td>'
       +'<td>'+esc(o3.spec)+'</td>'
       +'<td>'+(o3.basePrice?fmtN(o3.basePrice):'—')+'</td>'
       +'<td>'+st+'</td>'
-      +'<td>'+o3.orders+'</td>'
-      +'<td>'+(o3.net?fmtN(o3.net):'—')+'</td></tr>';
+      +'<td title="产品订单合计 '+fmtN(o3.qty)+'">'+o3.orders+'</td>'
+      +'<td><input class="pov-net" type="number" step="any" value="'+(o3.net!==''?o3.net:'')+'" placeholder="—" onchange="povNetSet(this)"></td></tr>';
   }
   h+='</tbody></table></div>';
   return h;
+}
+/* 挂网价格手改：写入产品档案（同产品同规格同代理商的全部记录联动） */
+function povNetSet(el){
+  var tr=el.closest('tr');if(!tr)return;
+  var key=tr.getAttribute('data-key');
+  var v=parseFloat(el.value);
+  var n=0;
+  for(var i=0;i<db.products.length;i++){
+    if(povKey(db.products[i])===key){db.products[i].netPrice=isNaN(v)?'':v;n++;}
+  }
+  if(n)save();
+  el.value=isNaN(v)?'':v;
 }
 function setPayTarget(){
   var cur=Number(db.payTarget)||PAY_TARGET;
@@ -1120,7 +1132,7 @@ function todoHTML(){
   var logOpen=(db.logs||[]).filter(function(l){return !l.done;});
   var logFin=(db.logs||[]).filter(function(l){return l.done;});
   if(devOpen.length||logOpen.length||devFin.length||logFin.length){
-    h+='<div class="sec-title">业务待办 · 自动联动（新品开发 / 工作记录）</div><div class="todo-list">';
+    h+='<div class="sec-title">业务待办</div><div class="todo-list">';
     devOpen.forEach(function(d){
       h+='<div class="todo-item"><span class="todo-box" onclick="toggleDevDone(\''+d.id+'\')"></span><span class="todo-txt" style="cursor:pointer" onclick="cur=\'dev\';render()" title="点击进入新品开发"><span class="tag c2">新品</span> '+esc((d.custName||d.customer||'')+' · '+(d.name||''))+(d.orderDate?'（订单日期 '+d.orderDate+'）':'')+'</span></div>';
     });
@@ -1214,7 +1226,7 @@ function yearProdWave(cat){
   }
   WAVE_CACHE[cat]={year:y,rows:rows};
   var grand=0;for(var g=0;g<rows.length;g++)grand+=rows[g].total;
-  var h='<div class="dyn-tool"><label>年份</label><select onchange="prodYearSel(this)">'+opt+'</select><span class="sub2">'+y+' 年'+esc(cat)+'合计 <b>'+fmtN(grand)+'</b> 件 · '+rows.length+' 个品种'+(grouped?' · '+groups.length+' 个代理商':'')+' · 点击产品行查看明细</span></div>';
+  var h='<div class="dyn-tool"><label>年份</label><select onchange="prodYearSel(this)">'+opt+'</select><span class="sub2">'+y+' 年'+esc(cat)+'合计 <b>'+fmtN(grand)+'</b> 件 · '+rows.length+' 个品种'+(grouped?' · '+groups.length+' 个代理商':'')+' </span></div>';
   if(!rows.length)return h+'<div class="empty">'+y+' 年暂无'+esc(cat)+'发货数据</div>';
   var maxV=1;for(var mm=0;mm<rows.length;mm++)if(rows[mm].total>maxV)maxV=rows[mm].total;
   var rowIdx={};for(var r0=0;r0<rows.length;r0++)rowIdx[rows[r0].p.id]=r0;
@@ -1231,7 +1243,7 @@ function yearProdWave(cat){
     for(var gi=0;gi<groups.length;gi++){
       var col=AG_COLORS[gi%AG_COLORS.length];
       var firstIdx=rowIdx[groups[gi].rows[0].p.id];
-      body+='<div class="yw-ag yw-hit" onclick="waveDetail(\''+cat+'\','+firstIdx+')" title="点击查看该代理商全部产品明细"><i style="background:'+col+'"></i>'+esc(groups[gi].name)+'<span class="sub">合计 <b>'+fmtN(groups[gi].total)+'</b> 件 · '+groups[gi].rows.length+' 个品种 · 点击看明细</span></div>';
+      body+='<div class="yw-ag yw-hit" onclick="waveDetail(\''+cat+'\','+firstIdx+')" title="点击查看该代理商全部产品明细"><i style="background:'+col+'"></i>'+esc(groups[gi].name)+'<span class="sub">合计 <b>'+fmtN(groups[gi].total)+'</b> 件 · '+groups[gi].rows.length+' 个品种</span></div>';
       for(var ri=0;ri<groups[gi].rows.length;ri++)body+=ywBar(groups[gi].rows[ri],col,(gi*0.15+ri*0.05).toFixed(2));
     }
   }else{
@@ -1439,18 +1451,18 @@ function renderDash(c){
     var h='';
     h+=dashHero();
 
-    /* 产品一览：库存 / 价格 / 订单 */
-    h+='<div class="card"><div class="card-hd"><h3>产品一览 · 库存 / 价格 / 订单</h3><div class="sp pov-hd-chip">库存 = 同产品同规格各批号合计 · 自销在前（拼音），OEM 按代理商→产品拼音</div></div><div class="card-bd">'+prodOverviewHTML()+'</div></div>';
+    /* 产品一览 */
+    h+='<div class="card"><div class="card-hd"><h3>产品一览</h3></div><div class="card-bd">'+prodOverviewHTML()+'</div></div>';
 
     /* 待办明细 */
-    h+='<div class="card"><div class="card-hd"><h3>今日待办 · 打卡</h3></div><div class="card-bd">'+todoHTML()+'</div></div>';
+    h+='<div class="card"><div class="card-hd"><h3>今日待办</h3></div><div class="card-bd">'+todoHTML()+'</div></div>';
 
-    /* 年度动态表：自销 / OEM 波浪线分开两张 */
+    /* 年度动态表：自销 / OEM 分开两张 */
     h+='<div class="chart-grid">';
-    h+='<div class="card"><div class="card-hd"><h3>年度产品销量 · 自销（件）</h3></div><div class="card-bd">'+yearProdWave('自销')+'</div></div>';
-    h+='<div class="card"><div class="card-hd"><h3>年度产品销量 · OEM（件）</h3></div><div class="card-bd">'+yearProdWave('OEM')+'</div></div>';
+    h+='<div class="card"><div class="card-hd"><h3>年度产品销量 · 自销</h3></div><div class="card-bd">'+yearProdWave('自销')+'</div></div>';
+    h+='<div class="card"><div class="card-hd"><h3>年度产品销量 · OEM</h3></div><div class="card-bd">'+yearProdWave('OEM')+'</div></div>';
     h+='</div>';
-    h+='<div class="card"><div class="card-hd"><h3>年度月度回款趋势</h3></div><div class="card-bd">'+yearPayTrend()+'</div></div>';
+    h+='<div class="card"><div class="card-hd"><h3>月度回款</h3></div><div class="card-bd">'+yearPayTrend()+'</div></div>';
 
     /* 预警信息（放在动态表与回款统计表下面） */
     h+='<div class="card"><div class="card-hd"><h3>预警信息</h3><div class="sp"><span class="tag warn" style="margin-right:6px">红 '+red+'</span><span class="tag pend" style="margin-right:6px">橙 '+org+'</span><span class="tag c2">黄 '+yel+'</span></div></div><div class="card-bd">'+alertsHTML(al)+'</div></div>';
@@ -1761,16 +1773,17 @@ function openProdForm(id){
   var fields=[
     {key:'cat',label:'产品分类',type:'select',required:true,options:[{v:'自销',t:'自销'},{v:'OEM',t:'OEM'}],onchange:'prodCatChange'},
     {key:'custCat',label:'客户分类',type:'select',onchange:'prodCustCatChg',options:[{v:'省总',t:'省总'},{v:'大包商',t:'大包商'},{v:'零散客户',t:'零散客户'}]},
-    {key:'agent',label:'代理商',datalist:function(){return custDLOpts('agent',curCat);},oninput:'prodAgentChg',hint:'候选为该客户分类下已有代理商，也可手动输入'},
-    {key:'custName',label:'客户名称',datalist:function(){return custDLOpts('company',curCat,curAg);},hint:'候选为该分类、该代理商下已有客户，也可手动输入'},
+    {key:'agent',label:'代理商',datalist:function(){return custDLOpts('agent',curCat);},oninput:'prodAgentChg'},
+    {key:'custName',label:'客户名称',datalist:function(){return custDLOpts('company',curCat,curAg);}},
     {key:'name',label:'产品名称',required:true},
-    {key:'spec',label:'规格',ph:'如 12*2*300',hint:'最后一组数为件装量（如 12*2*300 → 300盒/件），库存和订单数量按此换算件/盒'},
+    {key:'spec',label:'规格',ph:'如 12*2*300'},
     {key:'brand',label:'商标'},
     {key:'basePrice',label:'底价',type:'number'},
     {key:'supplyPrice',label:'供货价',type:'number'},
-    {key:'invoicePrice',label:'开票价',type:'number'}
+    {key:'invoicePrice',label:'开票价',type:'number'},
+    {key:'netPrice',label:'挂网价格',type:'number'}
   ];
-  var vals=r?{cat:(r.cat==='自销'||r.cat==='OEM')?r.cat:'',custCat:r.custCat,agent:r.agent,custName:r.custName,name:r.name,spec:r.spec,brand:r.brand,basePrice:r.basePrice,supplyPrice:r.supplyPrice,invoicePrice:r.invoicePrice}:{};
+  var vals=r?{cat:(r.cat==='自销'||r.cat==='OEM')?r.cat:'',custCat:r.custCat,agent:r.agent,custName:r.custName,name:r.name,spec:r.spec,brand:r.brand,basePrice:r.basePrice,supplyPrice:r.supplyPrice,invoicePrice:r.invoicePrice,netPrice:r.netPrice}:{};
   openForm(id?'编辑产品':'新增产品',fields,vals,function(v){
     if(!v.cat){markErr('cat');alert('请选择产品分类');return;}
     // 件装量：取规格最后一组数（如 12*2*300 → 300盒/件），无法识别时沿用原值/默认40
@@ -2102,16 +2115,16 @@ function openOrderForm(id){
 }
 function renderOrderForm(){
   var h='';
-  h+='<div class="fitem"><label>订单号 <b>*</b></label><input data-k="no" value="'+esc(OF.oldNo)+'" placeholder="手动输入订单号"><div class="hint">手动填写订单号，同一订单号可添加多个产品</div></div>';
+  h+='<div class="fitem"><label>订单号 <b>*</b></label><input data-k="no" value="'+esc(OF.oldNo)+'" placeholder="手动输入订单号"></div>';
   h+='<div class="fitem"><label>客户分类 <b>*</b></label><select data-k="cat" onchange="orderCatSel(this)"><option value="">请选择</option>';
   var cs=['省总','大包商','零散客户'];
   for(var i=0;i<cs.length;i++)h+='<option value="'+cs[i]+'"'+(OF.cat===cs[i]?' selected':'')+'>'+cs[i]+'</option>';
-  h+='</select><div class="hint">选择后带出客户档案中该分类下的代理商</div></div>';
-  h+='<div class="fitem"><label>代理商 <b>*</b></label><select data-k="agent" onchange="orderAgentSel(this)">'+orderAgentOptsHTML(OF.cat,OF.agent)+'</select><div class="hint">选项来自客户档案中该分类下的代理商（按首字母排序）</div></div>';
+  h+='</select></div>';
+  h+='<div class="fitem"><label>代理商 <b>*</b></label><select data-k="agent" onchange="orderAgentSel(this)">'+orderAgentOptsHTML(OF.cat,OF.agent)+'</select></div>';
   var cl=orderCustList(OF.cat,OF.agent);
   h+='<div class="fitem"><label>客户名称 <b>*</b></label><input data-k="custName" list="dl_custName" value="'+esc(OF.custName)+'" placeholder="从列表选择或手动输入下游客户"><datalist id="dl_custName">';
   for(var d=0;d<cl.length;d++)h+='<option value="'+esc(cl[d])+'">';
-  h+='</datalist><div class="hint">候选为客户档案中该分类、该代理商下的客户（按首字母排序），可手动输入</div></div>';
+  h+='</datalist></div>';
   h+='<div class="fitem"><label>发货日期 <b>*</b></label><input type="date" data-k="shipDate" value="'+esc(OF.shipDate)+'"></div>';
   h+='<div class="fgroup">产品明细（可添加多个产品）</div>';
   h+='<div id="ofItems"></div>';
@@ -2267,16 +2280,16 @@ function orderItemHTML(i){
   for(var c=0;c<cats.length;c++)catH+='<option value="'+esc(cats[c][0])+'"'+(it.prodCat===cats[c][0]?' selected':'')+'>'+esc(cats[c][1])+'</option>';
   catH+='</select>';
   return '<div class="pay-item" data-i="'+i+'"><div class="fgrid">'
-    +'<div class="fitem"><label>产品分类</label>'+catH+'<div class="hint">用于筛选下方产品下拉，OEM 再按代理商过滤</div></div>'
+    +'<div class="fitem"><label>产品分类</label>'+catH+'</div>'
     +'<div class="fitem"><label>产品 <b>*</b></label><select data-f="prod" onchange="orderItemSel('+i+',this)">'+opts+'</select><div class="hint" data-f="prodHint">'+orderProdHintHTML(it,src)+'</div></div>'
-    +'<div class="fitem"><label>批号</label><select data-f="batchNo" onchange="orderItemBatchSel('+i+',this)">'+orderBatchOpts(it.pid,it.batchNo)+'</select><div class="hint">选项来自当前库存批次（近效期在前）</div></div>'
+    +'<div class="fitem"><label>批号</label><select data-f="batchNo" onchange="orderItemBatchSel('+i+',this)">'+orderBatchOpts(it.pid,it.batchNo)+'</select></div>'
     +'<div class="fitem"><label>数量（盒）<b>*</b></label><input type="number" step="any" data-f="qty" value="'+esc(it.qty||'')+'" oninput="orderItemCalc('+i+')"><div class="hint" data-f="stockHint"></div></div>'
     +'<div class="fitem"><label>底价（元/盒）</label><input type="number" step="any" data-f="basePrice" value="'+esc(it.basePrice||'')+'" oninput="orderItemCalc('+i+')"></div>'
     +'<div class="fitem"><label>供货价（元/盒）</label><input type="number" step="any" data-f="supplyPrice" value="'+esc(it.supplyPrice||'')+'" oninput="orderItemCalc('+i+')"></div>'
     +'<div class="fitem"><label>开票价（元/盒）</label><input type="number" step="any" data-f="invoicePrice" value="'+esc(it.invoicePrice||'')+'" oninput="orderItemCalc('+i+')"></div>'
-    +'<div class="fitem"><label>金额（开票价×数量）</label><input data-f="amount" value="'+esc(it.amount||'')+'" readonly></div>'
-    +'<div class="fitem"><label>税金（元）</label><input type="number" step="any" data-f="tax" value="'+esc(it.tax||'')+'" oninput="orderItemTaxInput('+i+')"><div class="hint">自动计算可改：开票价高于供货价50%以内×18%＋超出×21%</div></div>'
-    +'<div class="fitem"><label>返款金额（元）</label><input type="number" step="any" data-f="refund" value="'+esc(it.refund||'')+'" oninput="orderItemRefundInput('+i+')"><div class="hint">自动计算可改：＝(开票价−供货价)×数量−税金</div></div>'
+    +'<div class="fitem"><label>金额</label><input data-f="amount" value="'+esc(it.amount||'')+'" readonly></div>'
+    +'<div class="fitem"><label>税金（元）</label><input type="number" step="any" data-f="tax" value="'+esc(it.tax||'')+'" oninput="orderItemTaxInput('+i+')"></div>'
+    +'<div class="fitem"><label>返款金额（元）</label><input type="number" step="any" data-f="refund" value="'+esc(it.refund||'')+'" oninput="orderItemRefundInput('+i+')"></div>'
     +'<div class="fitem full"><label>返利</label><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">'
     +'<label style="display:flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" style="width:16px;height:16px" onchange="orderItemRebate('+i+',this)"'+(it.rebateOn?' checked':'')+'>勾选计算返利</label>'
     +'<span data-f="rebatePerBox" style="display:'+(it.rebateOn?'inline-flex':'none')+';gap:6px;align-items:center">每盒返利 <input type="number" step="any" data-f="rebatePer" style="width:90px" value="'+esc(it.rebatePer||'')+'" oninput="orderItemCalc('+i+')"></span>'
@@ -2975,7 +2988,7 @@ function renderPayForm(){
   h+='<div class="fgroup">客户信息</div>';
   h+='<div class="fitem"><label>客户分类 <b>*</b></label>'+payCatSelect(PF.cat)+'</div>';
   h+='<div class="fitem"><label>代理商 <b>*</b></label><input data-k="agentName" value="'+esc(PF.agentName)+'" list="dl_payAgent" oninput="payCustChg()"><datalist id="dl_payAgent">'+custDLHTML('agent',PF.cat)+'</datalist></div>';
-  h+='<div class="fitem"><label>客户名称 <b>*</b></label><input data-k="custName" value="'+esc(PF.custName)+'" list="dl_payCust" oninput="payCustChg()"><datalist id="dl_payCust">'+custDLHTML('company',PF.cat,PF.agentName)+'</datalist><div class="hint">候选为该代理商下已有客户，也可手动输入新客户名称</div></div>';
+  h+='<div class="fitem"><label>客户名称 <b>*</b></label><input data-k="custName" value="'+esc(PF.custName)+'" list="dl_payCust" oninput="payCustChg()"><datalist id="dl_payCust">'+custDLHTML('company',PF.cat,PF.agentName)+'</datalist></div>';
   h+='<div class="fitem"><label>发票</label><select data-k="invoice">'
     +'<option value="否"'+(PF.invoice!=='是'?' selected':'')+'>否（未开票）</option>'
     +'<option value="是"'+(PF.invoice==='是'?' selected':'')+'>是（已开票）</option></select></div>';
@@ -3032,16 +3045,16 @@ function payShipSecHTML(){
   h+='<div class="fitem full"><label>发货单号 <b>*</b>（可勾选多张单，一笔回款对应多笔订单）</label>'
     +'<input data-k="shipSearch" placeholder="搜索单号 / 客户 / 产品" oninput="payOrderPick()" style="width:100%">'
     +'<div id="payOrderList" style="max-height:190px;overflow:auto;border:1px solid #e2e8f0;border-radius:8px;margin-top:6px;padding:4px"></div>'
-    +'<div class="hint">已按上方客户信息（代理商 / 客户名称）过滤，清空客户名称后显示全部订单；勾选后自动带出产品、数量与价格明细</div></div>';
-  h+='<div class="fitem full"><label>产品明细（自动带出）</label><div id="payShipInfo" class="hint">请先勾选发货单号</div></div>';
+    +'</div>';
+  h+='<div class="fitem full"><label>产品明细</label><div id="payShipInfo" class="hint">请先勾选发货单号</div></div>';
   h+='<div class="fitem full"><label>返利</label><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">'
     +'<label style="display:flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" data-k="rebateOn" style="width:16px;height:16px" onchange="payRebateToggle(this)"'+(PF.rebateOn?' checked':'')+'>勾选计算返利</label>'
     +'<span id="payRebatePerBox" style="display:'+(PF.rebateOn?'inline-flex':'none')+';gap:6px;align-items:center">每盒返利 <input type="number" step="any" data-k="rebatePer" style="width:90px" value="'+esc(PF.rebatePer||'')+'" oninput="payShipCalc()"></span>'
     +'<span style="display:inline-flex;gap:6px;align-items:center">返利金额 <input type="number" step="any" data-k="rebate" readonly style="width:110px" value="'+esc(PF.rebate||'')+'"></span></div></div>';
   h+='<div class="fitem"><label>回款日期 <b>*</b></label><input type="date" data-k="payDate" value="'+esc(PF.payDate)+'"></div>';
-  h+='<div class="fitem"><label>回款金额（元）<b>*</b></label><input type="number" step="any" data-k="amount" value="'+esc(PF.amount)+'" oninput="payAmountInput(this)"><div class="hint">自动＝勾选发货单的产品小计合计，可手动修改；清空后恢复自动</div></div>';
-  h+='<div class="fitem"><label>税金（元）</label><input type="number" step="any" data-k="tax" value="'+esc(PF.tax||'')+'" oninput="payShipTaxInput(this)"><div class="hint">自动＝开票价高于供货价部分50%以内×18%＋超出×21%，可手动修改；清空后恢复自动</div></div>';
-  h+='<div class="fitem"><label>返款金额（元，自动）</label><input type="number" step="any" data-k="refund" readonly value="'+esc(PF.refund||'')+'"></div>';
+  h+='<div class="fitem"><label>回款金额（元）<b>*</b></label><input type="number" step="any" data-k="amount" value="'+esc(PF.amount)+'" oninput="payAmountInput(this)"></div>';
+  h+='<div class="fitem"><label>税金（元）</label><input type="number" step="any" data-k="tax" value="'+esc(PF.tax||'')+'" oninput="payShipTaxInput(this)"></div>';
+  h+='<div class="fitem"><label>返款金额</label><input type="number" step="any" data-k="refund" readonly value="'+esc(PF.refund||'')+'"></div>';
   h+='<div class="fitem full"><label>备注</label><textarea data-k="note">'+esc(PF.note)+'</textarea></div>';
   return h;
 }
@@ -3142,11 +3155,11 @@ function payShipTaxInput(el){
 /* ---- 未发货预付款 ---- */
 function payPreSecHTML(){
   var h='';
-  h+='<div class="fitem full"><label>产品明细（选填）</label><div id="payItems"></div><div style="margin-top:8px"><button type="button" class="btn sm" onclick="payAddItem()">＋ 添加产品</button></div></div>';
+  h+='<div class="fitem full"><label>产品明细</label><div id="payItems"></div><div style="margin-top:8px"><button type="button" class="btn sm" onclick="payAddItem()">＋ 添加产品</button></div></div>';
   h+='<div class="fitem"><label>回款日期 <b>*</b></label><input type="date" data-k="payDate" value="'+esc(PF.payDate)+'"></div>';
-  h+='<div class="fitem"><label>回款金额（元）<b>*</b></label><input type="number" step="any" data-k="amount" value="'+esc(PF.amount)+'" oninput="payAmountInput(this)"><div class="hint">自动＝各产品小计合计，可手动修改；清空后恢复自动</div></div>';
-  h+='<div class="fitem"><label>税金（元）</label><input type="number" step="any" data-k="tax" value="'+esc(PF.tax||'')+'" oninput="payTaxInput(this)"><div class="hint">自动计算可改：开票价高于供货价部分50%以内×18%＋超出×21%；清空后恢复自动</div></div>';
-  h+='<div class="fitem"><label>返款金额（元，自动）</label><input type="number" step="any" data-k="refund" readonly value="'+esc(PF.refund||'')+'"><div class="hint">＝各品种返款合计－税金</div></div>';
+  h+='<div class="fitem"><label>回款金额（元）<b>*</b></label><input type="number" step="any" data-k="amount" value="'+esc(PF.amount)+'" oninput="payAmountInput(this)"></div>';
+  h+='<div class="fitem"><label>税金（元）</label><input type="number" step="any" data-k="tax" value="'+esc(PF.tax||'')+'" oninput="payTaxInput(this)"></div>';
+  h+='<div class="fitem"><label>返款金额</label><input type="number" step="any" data-k="refund" readonly value="'+esc(PF.refund||'')+'"></div>';
   h+='<div class="fitem full"><label>备注</label><textarea data-k="note">'+esc(PF.note)+'</textarea></div>';
   return h;
 }
@@ -3155,7 +3168,7 @@ function itSet(i,f,v){var el=document.querySelector('.pay-item[data-i="'+i+'"] [
 function itShow(i,f,show){var el=document.querySelector('.pay-item[data-i="'+i+'"] [data-f="'+f+'"]');if(el)el.style.display=show?'inline-flex':'none';}
 function payRenderItems(){
   var box=document.getElementById('payItems');if(!box)return;
-  if(!PF.items.length){box.innerHTML='<div class="hint">暂无产品明细，可点击下方"添加产品"录入（选填）</div>';return;}
+  if(!PF.items.length){box.innerHTML='<div class="hint">暂无产品明细</div>';return;}
   var h='';
   for(var i=0;i<PF.items.length;i++)h+=payItemHTML(i);
   box.innerHTML=h;
@@ -3217,15 +3230,15 @@ function payItemHTML(i){
   for(var c=0;c<cats.length;c++)catH+='<option value="'+esc(cats[c])+'"'+(it.cat===cats[c]?' selected':'')+'>'+esc(cats[c])+'</option>';
   catH+='</select>';
   return '<div class="pay-item" data-i="'+i+'"><div class="fgrid">'
-    +'<div class="fitem"><label>产品分类</label>'+catH+'<div class="hint">选定后下方仅列出该分类产品，OEM 再按代理商过滤</div></div>'
+    +'<div class="fitem"><label>产品分类</label>'+catH+'</div>'
     +'<div class="fitem"><label>产品名称</label><select data-f="prod" onchange="payItemSel('+i+',this)">'+opts+'</select><div class="hint" data-f="prodHint">'+payProdHintHTML(it,src)+'</div></div>'
-    +'<div class="fitem"><label>规格（自动）</label><input data-f="spec" value="'+esc(it.spec||'')+'" readonly></div>'
+    +'<div class="fitem"><label>规格</label><input data-f="spec" value="'+esc(it.spec||'')+'" readonly></div>'
     +'<div class="fitem"><label>数量（盒）</label><input type="number" step="any" data-f="qty" value="'+esc(it.qty||'')+'" oninput="payItemCalc('+i+')"></div>'
-    +'<div class="fitem"><label>底价（自动）</label><input data-f="basePrice" value="'+esc(it.basePrice||'')+'" readonly></div>'
-    +'<div class="fitem"><label>供货价</label><input type="number" step="any" data-f="supplyPrice" value="'+esc(it.supplyPrice||'')+'" oninput="payItemCalc('+i+')"><div class="hint">按产品档案自动带出，可手动修改</div></div>'
+    +'<div class="fitem"><label>底价</label><input data-f="basePrice" value="'+esc(it.basePrice||'')+'" readonly></div>'
+    +'<div class="fitem"><label>供货价</label><input type="number" step="any" data-f="supplyPrice" value="'+esc(it.supplyPrice||'')+'" oninput="payItemCalc('+i+')"></div>'
     +'<div class="fitem"><label>开票价</label><input type="number" step="any" data-f="invoicePrice" value="'+esc(it.invoicePrice||'')+'" oninput="payItemCalc('+i+')"></div>'
-    +'<div class="fitem"><label>小计（开票价×数量）</label><input type="number" step="any" data-f="subtotal" value="'+esc(it.subtotal||'')+'" oninput="payItemSubInput('+i+',this)"><div class="hint">自动＝开票价×数量，可手动修改（同一订单分次回款时按本次金额填）；清空后恢复自动</div></div>'
-    +'<div class="fitem"><label>返款（(开票价-供货价)×数量）</label><input data-f="refund" value="'+esc(it.refund||'')+'" readonly></div>'
+    +'<div class="fitem"><label>小计</label><input type="number" step="any" data-f="subtotal" value="'+esc(it.subtotal||'')+'" oninput="payItemSubInput('+i+',this)"></div>'
+    +'<div class="fitem"><label>返款</label><input data-f="refund" value="'+esc(it.refund||'')+'" readonly></div>'
     +'<div class="fitem full"><label>返利</label><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">'
     +'<label style="display:flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" style="width:16px;height:16px" onchange="payItemRebate('+i+',this)"'+(it.rebateOn?' checked':'')+'>勾选计算返利</label>'
     +'<span data-f="rebatePerBox" style="display:'+(it.rebateOn?'inline-flex':'none')+';gap:6px;align-items:center">每盒返利 <input type="number" step="any" data-f="rebatePer" style="width:90px" value="'+esc(it.rebatePer||'')+'" oninput="payItemCalc('+i+')"></span>'
@@ -3492,7 +3505,7 @@ function openLogForm(id){
     {key:'date',label:'日期',type:'date',required:true,def:today()},
     {key:'cat',label:'客户分类',type:'select',required:true,onchange:'logCatChg',options:[{v:'省总',t:'省总'},{v:'大包商',t:'大包商'},{v:'零散客户',t:'零散客户'}]},
     {key:'agent',label:'代理商',datalist:function(){return custDLOpts('agent',curCat);},oninput:'logAgentChg',hint:'候选为该分类下已有代理商，也可手动输入'},
-    {key:'custName',label:'客户名称',required:true,datalist:function(){return custDLOpts('company',curCat,curAg);},hint:'候选为该分类、该代理商下已有客户，也可手动输入'},
+    {key:'custName',label:'客户名称',required:true,datalist:function(){return custDLOpts('company',curCat,curAg);}},
     {key:'item',label:'事项',type:'select',required:true,options:itOpts},
     {key:'content',label:'纪要',full:true,type:'textarea',required:true},
     {key:'planDate',label:'预计完成时间',type:'date'}
@@ -3644,7 +3657,8 @@ function prodColsS(){
     {key:'brand',label:'商标',fmt:function(r){return esc(r.brand||'—');}},
     {key:'basePrice',label:'底价',fmt:function(r){return prodPrice(r,'basePrice');}},
     {key:'supplyPrice',label:'供货价',fmt:function(r){return prodPrice(r,'supplyPrice');}},
-    {key:'invoicePrice',label:'开票价',fmt:function(r){return prodPrice(r,'invoicePrice');}}
+    {key:'invoicePrice',label:'开票价',fmt:function(r){return prodPrice(r,'invoicePrice');}},
+    {key:'netPrice',label:'挂网价格',fmt:function(r){return prodPrice(r,'netPrice');}}
   ];
 }
 function drawProd(){
@@ -3836,7 +3850,7 @@ function openProdoForm(id){
     {key:'cat',label:'产品分类',type:'select',required:true,options:[{v:'自销',t:'自销'},{v:'OEM',t:'OEM'}],onchange:'prodoCatChange'},
     {key:'custCat',label:'客户分类',type:'select',onchange:'prodoCustCatChg',options:[{v:'省总',t:'省总'},{v:'大包商',t:'大包商'},{v:'零散客户',t:'零散客户'}]},
     {key:'agent',label:'代理商',required:true,datalist:function(){return custDLOpts('agent',curCat);},oninput:'prodoAgentChg',hint:'候选为该客户分类下已有代理商，也可手动输入'},
-    {key:'custName',label:'客户名称',required:true,datalist:function(){return custDLOpts('company',curCat,curAg);},hint:'候选为该分类、该代理商下已有客户，也可手动输入'},
+    {key:'custName',label:'客户名称',required:true,datalist:function(){return custDLOpts('company',curCat,curAg);}},
     {key:'name',label:'产品名称',required:true,datalist:function(){var s={};db.products.forEach(function(p){s[p.name]=1;});return pySortArr(Object.keys(s));}},
     {key:'spec',label:'规格',required:true,datalist:function(){var s={};db.products.forEach(function(p){if(p.spec)s[p.spec]=1;});return pySortArr(Object.keys(s));}},
     {key:'qty',label:'订单数量（件）',type:'number'},
@@ -4052,7 +4066,7 @@ function openDevForm(id){
   var fields=[
     {key:'cat',label:'客户分类',type:'select',required:true,onchange:'devCatChg',options:[{v:'省总',t:'省总'},{v:'大包商',t:'大包商'},{v:'零散客户',t:'零散客户'}]},
     {key:'agent',label:'代理商',datalist:function(){return custDLOpts('agent',curCat);},oninput:'devAgentChg',hint:'候选为该分类下已有代理商，也可手动输入'},
-    {key:'custName',label:'客户名称',required:true,datalist:function(){return custDLOpts('company',curCat,curAg);},hint:'候选为该分类、该代理商下已有客户，也可手动输入'},
+    {key:'custName',label:'客户名称',required:true,datalist:function(){return custDLOpts('company',curCat,curAg);}},
     {key:'prodCat',label:'产品分类',type:'select',options:[{v:'自销',t:'自销'},{v:'OEM',t:'OEM'}]},
     {key:'name',label:'产品名称',required:true},
     {key:'preSpec',label:'预选规格',ph:'如 12*2*300'},
@@ -4194,13 +4208,13 @@ function renderSet(c){
   setPage(getMod('set'),function(root){
     var cloudEl=cloudReady?'<span class="tag ok">已连接云端</span>':'<span class="tag warn">未连接</span>';
     root.innerHTML=
-      '<div class="card"><div class="card-hd"><h3>云端同步（多设备自动同步）</h3></div><div class="card-bd">'+
+      '<div class="card"><div class="card-hd"><h3>云端同步</h3></div><div class="card-bd">'+
       '<p style="color:var(--sub);margin-bottom:12px">当前状态：'+cloudEl+'　<span id="setCloudTip"></span></p>'+
       '<p style="color:var(--sub);margin-bottom:12px">数据通过 GitHub Gist 免费同步，任何设备打开工作台都会自动读写同一份数据，刷新即同步，不消耗任何积分。</p>'+
       '<button class="btn" onclick="initCloud();alert(\'正在重新连接云端，请稍候…\')">重新连接云端</button> '+
       '<button class="btn" onclick="var t=prompt(\'输入 GitHub Token（ghp_ 开头；留空则清除本机 Token）\',\'\');if(t){localStorage.setItem(\'gh_token\',t.trim());alert(\'已保存 Token，正在重连…\');initCloud();}else if(t===\'\'){localStorage.removeItem(\'gh_token\');alert(\'已清除本机 Token\');initCloud();}">修改 Token</button>'+
       '</div></div>'+
-      '<div class="card"><div class="card-hd"><h3>数据备份 / 恢复</h3></div><div class="card-bd">'+
+      '<div class="card"><div class="card-hd"><h3>备份恢复</h3></div><div class="card-bd">'+
       '<p style="color:var(--sub);margin-bottom:12px">备份包含全部数据（客户、产品、订单、库存、物流、回款、新品、工作记录及照片）。恢复会覆盖本设备全部数据。</p>'+
       '<button class="btn pri" onclick="backupData()">备份数据（导出JSON）</button> '+
       '<button class="btn" onclick="restoreBackup()">恢复本地自动备份</button> '+
