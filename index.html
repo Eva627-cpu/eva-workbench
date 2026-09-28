@@ -653,7 +653,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20260928e',_verChecking=false;
+var APP_VER='20260928f',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -2372,7 +2372,8 @@ function saveOrderForm(){
   var dup=db.orders.filter(function(x){return x.no===no&&x.no!==OF.oldNo;});
   if(dup.length&&!confirm('订单号 '+no+' 已存在 '+dup.length+' 条产品行，将并入同一订单号下。确定继续？'))return;
   if(OF.oldNo&&orderShipped(OF.oldNo)>0&&!confirm('该订单已有发货记录，修改数量/价格会影响对账数据，确定保存？'))return;
-  for(var j=0;j<items.length;j++){
+  var histOrder=normDate(shipDate)<STOCK_CUTOFF;   /* 历史补录订单（分界日前）不做库存校验、不扣库存 */
+  if(!histOrder)for(var j=0;j<items.length;j++){
     var it2=items[j],avail=stockUnits(it2.pid);
     if(Number(it2.qty)>avail&&!confirm('产品「'+((findProd(it2.pid)||{}).name||'')+'」库存不足！需要 '+it2.qty+' 盒，当前库存 '+avail+' 盒。仍要保存？（可后续发货时处理）'))return;
   }
@@ -2639,7 +2640,7 @@ function importOrderExcel(input){
         if(map[hc])headMap[j]=map[hc];
       }
       var NUM=['qtyBoxes','qtyUnits','basePrice','supplyPrice','invoicePrice','amount','rebate','tax','refund'];
-      var added=0,healed=0,skip=0,skipMsg=[],shortMsg={};
+      var added=0,healed=0,skip=0,histN=0,skipMsg=[],shortMsg={};
       for(var k=headRow+1;k<json.length;k++){
         var rr=json[k];if(!rr)continue;
         var rec={},any=false;
@@ -2671,7 +2672,7 @@ function importOrderExcel(input){
         if(dup){
           /* 已导入过：若该明细尚未生成物流明细，自动补生成并扣减/恢复库存（用于旧版模板导入后的补齐） */
           var sh=db.shipments.filter(function(x){return x.orderNo===dup.no&&x.pid===dup.pid&&x.batchNo===(rec.batchNo||'')&&Number(x.totalUnits)===need;})[0];
-          if(!sh){var shrt=autoShipImported(dup.no,p,rec.batchNo,need,rec.shipDate);if(shrt>0)shortMsg[prodLabel(p)]=1;healed++;}
+          if(!sh){var shrt=autoShipImported(dup.no,p,rec.batchNo,need,rec.shipDate);if(shrt>0)shortMsg[prodLabel(p)]=1;healed++;if(normDate(rec.shipDate)<STOCK_CUTOFF)histN++;}
           else skip++;
           continue;
         }
@@ -2682,6 +2683,7 @@ function importOrderExcel(input){
           payMethod:rec.payMethod||'现款',note:rec.note||''});
         var shrt2=autoShipImported(no,p,rec.batchNo,need,rec.shipDate);
         if(shrt2>0)shortMsg[prodLabel(p)]=1;
+        if(normDate(rec.shipDate)<STOCK_CUTOFF)histN++;
         added++;
       }
       save();
@@ -2689,6 +2691,7 @@ function importOrderExcel(input){
       var msg='';
       if(added)msg+='成功导入 '+added+' 条销售订单，已同步生成物流明细并扣减/恢复库存';
       if(healed)msg+=(msg?'\n':'')+'检测到 '+healed+' 条订单此前已导入但无物流明细，已自动补生成并扣减/恢复库存';
+      if(histN)msg+=(msg?'\n':'')+'其中 '+histN+' 条发货日期早于 '+STOCK_CUTOFF+'，属历史补录：只生成物流明细，不扣减/恢复库存';
       if(skip)msg+=(msg?'\n':'')+'跳过 '+skip+' 条（重复或数据缺失）'+(skipMsg.length?('\n'+skipMsg.slice(0,5).join('\n')):'');
       var sk=Object.keys(shortMsg);
       if(sk.length)msg+='\n注意：以下产品库存不足，未能全额扣减：'+sk.join('、');
@@ -2794,7 +2797,7 @@ function openShipForm(id,preOrderNo){
   var fields=[
     {key:'orderNo',label:'关联订单号',type:'select',required:true,options:function(){
       return pending.concat(db.orders).map(function(o){return {v:o.no,t:o.no+'　'+o.custName+'　'+o.prodLabel};});},onchange:'shipOrderSel(this)'},
-    {key:'shipDate',label:'发货日期',type:'date',required:true,def:today()},
+    {key:'shipDate',label:'发货日期',type:'date',required:true,def:today(),hint:'2026-09-28 起发货自动扣减库存；此日期前属历史补录，不动库存'},
     {key:'prodLabel',label:'药品名称 / 规格',readonly:true,type:'text'},
     {key:'qtyBoxes',label:'发货数量（件）',type:'number',required:true,minZero:true},
     {key:'qtyUnits',label:'发货数量（盒）',type:'number',def:0},
@@ -2811,15 +2814,19 @@ function openShipForm(id,preOrderNo){
     var per=prodPerBox(findProd(o.pid));
     var need=(Number(v.qtyBoxes)||0)*per+(Number(v.qtyUnits)||0);
     if(need<=0){alert('发货数量不能为0');return;}
-    var res=deductStock(o.pid,need);
-    if(res.shortage>0){
-      if(!confirm('库存不足！需发 '+need+' 盒，当前库存仅 '+(need-res.shortage)+' 盒。仍要按库存量发货？'))return;
-      need=need-res.shortage;
-      if(need<=0)return;
-      // 修正数量：按库存盒数折算（件优先）
-      var b2=Math.floor(need/per),u2=need-b2*per;
-      v.qtyBoxes=b2;v.qtyUnits=u2;
+    var hist=normDate(v.shipDate)<STOCK_CUTOFF;   /* 发货日期早于分界日：只记录发货，不扣库存 */
+    var res={log:[],shortage:0};
+    if(!hist){
       res=deductStock(o.pid,need);
+      if(res.shortage>0){
+        if(!confirm('库存不足！需发 '+need+' 盒，当前库存仅 '+(need-res.shortage)+' 盒。仍要按库存量发货？'))return;
+        need=need-res.shortage;
+        if(need<=0)return;
+        // 修正数量：按库存盒数折算（件优先）
+        var b2=Math.floor(need/per),u2=need-b2*per;
+        v.qtyBoxes=b2;v.qtyUnits=u2;
+        res=deductStock(o.pid,need);
+      }
     }
     if(id){
       var old=db.shipments.filter(function(x){return x.id===id;})[0];
@@ -2828,12 +2835,13 @@ function openShipForm(id,preOrderNo){
       markDel(id);
       db.shipments=db.shipments.filter(function(x){return x.id!==id;});
     }
-    applyDeduct(res.log);
+    if(!hist)applyDeduct(res.log);
     var rec={id:uid(),orderNo:v.orderNo,shipDate:v.shipDate,pid:o.pid,prodLabel:o.prodLabel,
       qtyBoxes:v.qtyBoxes,qtyUnits:v.qtyUnits,totalUnits:(Number(v.qtyBoxes)||0)*per+(Number(v.qtyUnits)||0),
-      logistics:v.logistics,tracking:v.tracking,photo:v.photo,deductLog:res.log};
+      logistics:v.logistics,tracking:v.tracking,photo:v.photo,deductLog:hist?[]:res.log};
     db.shipments.push(rec);
     save();closeModal();render();
+    if(hist)alert('发货日期早于 '+STOCK_CUTOFF+'，属历史补录：只生成发货记录，不扣减库存。');
   });
 }
 function shipOrderSel(sel){
@@ -2920,14 +2928,20 @@ function restoreStockBatch(pid,batchNo,units){
   touch(b);
   return [{bid:b.id,units:-units,pid:b.pid,batchNo:b.batchNo||'',expire:b.expire||''}];
 }
-/* 导入订单后自动生成物流明细：数量为正=发货出库（扣库存），为负=退货入库（恢复库存） */
+/* 库存扣减分界：发货日期早于此日的销售订单属历史补录，只生成物流明细、不动当前库存 */
+var STOCK_CUTOFF='2026-09-28';
+/* 导入订单后自动生成物流明细：数量为正=发货出库（扣库存），为负=退货入库（恢复库存）；
+   发货日期早于 STOCK_CUTOFF 的历史订单只生成物流明细，不扣减/恢复库存 */
 function autoShipImported(no,p,batchNo,need,shipDate){
   var per=prodPerBox(p),dl=[],short=0;
-  if(need>0){
-    var res=deductStockBatch(p.id,batchNo,need);
-    applyDeduct(res.log);dl=res.log;short=res.shortage;
-  }else{
-    dl=restoreStockBatch(p.id,batchNo,-need);
+  var hist=normDate(shipDate)<STOCK_CUTOFF;
+  if(!hist){
+    if(need>0){
+      var res=deductStockBatch(p.id,batchNo,need);
+      applyDeduct(res.log);dl=res.log;short=res.shortage;
+    }else{
+      dl=restoreStockBatch(p.id,batchNo,-need);
+    }
   }
   db.shipments.push({id:uid(),orderNo:no,shipDate:shipDate,pid:p.id,prodLabel:prodLabel(p),batchNo:batchNo||'',
     qtyBoxes:need>0?Math.floor(need/per):0,qtyUnits:need>0?(need%per):need,totalUnits:need,
@@ -2967,7 +2981,7 @@ function importShipExcel(input){
         var hc=String(head[j]==null?'':head[j]).trim();
         if(map[hc])headMap[j]=map[hc];
       }
-      var added=0,skip=0,skipMsg=[];
+      var added=0,skip=0,skipMsg=[],histN=0;
       for(var k=headRow+1;k<json.length;k++){
         var rr=json[k];if(!rr)continue;
         var rec={};var any=false;
@@ -2990,19 +3004,22 @@ function importShipExcel(input){
         var boxes=parseFloat(rec.qtyBoxes)||0;
         if(!(boxes>0)){skip++;skipMsg.push('第'+(k+1)+'行：数量（件）缺失');continue;}
         var need=boxes*per;
-        var res=deductStock(o.pid,need);
-        if(res.shortage>0){
-          restoreStock(res.log);
-          skip++;skipMsg.push('第'+(k+1)+'行：库存不足（需 '+need+' 盒），请先入库');continue;
-        }
-        applyDeduct(res.log);
+        var hist=normDate(rec.shipDate)<STOCK_CUTOFF;   /* 历史补录：只生成物流记录，不扣库存 */
+        var log=[];
+        if(!hist){
+          var res=deductStock(o.pid,need);
+          if(res.shortage>0){
+            skip++;skipMsg.push('第'+(k+1)+'行：库存不足（需 '+need+' 盒），请先入库');continue;
+          }
+          applyDeduct(res.log);log=res.log;
+        }else histN++;
         db.shipments.push({id:uid(),orderNo:o.no,shipDate:normDate(rec.shipDate)||today(),pid:o.pid,prodLabel:o.prodLabel,
-          qtyBoxes:boxes,qtyUnits:0,totalUnits:need,logistics:rec.logistics||'',tracking:rec.tracking||'',photo:'',deductLog:res.log});
+          qtyBoxes:boxes,qtyUnits:0,totalUnits:need,logistics:rec.logistics||'',tracking:rec.tracking||'',photo:'',deductLog:log});
         added++;
       }
       save();
       if(input)input.value='';
-      alert(added?('成功导入/更新 '+added+' 条物流记录'+(skip?('，跳过 '+skip+' 条：\n'+skipMsg.slice(0,5).join('\n')):'')):('未导入数据。\n'+(skipMsg.length?skipMsg.slice(0,5).join('\n'):'请检查表格内容')));
+      alert(added?('成功导入/更新 '+added+' 条物流记录'+(histN?('，其中 '+histN+' 条发货日期早于 '+STOCK_CUTOFF+' 属历史补录，不扣库存'):'')+(skip?('，跳过 '+skip+' 条：\n'+skipMsg.slice(0,5).join('\n')):'')):('未导入数据。\n'+(skipMsg.length?skipMsg.slice(0,5).join('\n'):'请检查表格内容')));
       render();
     }catch(e){console.log('导入失败',e);alert('导入失败：'+e.message);}
   };
@@ -3092,11 +3109,11 @@ function payCols(){
     {key:'cat',label:'客户分类',fmt:function(r){return r.cat?custCatTag(r.cat):'—';}},
     {key:'agentName',label:'代理商'},
     {key:'custName',label:'客户名称'},
+    {key:'amount',label:'回款金额',fmt:function(r){return fmtN(r.amount)+' 元';},sumFn:function(rs){return fmtN(sumCol(rs,'amount'));}},
     {key:'name',label:'产品名称'},
     {key:'spec',label:'规格'},
     {key:'supplyPrice',label:'供货价'},
     {key:'invoicePrice',label:'开票单价'},
-    {key:'amount',label:'回款金额',fmt:function(r){return fmtN(r.amount)+' 元';},sumFn:function(rs){return fmtN(sumCol(rs,'amount'));}},
     {key:'rebate',label:'返利金额',fmt:function(r){return fmtN(r.rebate);},sumFn:function(rs){return fmtN(sumCol(rs,'rebate'));}},
     {key:'refund',label:'返款金额',fmt:function(r){return fmtN(r.refund);},sumFn:function(rs){return fmtN(sumCol(rs,'refund'));}},
     {key:'invoice',label:'发票',fmt:function(r){return r.invoice==='是'?'<span class="tag ok">☑</span>':'<span class="tag warn">☒</span>';}},
