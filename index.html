@@ -511,8 +511,24 @@ function localIsEmpty(){
     &&db.prodOrders.length===0&&db.develop.length===0;
 }
 var MERGE_KEYS=['orders','customers','products','batches','payments','shipments','prodOrders','develop','logs','todos'];
+/* 空值判定：''/null/undefined/0 都视为"未填"（本工作台价格与数量字段 0 即未填） */
+function isBlank(v){return v===undefined||v===null||v===''||v===0||v==='0'||(typeof v==='number'&&isNaN(v));}
+/* 字段级补空：本机为空而云端有值的字段，采用云端值（避免"A设备填了字段、B设备本地为空"时永远同步不过来） */
+function fillEmptyFields(local,cloud){
+  var out=local,cloned=false;
+  for(var k in cloud){
+    if(k==='id')continue;
+    if(isBlank(out[k])&&!isBlank(cloud[k])){
+      if(!cloned){out={};for(var kk in local)out[kk]=local[kk];cloned=true;}
+      out[k]=cloud[k];
+    }
+  }
+  return out;
+}
+/* 记录改动打时间戳：表单编辑后调用，供多设备合并判断谁是最新 */
+function touch(o){if(o)o._t=Date.now();return o;}
 /* 多设备安全合并：按 id 取并集，冲突保留记录级 _t 较大者；
-   保证手机/电脑并发录入互不覆盖、记录不丢失（同 id 只保留一边，云端缺失的本地记录会补回云端） */
+   两边都无 _t（历史数据）时逐字段补空，保证手机/电脑任一端填写的字段都能同步过去 */
 function mergeCloud(cloud){
   var any=false;
   MERGE_KEYS.forEach(function(k){
@@ -524,9 +540,11 @@ function mergeCloud(cloud){
       var lr=lm[id],cr=cm[id];
       if(lr&&!cr)out.push(lr);                     // 本地独有：保留（并会随推送回传云端）
       else if(cr&&!lr){out.push(cr);changed=true;} // 云端独有：并入本地
-      else{                                        // 两边都有：取记录级 _t 较大者，都不带 _t 则保留本地
+      else{                                        // 两边都有：先比记录级 _t，无 _t 则字段级补空
         var lt=Number(lr._t)||0,ct=Number(cr._t)||0;
-        if(ct>lt){out.push(cr);changed=true;}else out.push(lr);
+        if(ct>lt){out.push(cr);changed=true;}
+        else if(lt>ct){out.push(lr);}
+        else{var mg=fillEmptyFields(lr,cr);if(mg!==lr)changed=true;out.push(mg);}
       }
     });
     if(changed||out.length!==(db[k]||[]).length){db[k]=out;any=true;}
@@ -1647,7 +1665,7 @@ function openCustForm(id,preAgent){
   var vals=r?{cat:r.cat,agent:r.agent,company:r.company,contact:r.contact,phone:r.phone,addr:r.addr,delivery:r.delivery,mailContact:r.mailContact,mailPhone:r.mailPhone,mailAddr:r.mailAddr,note:r.note}:{cat:preAgent||''};
   openForm(id?'编辑客户':'新增客户',fields,vals,function(v){
     if(id){
-      var o=findCust(id);for(var k in v)o[k]=v[k];
+      var o=findCust(id);for(var k in v)o[k]=v[k];touch(o);
     }else{
       v.id=uid();v.created=today();db.customers.push(v);
     }
@@ -1827,7 +1845,7 @@ function openProdForm(id){
     // 件装量：取规格最后一组数（如 12*2*300 → 300盒/件），无法识别时沿用原值/默认40
     v.perBox=parsePerBox(v.spec)||((r&&r.perBox)||40);
     if(!v.safeStock)v.safeStock=0;
-    if(id){var o=findProd(id);for(var k in v)o[k]=v[k];}
+    if(id){var o=findProd(id);for(var k in v)o[k]=v[k];touch(o);}
     else{v.id=uid();v.created=today();db.products.push(v);}
     save();closeModal();render();
   });
@@ -3410,7 +3428,7 @@ function savePayForm(id){
     rec.rebate=r2(rec.rebate);
     rec.refund=parseFloat(gv('refund'))||0;
   }
-  if(id){var o=db.payments.filter(function(x){return x.id===id;})[0];if(o){for(var k in rec)o[k]=rec[k];}}
+  if(id){var o=db.payments.filter(function(x){return x.id===id;})[0];if(o){for(var k in rec)o[k]=rec[k];touch(o);}}
   else db.payments.push(rec);
   save();closeModal();render();
 }
@@ -3550,7 +3568,7 @@ function openLogForm(id){
   ];
   var vals=r?{date:r.date,cat:r.cat,agent:logAg(r),custName:logCust(r),item:logItem(r),content:r.content,planDate:r.planDate||''}:{date:today(),item:'资料'};
   openForm(id?'编辑记录':'新增工作记录',fields,vals,function(v){
-    if(id){var o=db.logs.filter(function(x){return x.id===id;})[0];for(var k in v)o[k]=v[k];}
+    if(id){var o=db.logs.filter(function(x){return x.id===id;})[0];for(var k in v)o[k]=v[k];touch(o);}
     else{v.id=uid();v.created=today();v.done=false;db.logs.push(v);}
     save();closeModal();render();
   });
@@ -3916,7 +3934,7 @@ function openProdoForm(id){
     // 出货时间：改为已出货自动记录当天，取消出货则清空
     if(v.status==='已出货'){if(!r||!r.shipDate||r.status!=='已出货')v.shipDate=today();}
     else v.shipDate='';
-    if(id){var o=db.prodOrders.filter(function(x){return x.id===id;})[0];for(var k in v)o[k]=v[k];}
+    if(id){var o=db.prodOrders.filter(function(x){return x.id===id;})[0];for(var k in v)o[k]=v[k];touch(o);}
     else{v.id=uid();v.no=newProdoNo();db.prodOrders.push(v);}
     save();closeModal();render();
   });
@@ -4155,7 +4173,7 @@ function openDevForm(id){
   openForm(id?'编辑新品项目':'新增项目',fields,vals,function(v){
     if(!v.cat){markErr('cat');alert('请选择客户分类');return;}
     if(!v.orderDate){markErr('orderDate');alert('请选择订单日期');return;}
-    if(id){var o=db.develop.filter(function(x){return x.id===id;})[0];for(var k in v)o[k]=v[k];}
+    if(id){var o=db.develop.filter(function(x){return x.id===id;})[0];for(var k in v)o[k]=v[k];touch(o);}
     else{v.id=uid();v.done=false;db.develop.push(v);}
     save();closeModal();render();
   });
