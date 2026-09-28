@@ -394,7 +394,8 @@ tbody tr:nth-child(even):hover td{background:#fdf3e1}
   .pov-tbl th:nth-child(4),.pov-tbl td:nth-child(4){display:none}
   .pov-tbl th,.pov-tbl td{padding:5px 1px;font-size:12px;white-space:nowrap}
   .pov-tag{font-size:11px;padding:0 6px}
-  .pov-agent{display:none}
+  /* OEM 代理商名显示在产品名下方（小字一行），保证按代理商分组肉眼可见 */
+  .pov-agent{display:block;font-size:10.5px;margin-left:0;margin-top:1px}
   /* 年度销量条形行收窄 */
   .yw-name{width:104px;font-size:12px}
   .yw-name small{font-size:10px}
@@ -653,7 +654,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20260928b',_verChecking=false;
+var APP_VER='20260928c',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -1026,6 +1027,27 @@ function sortDateAgentCust(rows,dateKey,agFn,cuFn){
 /* 按产品分类（自销→OEM）排序 */
 function prodCatIdx(c){return PROD_CAT_ORDER[c]!==undefined?PROD_CAT_ORDER[c]:9;}
 function custCatIdx(c){return CAT_ORDER[c]!==undefined?CAT_ORDER[c]:9;}
+/* 产品明细比较：产品名称拼音 → 规格数字小到大 */
+function prodNameSpecCmp(nameFn,specFn){
+  return function(a,b){
+    var c=pyCmp(nameFn(a),nameFn(b));
+    if(c)return c;
+    return natCmp(specFn(a),specFn(b));
+  };
+}
+/* 组内细分排序：相邻且 keyFn 相等的行视为一组，仅组内重排（不打乱组间顺序与分组表头） */
+function sortWithinGroups(rows,keyFn,cmp){
+  for(var i=0;i<rows.length;){
+    var j=i+1;
+    while(j<rows.length&&keyFn(rows[j])===keyFn(rows[i]))j++;
+    if(j-i>1){var seg=rows.slice(i,j).sort(cmp);for(var k=0;k<seg.length;k++)rows[i+k]=seg[k];}
+    i=j;
+  }
+  return rows;
+}
+/* 行的产品名称/规格（优先取产品档案，导入老数据无 pid 时回退 prodLabel） */
+function rowProdName(r){var p=findProd(r.pid)||{};return p.name||r.prodLabel||'';}
+function rowProdSpec(r){var p=findProd(r.pid)||{};return p.spec||'';}
 
 /* ================= 弹窗表单引擎 ================= */
 var mFields=[],mSave=null,mPhotoVals={};
@@ -1234,8 +1256,19 @@ function prodOverviewHTML(){
   }
   var zx=[],oem=[];
   for(var k2=0;k2<keys.length;k2++){var it2=map[keys[k2]];if(it2.cat==='OEM')oem.push(it2);else zx.push(it2);}
-  zx.sort(function(a,b){return pyCmp(a.name+a.spec,b.name+b.spec);});
-  oem.sort(function(a,b){var c=pyCmp(a.agent||'',b.agent||'');return c!==0?c:pyCmp(a.name+a.spec,b.name+b.spec);});
+  /* 自销：产品名称拼音 → 规格数字小到大 */
+  zx.sort(function(a,b){var c=pyCmp(a.name,b.name);if(c)return c;return natCmp(a.spec,b.spec);});
+  /* OEM：代理商拼音（未关联的排最后）→ 同代理商内产品名称拼音 → 规格数字小到大 */
+  oem.sort(function(a,b){
+    var a1=(a.agent||'').trim(),b1=(b.agent||'').trim();
+    if(!a1&&b1)return 1;
+    if(!b1&&a1)return -1;
+    var c=pyCmp(a1,b1);
+    if(c)return c;
+    c=pyCmp(a.name,b.name);
+    if(c)return c;
+    return natCmp(a.spec,b.spec);
+  });
   var rows=zx.concat(oem);
   if(!rows.length)return '<div class="empty">暂无产品数据</div>';
   var h='<div class="tbl-scroll"><table class="pov-tbl"><thead><tr><th style="width:38px">序号</th><th>产品名称</th><th>产品规格</th><th style="width:64px">底价</th><th style="width:92px">库存</th><th style="width:72px">订单件数</th><th style="width:72px">挂网价格</th></tr></thead><tbody>';
@@ -2223,6 +2256,8 @@ function drawOrder(){
     function(r){return r.shipDate;},
     function(r){return r.agentName;},
     function(r){return r.custName;});
+  /* 同一订单内多品种：产品名称拼音 → 规格数字小到大（不打乱订单分组） */
+  sortWithinGroups(rows,function(r){return r.no;},prodNameSpecCmp(rowProdName,rowProdSpec));
   document.getElementById('orderTbl').innerHTML=smartTableHTML('order',orderCols(),rows,function(r){
     var btns='<button class="btn sm" onclick="openOrderForm(\''+r.id+'\')">编辑</button>';
     if(orderShipped(r.no)<orderNeed(r))btns+='<button class="btn sm" onclick="openShipForm(null,\''+r.no+'\')">发货</button>';
@@ -2540,6 +2575,7 @@ function exportOrder(){
     function(r){return r.shipDate;},
     function(r){return r.agentName;},
     function(r){return r.custName;});
+  sortWithinGroups(rows,function(r){return r.no;},prodNameSpecCmp(rowProdName,rowProdSpec));
   exportXLS('销售订单',orderCols(),rows);
 }
 /* 销售订单导入 Excel */
@@ -2684,6 +2720,8 @@ function filterShip(){
     function(s){return s.shipDate;},
     function(s){var o=shipOrder(s)||{};return o.agentName||'';},
     function(s){var o=shipOrder(s)||{};return o.custName||'';});
+  /* 同一发货单内多条明细：产品名称拼音 → 规格数字小到大（不打乱发货单分组） */
+  sortWithinGroups(rows,function(s){return s.orderNo;},prodNameSpecCmp(rowProdName,rowProdSpec));
   return rows;
 }
 function shipCols(){
@@ -3817,26 +3855,23 @@ function prodColsS(){
     {key:'netPrice',label:'挂网价格',fmt:function(r){return prodPrice(r,'netPrice');}}
   ];
 }
-function drawProd(){
-  var rows=filterProd().slice().sort(function(a,b){
-    var c1=prodCatIdx(a.cat),c2=prodCatIdx(b.cat);
-    if(c1!==c2)return c1-c2;
-    var g=pyCmp(a.agent,b.agent);
-    if(g)return g;
-    return pyCmp(a.name,b.name);
+/* 产品档案统一排序：分类（自销→OEM）→ 代理商拼音 → 产品名称拼音 → 规格数字小到大 */
+function prodArchiveSort(rows){
+  return rows.slice().sort(function(a,b){
+    var c=prodCatIdx(a.cat)-prodCatIdx(b.cat);if(c)return c;
+    c=pyCmp(a.agent||'',b.agent||'');if(c)return c;
+    c=pyCmp(a.name||'',b.name||'');if(c)return c;
+    return natCmp(a.spec||'',b.spec||'');
   });
+}
+function drawProd(){
+  var rows=prodArchiveSort(filterProd());
   document.getElementById('prodTbl').innerHTML=smartTableHTML('prod',prodColsS(),rows,function(r){
     return actB(r.id,'openProdForm','delProd');
   },drawProd);
 }
 function exportProd(){
-  var rows=smartFiltered('prod',prodColsS(),filterProd()).slice().sort(function(a,b){
-    var c1=prodCatIdx(a.cat),c2=prodCatIdx(b.cat);
-    if(c1!==c2)return c1-c2;
-    var g=pyCmp(a.agent,b.agent);
-    if(g)return g;
-    return pyCmp(a.name,b.name);
-  }),out=[];
+  var rows=prodArchiveSort(smartFiltered('prod',prodColsS(),filterProd())),out=[];
   for(var i=0;i<rows.length;i++){
     var p=rows[i];
     out.push({seq:i+1,cat:p.cat||'',name:p.name||'',spec:p.spec||'',custCat:p.custCat||'',agent:p.agent||'',custName:p.custName||'',brand:p.brand||'',basePrice:prodPrice(p,'basePrice'),supplyPrice:prodPrice(p,'supplyPrice'),invoicePrice:prodPrice(p,'invoicePrice'),netPrice:prodPrice(p,'netPrice')});
@@ -3973,6 +4008,10 @@ function drawProdo(){
     function(r){return r.date;},
     function(r){return r.agent||'';},
     function(r){return r.custName||'';});
+  /* 同日期同代理商同客户内：产品名称拼音 → 规格数字小到大 */
+  sortWithinGroups(rows,
+    function(r){return (r.date||'')+'｜'+(r.agent||'')+'｜'+(r.custName||'');},
+    prodNameSpecCmp(function(r){return r.name||'';},function(r){return r.spec||'';}));
   document.getElementById('prodoTbl').innerHTML=smartTableHTML('prodo',prodoColsS(),rows,function(r){
     return actB(r.id,'openProdoForm','delProdo');
   },drawProdo);
@@ -3983,6 +4022,9 @@ function exportProdo(){
     function(r){return r.date;},
     function(r){return r.agent||'';},
     function(r){return r.custName||'';});
+  sortWithinGroups(rows,
+    function(r){return (r.date||'')+'｜'+(r.agent||'')+'｜'+(r.custName||'');},
+    prodNameSpecCmp(function(r){return r.name||'';},function(r){return r.spec||'';}));
   var out=[];
   for(var i=0;i<rows.length;i++){
     var o=rows[i];
