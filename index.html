@@ -392,8 +392,8 @@ tbody tr:nth-child(even):hover td{background:#fdf3e1}
   /* 产品一览：收起序号/底价列；除名称格（分类一行+名称一行）外全部单行不换行，整表不出横向滚动条 */
   .pov-tbl th:nth-child(1),.pov-tbl td:nth-child(1),
   .pov-tbl th:nth-child(4),.pov-tbl td:nth-child(4){display:none}
-  .pov-tbl th,.pov-tbl td{padding:5px 2px;font-size:11.5px;white-space:nowrap}
-  .pov-tag{font-size:10.5px;padding:0 6px}
+  .pov-tbl th,.pov-tbl td{padding:5px 1px;font-size:12px;white-space:nowrap}
+  .pov-tag{font-size:11px;padding:0 6px}
   .pov-agent{display:none}
   /* 年度销量条形行收窄 */
   .yw-name{width:104px;font-size:12px}
@@ -408,9 +408,12 @@ tbody tr:nth-child(even):hover td{background:#fdf3e1}
   .topbar h2{font-size:14.5px;white-space:nowrap}
   .topbar{padding:10px 12px}
 }
-/* 窄屏（≤375px）：产品一览字号再降一档，保证不出横向滚动条 */
+/* 窄屏逐级降档：≤375px 与 ≤360px，保证不出横向滚动条 */
 @media(max-width:375px){
-  .pov-tbl th,.pov-tbl td{font-size:10.5px}
+  .pov-tbl th,.pov-tbl td{font-size:11.5px}
+}
+@media(max-width:360px){
+  .pov-tbl th,.pov-tbl td{font-size:11px}
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.bootcdn.net/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';document.head.appendChild(s);"></script>
@@ -650,7 +653,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20260928a',_verChecking=false;
+var APP_VER='20260928b',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
