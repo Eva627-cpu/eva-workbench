@@ -1097,6 +1097,8 @@ function submitModal(){
       if(!el)continue;
       v=el.value;
       vals[f.key]=(f.type==='number')?(parseFloat(v)||0):v;
+      /* 被联动隐藏的字段（如自销产品订单的客户分类/代理商/客户名称）不参与必填校验 */
+      if(el.parentNode&&el.parentNode.classList&&el.parentNode.classList.contains('fitem')&&el.parentNode.style.display==='none')continue;
     }
     var empty=(v===''||v==null)||(f.type==='number'&&f.required&&(!v||v===0)&&f.minZero!==false);
     if(f.required&&f.type!=='number'&&empty){markErr(f.key);ok=false;continue;}
@@ -3970,14 +3972,15 @@ function openProdoForm(id){
   var r=id?db.prodOrders.filter(function(x){return x.id===id;})[0]:null;
   var stOpts=[];for(var i=0;i<PRODO_STATUS.length;i++)stOpts.push({v:PRODO_STATUS[i],t:PRODO_STATUS[i]});
   var curCat=r?(r.custCat||''):'',curAg=r?r.agent:'';
+  PRODO_FCAT=r?(r.cat||''):'';PRODO_FNAME=r?(r.name||''):'';
   var fields=[
     {key:'date',label:'订单日期',type:'date',required:true,def:today()},
     {key:'cat',label:'产品分类',type:'select',required:true,options:[{v:'自销',t:'自销'},{v:'OEM',t:'OEM'}],onchange:'prodoCatChange'},
     {key:'custCat',label:'客户分类',type:'select',onchange:'prodoCustCatChg',options:[{v:'省总',t:'省总'},{v:'大包商',t:'大包商'},{v:'零散客户',t:'零散客户'}]},
     {key:'agent',label:'代理商',required:true,datalist:function(){return custDLOpts('agent',curCat);},oninput:'prodoAgentChg',hint:'候选为该客户分类下已有代理商，也可手动输入'},
     {key:'custName',label:'客户名称',required:true,datalist:function(){return custDLOpts('company',curCat,curAg);}},
-    {key:'name',label:'产品名称',required:true,datalist:function(){var s={};db.products.forEach(function(p){s[p.name]=1;});return pySortArr(Object.keys(s));}},
-    {key:'spec',label:'规格',required:true,datalist:function(){var s={};db.products.forEach(function(p){if(p.spec)s[p.spec]=1;});return pySortArr(Object.keys(s));}},
+    {key:'name',label:'产品名称',required:true,datalist:function(){return prodoNameOpts(PRODO_FCAT);},oninput:'prodoNameChg',hint:'候选只列出所选产品分类下的产品'},
+    {key:'spec',label:'规格',required:true,datalist:function(){return prodoSpecOpts(PRODO_FCAT,PRODO_FNAME);}},
     {key:'qty',label:'订单数量（件）',type:'number'},
     {key:'amount',label:'订单金额',type:'number'},
     {key:'prepaid',label:'预付款金额',type:'number'},
@@ -4006,10 +4009,38 @@ function openProdoForm(id){
     else{v.id=uid();v.no=newProdoNo();db.prodOrders.push(v);}
     save();closeModal();render();
   });
-  prodoCatChange(document.querySelector('[data-k="cat"]'));
+  prodoCatChange(document.querySelector('[data-k="cat"]'),true);
   prodoStatusChange(document.querySelector('[data-k="status"]'));
 }
-/* 分类联动：自销隐藏 客户分类/代理商/客户名称/订单金额/预付款金额；OEM 显示 */
+/* 产品订单表单：产品名称 / 规格候选严格限定在「当前所选产品分类」范围内（选自销不出现 OEM，反之亦然） */
+var PRODO_FCAT='',PRODO_FNAME='';
+function prodoCatProds(cat){return db.products.filter(function(p){return p.cat===cat;});}
+function prodoNameOpts(cat){
+  var s={};prodoCatProds(cat).forEach(function(p){if(p.name)s[p.name]=1;});
+  return pySortArr(Object.keys(s));
+}
+function prodoSpecOpts(cat,name){
+  var s={};prodoCatProds(cat).forEach(function(p){if(p.spec&&(!name||p.name===name))s[p.spec]=1;});
+  return pySortArr(Object.keys(s));
+}
+function prodoFillProdOpts(catChanged){
+  var selEl=document.querySelector('#mBody select[data-k="cat"]');
+  var cat=selEl?selEl.value:PRODO_FCAT;
+  PRODO_FCAT=cat;
+  var nmEl=document.querySelector('#mBody input[data-k="name"]');
+  var spEl=document.querySelector('#mBody input[data-k="spec"]');
+  var nm=nmEl?String(nmEl.value||'').trim():'';
+  /* 切换分类后，已填的产品名称/规格若不属于新分类则清空，避免张冠李戴 */
+  if(catChanged&&nm&&!prodoCatProds(cat).some(function(p){return p.name===nm;})){nmEl.value='';nm='';}
+  var dln=document.getElementById('dl_name');
+  if(dln)dln.innerHTML=prodoNameOpts(cat).map(function(x){return '<option value="'+esc(x)+'">';}).join('');
+  if(nm&&spEl&&spEl.value&&!prodoCatProds(cat).some(function(p){return p.name===nm&&p.spec===spEl.value;}))spEl.value='';
+  var dls=document.getElementById('dl_spec');
+  if(dls)dls.innerHTML=prodoSpecOpts(cat,nm).map(function(x){return '<option value="'+esc(x)+'">';}).join('');
+}
+/* 选定产品名称 → 规格候选只保留该产品在该分类下的规格 */
+function prodoNameChg(el){prodoFillProdOpts(false);}
+/* 分类联动：自销隐藏 客户分类/代理商/客户名称/订单金额/预付款金额；OEM 显示；同时刷新产品/规格候选 */
 function prodoCatChange(sel){
   var cat=sel?sel.value:'';
   function toggle(key,show){
@@ -4022,6 +4053,8 @@ function prodoCatChange(sel){
   toggle('custName',oem);
   toggle('amount',oem);
   toggle('prepaid',oem);
+  PRODO_FCAT=cat;
+  prodoFillProdOpts(!arguments[1]);
 }
 /* 生产订单客户联动：客户分类 → 代理商 → 客户名称 */
 function prodoCustCatChg(sel){
