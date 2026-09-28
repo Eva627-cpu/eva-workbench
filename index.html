@@ -203,8 +203,6 @@ tbody tr.grp:hover td{background:#f6faff}
 .pov-agent{font-size:11px;color:var(--sub);margin-left:6px}
 /* 产品一览紧凑表格 */
 .pov-tbl th,.pov-tbl td{padding:5px 8px;font-size:12.5px}
-.pov-net{width:76px;padding:3px 7px;border-radius:8px;border:1px solid #e4eaf2;background:#fbfcfe;font-size:12.5px;text-align:center}
-.pov-net:focus{outline:none;border-color:var(--accent);background:#fff}
 /* 年度产品销量 · 横向条形（重设计） */
 .yw-row{display:flex;align-items:center;gap:10px;padding:5px 6px;cursor:pointer;border-radius:9px;transition:background .15s}
 .yw-row:hover{background:var(--accent-soft)}
@@ -397,7 +395,6 @@ tbody tr:nth-child(even):hover td{background:#fdf3e1}
   .pov-tbl th,.pov-tbl td{padding:5px 2px;font-size:9.5px;white-space:nowrap}
   .pov-tag{font-size:9px;padding:0 5px}
   .pov-agent{display:none}
-  .pov-net{width:40px;padding:2px;font-size:9.5px}
   /* 年度销量条形行收窄 */
   .yw-name{width:104px;font-size:12px}
   .yw-name small{font-size:10px}
@@ -1085,7 +1082,7 @@ function dashHero(){
   return h;
 }
 /* ================= 首页产品一览 ================= */
-/* 库存=销售库存各批号合计；订单数量=产品订单中同代理商同产品同规格条数；挂网价格=手改存入产品档案 netPrice */
+/* 库存=销售库存各批号合计；订单件数=产品订单中同代理商同产品同规格合计件数；挂网价格=自动取「产品档案」里的挂网价格（只读展示） */
 function povKey(p){return (p.name||'')+'｜'+(p.spec||'')+'｜'+(p.cat||'')+'｜'+(p.agent||'');}
 function prodOverviewHTML(){
   var stock={};
@@ -1101,13 +1098,14 @@ function prodOverviewHTML(){
     var o=map[key];
     if(!o){
       o={_key:key,name:p.name||'',spec:p.spec||'',cat:p.cat||'',agent:p.agent||'',
-         basePrice:Number(p.basePrice)||0,net:(p.netPrice!==undefined&&p.netPrice!==''&&p.netPrice!==null)?Number(p.netPrice):'',
-         stock:0,pids:{},per:prodPerBox(p)};
+         basePrice:0,net:'',stock:0,pids:{},per:prodPerBox(p)};
       map[key]=o;keys.push(key);
     }
     o.stock+=stock[p.id]||0;
     o.pids[p.id]=1;
     if(!o.basePrice&&Number(p.basePrice))o.basePrice=Number(p.basePrice);
+    /* 同产品同规格同代理商可能有多条档案，挂网价格取第一条已填写的值 */
+    if(o.net===''&&p.netPrice!==undefined&&p.netPrice!==''&&p.netPrice!==null&&!isNaN(Number(p.netPrice)))o.net=Number(p.netPrice);
   }
   /* 产品订单合计（总件数）：一次索引分三档键——分类+名称+规格（自销按此匹配，自销订单无代理商）、
      分类+名称+规格+代理商（OEM 按此匹配），避免嵌套扫描 */
@@ -1133,7 +1131,7 @@ function prodOverviewHTML(){
   oem.sort(function(a,b){var c=pyCmp(a.agent||'',b.agent||'');return c!==0?c:pyCmp(a.name+a.spec,b.name+b.spec);});
   var rows=zx.concat(oem);
   if(!rows.length)return '<div class="empty">暂无产品数据</div>';
-  var h='<div class="tbl-scroll"><table class="pov-tbl"><thead><tr><th style="width:38px">序号</th><th>产品名称</th><th>产品规格</th><th style="width:64px">底价</th><th style="width:92px">库存</th><th style="width:72px">订单件数</th><th style="width:96px">挂网价格</th></tr></thead><tbody>';
+  var h='<div class="tbl-scroll"><table class="pov-tbl"><thead><tr><th style="width:38px">序号</th><th>产品名称</th><th>产品规格</th><th style="width:64px">底价</th><th style="width:92px">库存</th><th style="width:72px">订单件数</th><th style="width:72px">挂网价格</th></tr></thead><tbody>';
   for(var r=0;r<rows.length;r++){
     var o3=rows[r];
     var st=o3.stock>0?(Math.floor(o3.stock/o3.per)+'件'+(o3.stock%o3.per)+'盒'):'0';
@@ -1143,22 +1141,10 @@ function prodOverviewHTML(){
       +'<td>'+(o3.basePrice?fmtN(o3.basePrice):'—')+'</td>'
       +'<td>'+st+'</td>'
       +'<td title="'+o3.orders+' 笔产品订单，合计 '+fmtN(o3.qty)+' 件">'+(o3.qty>0?fmtN(o3.qty):'—')+'</td>'
-      +'<td><input class="pov-net" type="number" step="any" value="'+(o3.net!==''?o3.net:'')+'" placeholder="—" onchange="povNetSet(this)"></td></tr>';
+      +'<td>'+(o3.net!==''?fmtN(o3.net):'—')+'</td></tr>';
   }
   h+='</tbody></table></div>';
   return h;
-}
-/* 挂网价格手改：写入产品档案（同产品同规格同代理商的全部记录联动） */
-function povNetSet(el){
-  var tr=el.closest('tr');if(!tr)return;
-  var key=tr.getAttribute('data-key');
-  var v=parseFloat(el.value);
-  var n=0;
-  for(var i=0;i<db.products.length;i++){
-    if(povKey(db.products[i])===key){db.products[i].netPrice=isNaN(v)?'':v;n++;}
-  }
-  if(n)save();
-  el.value=isNaN(v)?'':v;
 }
 function setPayTarget(){
   var cur=Number(db.payTarget)||PAY_TARGET;
@@ -3700,11 +3686,11 @@ function filterProd(){
 function prodColsS(){
   return [
     {key:'cat',label:'产品分类',fmt:function(r){return prodCatTag(r.cat);}},
+    {key:'name',label:'产品名称'},
+    {key:'spec',label:'规格'},
     {key:'custCat',label:'客户分类',fmt:function(r){return r.custCat?custCatTag(r.custCat):'—';}},
     {key:'agent',label:'代理商',fmt:function(r){return esc(r.agent||'—');}},
     {key:'custName',label:'客户名称',fmt:function(r){return esc(r.custName||'—');}},
-    {key:'name',label:'产品名称'},
-    {key:'spec',label:'规格'},
     {key:'brand',label:'商标',fmt:function(r){return esc(r.brand||'—');}},
     {key:'basePrice',label:'底价',fmt:function(r){return prodPrice(r,'basePrice');}},
     {key:'supplyPrice',label:'供货价',fmt:function(r){return prodPrice(r,'supplyPrice');}},
@@ -3734,12 +3720,12 @@ function exportProd(){
   }),out=[];
   for(var i=0;i<rows.length;i++){
     var p=rows[i];
-    out.push({seq:i+1,cat:p.cat||'',custCat:p.custCat||'',agent:p.agent||'',custName:p.custName||'',name:p.name||'',spec:p.spec||'',brand:p.brand||'',basePrice:prodPrice(p,'basePrice'),supplyPrice:prodPrice(p,'supplyPrice'),invoicePrice:prodPrice(p,'invoicePrice')});
+    out.push({seq:i+1,cat:p.cat||'',name:p.name||'',spec:p.spec||'',custCat:p.custCat||'',agent:p.agent||'',custName:p.custName||'',brand:p.brand||'',basePrice:prodPrice(p,'basePrice'),supplyPrice:prodPrice(p,'supplyPrice'),invoicePrice:prodPrice(p,'invoicePrice'),netPrice:prodPrice(p,'netPrice')});
   }
   exportXLS('产品档案',[
-    {key:'seq',label:'序号'},{key:'cat',label:'产品分类'},{key:'custCat',label:'客户分类'},{key:'agent',label:'代理商'},{key:'custName',label:'客户名称'},
-    {key:'name',label:'产品名称'},{key:'spec',label:'规格'},{key:'brand',label:'商标'},
-    {key:'basePrice',label:'底价'},{key:'supplyPrice',label:'供货价'},{key:'invoicePrice',label:'开票价'}
+    {key:'seq',label:'序号'},{key:'cat',label:'产品分类'},{key:'name',label:'产品名称'},{key:'spec',label:'规格'},
+    {key:'custCat',label:'客户分类'},{key:'agent',label:'代理商'},{key:'custName',label:'客户名称'},{key:'brand',label:'商标'},
+    {key:'basePrice',label:'底价'},{key:'supplyPrice',label:'供货价'},{key:'invoicePrice',label:'开票价'},{key:'netPrice',label:'挂网价格'}
   ],out);
 }
 /* 产品导入 Excel（支持模板 .xlsx 与导出的 .xls） */
@@ -3758,13 +3744,13 @@ function importProdExcel(input){
         if(row.join(',').indexOf('产品分类')>=0||row.join(',').indexOf('产品名称')>=0){headRow=i;break;}
       }
       if(headRow<0){alert('未识别到表头，请先点击"模板"下载模板按格式填写');return;}
-      var map={'产品分类':'cat','客户分类':'custCat','代理商':'agent','客户名称':'custName','产品名称':'name','规格':'spec','商标':'brand','底价':'basePrice','供货价':'supplyPrice','开票价':'invoicePrice'};
+      var map={'产品分类':'cat','客户分类':'custCat','代理商':'agent','客户名称':'custName','产品名称':'name','规格':'spec','商标':'brand','底价':'basePrice','供货价':'supplyPrice','开票价':'invoicePrice','挂网价格':'netPrice'};
       var head=json[headRow];
       for(var j=0;j<head.length;j++){
         var hc=String(head[j]==null?'':head[j]).trim();
         if(map[hc])headMap[j]=map[hc];
       }
-      var NUM=['basePrice','supplyPrice','invoicePrice'];
+      var NUM=['basePrice','supplyPrice','invoicePrice','netPrice'];
       var added=0,skip=0,skipMsg=[];
       for(var k=headRow+1;k<json.length;k++){
         var rr=json[k];if(!rr)continue;
@@ -3791,10 +3777,10 @@ function importProdExcel(input){
 }
 /* 下载产品档案导入模板 */
 function downProdTpl(){
-  var headers=['产品分类','客户分类','代理商','客户名称','产品名称','规格','商标','底价','供货价','开票价'];
+  var headers=['产品分类','产品名称','规格','客户分类','代理商','客户名称','商标','底价','供货价','开票价','挂网价格'];
   var examples=[
-    ['自销','省总','示例代理商医药有限公司','示例客户（连锁总部）','阿莫西林胶囊','0.25g*24粒','XX制药',8.5,'',''],
-    ['OEM','大包商','示例代理商医药有限公司','示例客户（商业公司）','复方感冒灵颗粒','10g*9袋','YY药业','',7.5,9.0]
+    ['自销','阿莫西林胶囊','0.25g*24粒','省总','示例代理商医药有限公司','示例客户（连锁总部）','XX制药',8.5,'','',''],
+    ['OEM','复方感冒灵颗粒','10g*9袋','大包商','示例代理商医药有限公司','示例客户（商业公司）','YY药业','',7.5,9.0,11.5]
   ];
   if(window.XLSX){
     var ws=XLSX.utils.aoa_to_sheet([headers].concat(examples));
