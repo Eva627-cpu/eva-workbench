@@ -379,8 +379,9 @@ tbody tr:nth-child(even):hover td{background:#fdf3e1}
   .sidebar{background:rgba(253,249,241,.96);border-top:2px dashed #ecdcc2;box-shadow:0 -6px 20px rgba(150,120,80,.14)}
   /* 底部导航：模块名称（销售订单/回款明细等）始终一行显示，不换行 */
   .nav a{padding:8px 6px;margin:0;white-space:nowrap;min-width:72px}
-  /* 产品一览：渠道标签（自销/OEM）单独一行，产品具体名称单独一行 */
-  .pov-tag{display:block;width:-moz-fit-content;width:fit-content;margin-bottom:3px}
+  /* 产品一览：渠道标签（自销/OEM）与代理商名同一行，产品具体名称单独一行 */
+  .pov-tag{display:inline-block;margin-bottom:3px}
+  .pov-agent{display:inline;font-size:10.5px;margin-left:4px;vertical-align:1px}
   .pov-name{display:block}
   .nav a.active{background:var(--accent-soft);color:var(--accent-d);border:2px solid var(--accent-g1)}
   .card .card-hd h3::before{font-size:12px}
@@ -394,8 +395,6 @@ tbody tr:nth-child(even):hover td{background:#fdf3e1}
   .pov-tbl th:nth-child(4),.pov-tbl td:nth-child(4){display:none}
   .pov-tbl th,.pov-tbl td{padding:5px 1px;font-size:12px;white-space:nowrap}
   .pov-tag{font-size:11px;padding:0 6px}
-  /* OEM 代理商名显示在产品名下方（小字一行），保证按代理商分组肉眼可见 */
-  .pov-agent{display:block;font-size:10.5px;margin-left:0;margin-top:1px}
   /* 年度销量条形行收窄 */
   .yw-name{width:104px;font-size:12px}
   .yw-name small{font-size:10px}
@@ -654,7 +653,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20260928d',_verChecking=false;
+var APP_VER='20260928e',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -1907,11 +1906,19 @@ function renderStock(c){
     document.getElementById('stockSearch').oninput=drawStock;
   });
 }
-/* 库存排序：产品分类（自销→OEM）→ 产品名称（拼音首字母）→ 规格（数字小→大）→ 批号（数字小→大） */
+/* 库存排序：产品分类（自销→OEM）→ 产品名称（拼音首字母）→ 规格（数字小→大）→ 批号（数字小→大）
+   OEM 段额外先按 代理商 → 客户名称（未关联代理商的排该段最后） */
 function stockSort(rows){
   return rows.slice().sort(function(a,b){
     var pa=findProd(a.pid)||{},pb=findProd(b.pid)||{};
     var c=prodCatIdx(pa.cat)-prodCatIdx(pb.cat);if(c)return c;
+    if(pa.cat==='OEM'){
+      var aa=String(pa.agent||'').trim(),ab=String(pb.agent||'').trim();
+      if(!aa&&ab)return 1;
+      if(!ab&&aa)return -1;
+      c=pyCmp(aa,ab);if(c)return c;
+      c=pyCmp(pa.custName,pb.custName);if(c)return c;
+    }
     c=pyCmp(pa.name,pb.name);if(c)return c;
     c=natCmp(pa.spec,pb.spec);if(c)return c;
     return natCmp(a.batchNo,b.batchNo);
@@ -2013,12 +2020,12 @@ function openInForm(bid){
   var bp=b?findProd(b.pid):null;
   var fields=[
     {key:'cat',label:'产品分类',type:'select',required:true,options:[{v:'自销',t:'自销'},{v:'OEM',t:'OEM'}],onchange:'stockCatSel'},
-    {key:'pid',label:'产品名称',type:'select',required:true,options:[],onchange:'stockProdSel',hint:'只列出产品档案中与所选分类一致的产品'},
+    {key:'agent',label:'代理商',datalist:function(){return stockAgentOpts('OEM');},oninput:'stockAgentChg',hint:'选定代理商后，产品名称只列该代理商负责的产品（自销无代理商）'},
+    {key:'pid',label:'产品名称',type:'select',required:true,options:[],onchange:'stockProdSel',hint:'只列出产品档案中与所选分类/代理商一致的产品'},
     {key:'spec',label:'规格',readonly:true},
     {key:'totalUnits',label:'数量（总盒数）',type:'number',required:true,minZero:true,ph:'如 1000',hint:'按件装量自动换算为 x件y盒'},
     {key:'batchNo',label:'批号',required:true},
     {key:'expire',label:'有效期至',type:'date',required:true},
-    {key:'agent',label:'代理商',readonly:true},
     {key:'brand',label:'商标',readonly:true},
     {key:'note',label:'备注',full:true}
   ];
@@ -2039,41 +2046,65 @@ function openInForm(bid){
     }
     save();closeModal();render();
   });
-  // 初始化：按分类填充产品下拉，并联动自动字段
-  stockCatSel(document.querySelector('[data-k="cat"]'));
-  if(b){var ps=document.querySelector('[data-k="pid"]');if(ps)ps.value=b.pid;}
-  stockProdSel(document.querySelector('[data-k="pid"]'));
-  var qtyEl=document.querySelector('[data-k="totalUnits"]');
+  // 初始化：分类 → 自销隐藏代理商/OEM 给候选 → 重建产品下拉 → 编辑时回填原记录
+  stockCatSel(formEl('cat'));
+  if(b&&formEl('pid'))formEl('pid').value=b.pid;
+  stockProdSel(formEl('pid'));
+  var qtyEl=formEl('totalUnits');
   if(qtyEl)qtyEl.oninput=stockCalcQty;
   stockCalcQty();
 }
-/* 分类切换 → 重建产品下拉（只显示该分类产品） */
+/* 入库表单：代理商候选（产品档案该分类下的代理商 + 客户档案里的代理商） */
+function stockAgentOpts(cat){
+  var seen={},out=[];
+  function add(v){v=String(v==null?'':v).trim();if(!v||seen[v])return;seen[v]=1;out.push(v);}
+  db.products.forEach(function(p){if((p.cat||'')===cat)add(p.agent);});
+  custDLOpts('agent',cat).forEach(add);
+  out.sort(pyCmp);
+  return out;
+}
+/* 分类切换 → 刷新代理商候选（自销隐藏代理商字段）→ 重建产品下拉 */
 function stockCatSel(sel){
   var cat=sel?sel.value:'';
-  var pidSel=document.querySelector('[data-k="pid"]');
+  formToggle('agent',cat==='OEM');
+  var dl=document.getElementById('dl_agent');
+  if(dl)dl.innerHTML=stockAgentOpts(cat).map(function(v){return '<option value="'+esc(v)+'">';}).join('');
+  stockAgentChg(formEl('agent'),true);
+}
+/* 代理商变化 → 重建产品名称下拉（OEM 只列该代理商负责的产品；未填代理商时列该分类全部） */
+function stockAgentChg(el,keep){
+  var catSel=formEl('cat'),cat=catSel?catSel.value:'';
+  var ag=el?String(el.value||'').trim():'';
+  var pidSel=formEl('pid');
   if(!pidSel)return;
+  var old=keep?pidSel.value:'';
   pidSel.innerHTML='<option value="">请选择</option>';
-  db.products.filter(function(p){return p.cat===cat;}).forEach(function(p){
+  db.products.forEach(function(p){
+    if((p.cat||'')!==cat)return;
+    if(cat==='OEM'&&ag&&String(p.agent||'').trim()!==ag)return;
     var o=document.createElement('option');
     o.value=p.id;
     o.textContent=p.name+(p.spec?'（'+p.spec+'）':'');
     pidSel.appendChild(o);
   });
+  if(old)pidSel.value=old;
   stockProdSel(pidSel);
 }
-/* 选择产品 → 自动带出规格/代理商/商标并刷新数量换算 */
+/* 选择产品 → 自动带出规格/商标（代理商与档案不一致时才回填）并刷新数量换算 */
 function stockProdSel(sel){
   var p=findProd(sel?sel.value:'');
-  function set(k,v){var el=document.querySelector('[data-k="'+k+'"]');if(el)el.value=v||'';}
-  set('spec',p?p.spec:'');
-  set('agent',p?p.agent:'');
-  set('brand',p?p.brand:'');
+  var specEl=formEl('spec'),brandEl=formEl('brand'),agEl=formEl('agent');
+  if(specEl)specEl.value=p?p.spec||'':'';
+  if(p){
+    if(brandEl)brandEl.value=p.brand||'';
+    if(agEl&&String(p.agent||'').trim())agEl.value=p.agent;
+  }
   stockCalcQty();
 }
 /* 数量换算：总盒数/件装量 → 整数件 + 剩余盒 */
 function stockCalcQty(){
-  var pidSel=document.querySelector('[data-k="pid"]');
-  var qtyEl=document.querySelector('[data-k="totalUnits"]');
+  var pidSel=formEl('pid');
+  var qtyEl=formEl('totalUnits');
   if(!qtyEl)return;
   var hintEl=qtyEl.parentNode?qtyEl.parentNode.querySelector('.hint'):null;
   var p=pidSel?findProd(pidSel.value):null;
