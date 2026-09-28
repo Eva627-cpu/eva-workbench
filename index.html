@@ -654,7 +654,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20260928c',_verChecking=false;
+var APP_VER='20260928d',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -1254,8 +1254,13 @@ function prodOverviewHTML(){
     else hit=poByCat[(it.cat||'')+'|'+it.name+'|'+it.spec];
     it.orders=hit?hit.orders:0;it.qty=hit?hit.qty:0;
   }
+  /* 自销产品：未填挂网价格的不上首页一览（OEM 不受影响） */
   var zx=[],oem=[];
-  for(var k2=0;k2<keys.length;k2++){var it2=map[keys[k2]];if(it2.cat==='OEM')oem.push(it2);else zx.push(it2);}
+  for(var k2=0;k2<keys.length;k2++){
+    var it2=map[keys[k2]];
+    if(it2.cat==='OEM')oem.push(it2);
+    else if(Number(it2.net)>0)zx.push(it2);
+  }
   /* 自销：产品名称拼音 → 规格数字小到大 */
   zx.sort(function(a,b){var c=pyCmp(a.name,b.name);if(c)return c;return natCmp(a.spec,b.spec);});
   /* OEM：代理商拼音（未关联的排最后）→ 同代理商内产品名称拼音 → 规格数字小到大 */
