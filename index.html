@@ -416,6 +416,11 @@ tbody tr:nth-child(even):hover td{background:#fdf3e1}
 /* —— 移动端（iPhone）整版优化：一屏放下、不出横向滚动条 —— */
 @media(max-width:900px){
   .sidebar{background:rgba(253,249,241,.96);border-top:2px dashed #ecdcc2;box-shadow:0 -6px 20px rgba(150,120,80,.14)}
+  /* 底部导航：模块名称（销售订单/回款明细等）始终一行显示，不换行 */
+  .nav a{padding:8px 6px;margin:0;white-space:nowrap;min-width:72px}
+  /* 产品一览：渠道标签（自销/OEM）单独一行，产品具体名称单独一行 */
+  .pov-tag{display:block;width:-moz-fit-content;width:fit-content;margin-bottom:3px}
+  .pov-name{display:block}
   .nav a.active{background:var(--accent-soft);color:var(--accent-d);border:2px solid var(--accent-g1)}
   .card .card-hd h3::before{font-size:12px}
 }
@@ -427,9 +432,10 @@ tbody tr:nth-child(even):hover td{background:#fdf3e1}
   .pov-tbl th:nth-child(1),.pov-tbl td:nth-child(1){display:none}
   .pov-tbl th:nth-child(4),.pov-tbl td:nth-child(4){display:none}
   .pov-tbl th,.pov-tbl td{padding:5px 4px;font-size:11.5px}
+  .pov-tbl th:nth-child(2),.pov-tbl td:nth-child(2){min-width:94px}
   .pov-tbl th:nth-child(4),.pov-tbl td:nth-child(4){width:62px}
   .pov-tbl th:nth-child(5),.pov-tbl td:nth-child(5){width:44px}
-  .pov-tbl th:nth-child(6),.pov-tbl td:nth-child(6){width:64px}
+  .pov-tbl th:nth-child(6),.pov-tbl td:nth-child(6){width:56px}
   .pov-agent{display:none}
   .pov-net{width:56px;padding:2px 4px;font-size:12px}
   /* 年度销量条形行收窄 */
@@ -442,7 +448,7 @@ tbody tr:nth-child(even):hover td{background:#fdf3e1}
   .hp-meta{font-size:11px;gap:10px}
   .bar-row{font-size:11.5px}
   .bar-row .bv{width:92px}
-  .topbar h2{font-size:14.5px}
+  .topbar h2{font-size:14.5px;white-space:nowrap}
   .topbar{padding:10px 12px}
 }
 </style>
@@ -697,11 +703,13 @@ function getMod(key){for(var i=0;i<MODULES.length;i++)if(MODULES[i].key===key)re
 var cur='dash', viewState={};
 
 function renderNav(){
+  /* 首页红色预警角标 · 已随首页预警卡片一并下线（2026-09-28），恢复时取消下面两行注释即可
   var alerts=allAlerts();
   var n=alerts.filter(function(a){return a.lv==='red'||a.lv==='org';}).length;
+  */
   var h='';
   MODULES.forEach(function(m){
-    var b=(m.key==='dash'&&n>0)?'<span class="badge">'+n+'</span>':'';
+    var b='';
     h+='<a data-k="'+m.key+'" class="'+(cur===m.key?'active':'')+'"><span class="nav-ic">'+m.i+'</span><span>'+m.name+'</span>'+b+'</a>';
   });
   document.getElementById('nav').innerHTML=h;
@@ -712,8 +720,11 @@ function setPage(m,cb){
   renderNav();
   document.getElementById('pageTitle').textContent=m.name;
   document.getElementById('todayStr').textContent=today()+' 星期'+'日一二三四五六'[new Date().getDay()];
+  /* 顶部红色预警提示 · 已随首页预警卡片一并下线（2026-09-28），恢复时取消下面两行注释即可
   var al=allAlerts();var red=al.filter(function(a){return a.lv==='red';}).length;
   document.getElementById('alertTips').innerHTML=red>0?'<b onclick="cur=\'dash\';render();">'+red+' 项红色预警，点击查看</b>':'当前无红色预警';
+  */
+  document.getElementById('alertTips').innerHTML='';
   cb(document.getElementById('content'));
 }
 function render(){
@@ -1203,7 +1214,7 @@ function prodOverviewHTML(){
     var o3=rows[r];
     var st=o3.stock>0?(Math.floor(o3.stock/o3.per)+'件'+(o3.stock%o3.per)+'盒'):'0';
     h+='<tr data-key="'+esc(o3._key)+'"><td>'+(r+1)+'</td>'
-      +'<td><span class="pov-tag '+(o3.cat==='OEM'?'oem':'zx')+'">'+esc(o3.cat||'—')+'</span>'+(o3.cat==='OEM'?'<span class="pov-agent">'+esc(o3.agent||'未关联代理商')+'</span>':'')+' '+esc(o3.name)+'</td>'
+      +'<td><span class="pov-tag '+(o3.cat==='OEM'?'oem':'zx')+'">'+esc(o3.cat||'—')+'</span>'+(o3.cat==='OEM'?'<span class="pov-agent">'+esc(o3.agent||'未关联代理商')+'</span>':'')+'<span class="pov-name">'+esc(o3.name)+'</span></td>'
       +'<td>'+esc(o3.spec)+'</td>'
       +'<td>'+(o3.basePrice?fmtN(o3.basePrice):'—')+'</td>'
       +'<td>'+st+'</td>'
@@ -1258,7 +1269,7 @@ function todoHTML(){
       var isDev=db.develop.indexOf(x)>=0;
       h+='<div class="todo-item done"><span class="todo-box" onclick="'+(isDev?'toggleDevDone':'toggleLogDone')+'(\''+x.id+'\')">✓</span><span class="todo-txt">'+(isDev?esc((x.custName||x.customer||'')+' · '+(x.name||'')):esc((x.custName||x.customer||'')+' · '+(x.item||x.type||'其他')))+'</span></div>';
     });
-    h+='</div><div class="tbl-foot">业务待办来自「新品开发 / 工作记录」未完成内容，点击方格打对号，点击文字进入对应模块</div>';
+    h+='</div>';
   }
   /* ---- 手动今日待办 ---- */
   h+='<div class="todo-add" style="margin-top:10px"><input id="todoInput" placeholder="添加今日待办…" onkeydown="if(event.key===\'Enter\')addTodo()"><button class="btn pri sm" onclick="addTodo()">添加</button></div>';
@@ -1270,7 +1281,6 @@ function todoHTML(){
     h+='<div class="todo-item'+(t.done?' done':'')+'"><span class="todo-box" onclick="toggleTodo(\''+t.id+'\')">'+(t.done?'✓':'')+'</span><span class="todo-txt">'+esc(t.text)+'</span>'+(t.done?'<span class="todo-del" onclick="delTodo(\''+t.id+'\')">删除</span>':'')+'</div>';
   }
   h+='</div>';
-  h+='<div class="tbl-foot">点击方格打卡，完成后置灰沉底，第二天自动清理</div>';
   return h;
 }
 function toggleDevDone(id){
