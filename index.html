@@ -649,6 +649,36 @@ function autoPull(){
 setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
+/* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
+var APP_VER='20260928a',_verChecking=false;
+function checkVer(){
+  if(_verChecking||!/github\.io$/.test(location.hostname))return;
+  _verChecking=true;
+  fetch(location.href.split('#')[0].replace(/\?.*$/,'')+'?v='+Date.now(),{cache:'no-store'})
+    .then(function(r){return r.text();})
+    .then(function(t){
+      _verChecking=false;
+      var m=t.match(/APP_VER=['"]([^'"]+)['"]/);
+      if(!m||m[1]===APP_VER)return;
+      /* 弹窗打开时不能直接刷新（会打断填写），改为提示条 */
+      var mask=document.getElementById('mask');
+      if(mask&&mask.classList.contains('show')){
+        if(!document.getElementById('verToast')){
+          var d=document.createElement('div');d.id='verToast';d.onclick=function(){location.reload();};
+          d.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:86px;background:#1d4ed8;color:#fff;padding:9px 16px;border-radius:999px;font-size:13px;box-shadow:0 6px 18px rgba(0,0,0,.2);z-index:9999;cursor:pointer;white-space:nowrap';
+          d.textContent='工作台已更新，点此刷新';
+          document.body.appendChild(d);
+        }
+        return;
+      }
+      setTimeout(function(){location.reload();},800);
+    })
+    .catch(function(){_verChecking=false;});
+}
+setInterval(checkVer,120000);
+window.addEventListener('pageshow',function(e){if(e.persisted)checkVer();});
+document.addEventListener('visibilitychange',function(){if(!document.hidden)checkVer();});
+checkVer();
 function pushRow(){
   db._t=Date.now();
   return fetch(GIST_URL,{
