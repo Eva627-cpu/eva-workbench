@@ -113,7 +113,12 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .flt-pop .flt-input{width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;margin-bottom:7px}
 .flt-pop .flt-input:focus{outline:none;border-color:var(--blue)}
 .flt-pop .row{display:flex;gap:6px;align-items:center;justify-content:space-between}
+/* 列表横向滚动：滚动条常显（macOS 默认隐藏导致"滚轮不能用"的观感）；电脑端单元格单行不换行，宽表横向滚动 */
 .tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+.tbl-scroll::-webkit-scrollbar{height:9px}
+.tbl-scroll::-webkit-scrollbar-thumb{background:#d9c9ac;border-radius:8px}
+.tbl-scroll::-webkit-scrollbar-track{background:transparent}
+@media(min-width:901px){.tbl-scroll td{white-space:nowrap}}
 /* ================= 苹果风增强：马卡龙渐变 / 毛玻璃 / 圆角 / 移动端 ================= */
 html,body{max-width:100%;overflow-x:hidden}
 body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","SF Pro Text","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;background:linear-gradient(180deg,#f5f8fc 0%,#edf2f8 100%);-webkit-font-smoothing:antialiased}
@@ -386,16 +391,13 @@ tbody tr:nth-child(even):hover td{background:#fdf3e1}
   .content{padding:10px 10px 26px}
   .card{border-radius:16px;margin-bottom:12px}
   .card .card-bd{padding:12px}
-  /* 产品一览：收起序号列与底价列，压窄宽度，440px 宽度内完整显示 */
-  .pov-tbl th:nth-child(1),.pov-tbl td:nth-child(1){display:none}
+  /* 产品一览：收起序号/底价列；除名称格（分类一行+名称一行）外全部单行不换行，整表不出横向滚动条 */
+  .pov-tbl th:nth-child(1),.pov-tbl td:nth-child(1),
   .pov-tbl th:nth-child(4),.pov-tbl td:nth-child(4){display:none}
-  .pov-tbl th,.pov-tbl td{padding:5px 4px;font-size:11.5px}
-  .pov-tbl th:nth-child(2),.pov-tbl td:nth-child(2){min-width:94px}
-  .pov-tbl th:nth-child(4),.pov-tbl td:nth-child(4){width:62px}
-  .pov-tbl th:nth-child(5),.pov-tbl td:nth-child(5){width:44px}
-  .pov-tbl th:nth-child(6),.pov-tbl td:nth-child(6){width:56px}
+  .pov-tbl th,.pov-tbl td{padding:5px 2px;font-size:9.5px;white-space:nowrap}
+  .pov-tag{font-size:9px;padding:0 5px}
   .pov-agent{display:none}
-  .pov-net{width:56px;padding:2px 4px;font-size:12px}
+  .pov-net{width:40px;padding:2px;font-size:9.5px}
   /* 年度销量条形行收窄 */
   .yw-name{width:104px;font-size:12px}
   .yw-name small{font-size:10px}
@@ -3845,14 +3847,14 @@ function prodoV(r,key){
 }
 function prodoColsS(){
   return [
-    {key:'custCat',label:'客户分类',fmt:function(r){return r.custCat?custCatTag(r.custCat):'—';}},
-    {key:'agent',label:'代理商',fmt:function(r){return esc(r.agent||'—');}},
-    {key:'custName',label:'客户名称',fmt:function(r){return esc(r.custName||'—');}},
     {key:'date',label:'订单日期',fmt:function(r){return esc(r.date||'—');}},
     {key:'cat',label:'产品分类',fmt:function(r){return r.cat?'<span class="tag '+(r.cat==='自销'?'c3':'c2')+'">'+esc(r.cat)+'</span>':'—';}},
     {key:'name',label:'产品名称',fmt:function(r){return esc(r.name||'—');}},
     {key:'spec',label:'规格',fmt:function(r){return esc(r.spec||'—');}},
-    {key:'qty',label:'订单数量（件）',fmt:function(r){return Number(r.qty)>0?fmtN(r.qty):'—';},sumFn:function(rs){return fmtN(sumCol(rs,'qty'));}},
+    {key:'qty',label:'订单数量',fmt:function(r){return Number(r.qty)>0?fmtN(r.qty):'—';},sumFn:function(rs){return fmtN(sumCol(rs,'qty'));}},
+    {key:'custCat',label:'客户分类',fmt:function(r){return r.custCat?custCatTag(r.custCat):'—';}},
+    {key:'agent',label:'代理商',fmt:function(r){return esc(r.agent||'—');}},
+    {key:'custName',label:'客户名称',fmt:function(r){return esc(r.custName||'—');}},
     {key:'amount',label:'订单金额',fmt:function(r){return prodoV(r,'amount');},sumFn:function(rs){return fmtN(sumCol(rs,'amount'));}},
     {key:'prepaid',label:'预付款金额',fmt:function(r){return prodoV(r,'prepaid');},sumFn:function(rs){return fmtN(sumCol(rs,'prepaid'));}},
     {key:'status',label:'订单进展',fmt:function(r){return prodoStatusTag(r.status);}},
@@ -3879,12 +3881,12 @@ function exportProdo(){
   var out=[];
   for(var i=0;i<rows.length;i++){
     var o=rows[i];
-    out.push({seq:i+1,custCat:o.custCat||'',agent:o.agent||'',custName:o.custName||'',date:o.date||'',cat:o.cat||'',name:o.name||'',spec:o.spec||'',qty:Number(o.qty)>0?o.qty:'',
-      amount:prodoV(o,'amount'),prepaid:prodoV(o,'prepaid'),status:o.status||'',process:o.process||'',shipDate:o.shipDate||''});
+    out.push({seq:i+1,date:o.date||'',cat:o.cat||'',name:o.name||'',spec:o.spec||'',qty:Number(o.qty)>0?o.qty:'',
+      custCat:o.custCat||'',agent:o.agent||'',custName:o.custName||'',amount:prodoV(o,'amount'),prepaid:prodoV(o,'prepaid'),status:o.status||'',process:o.process||'',shipDate:o.shipDate||''});
   }
   exportXLS('产品订单',[
-    {key:'seq',label:'序号'},{key:'custCat',label:'客户分类'},{key:'agent',label:'代理商'},{key:'custName',label:'客户名称'},{key:'date',label:'订单日期'},
-    {key:'cat',label:'产品分类'},{key:'name',label:'产品名称'},{key:'spec',label:'规格'},{key:'qty',label:'订单数量（件）'},
+    {key:'seq',label:'序号'},{key:'date',label:'订单日期'},{key:'cat',label:'产品分类'},{key:'name',label:'产品名称'},{key:'spec',label:'规格'},{key:'qty',label:'订单数量'},
+    {key:'custCat',label:'客户分类'},{key:'agent',label:'代理商'},{key:'custName',label:'客户名称'},
     {key:'amount',label:'订单金额'},{key:'prepaid',label:'预付款金额'},{key:'status',label:'订单进展'},
     {key:'process',label:'工序'},{key:'shipDate',label:'出货时间'}
   ],out);
@@ -3904,7 +3906,7 @@ function openProdoForm(id){
     {key:'custName',label:'客户名称',required:true,datalist:function(){return custDLOpts('company',curCat,curAg);}},
     {key:'name',label:'产品名称',required:true,datalist:function(){return prodoNameOpts(PRODO_FCAT);},oninput:'prodoNameChg',hint:'候选只列出所选产品分类下的产品'},
     {key:'spec',label:'规格',required:true,datalist:function(){return prodoSpecOpts(PRODO_FCAT,PRODO_FNAME);}},
-    {key:'qty',label:'订单数量（件）',type:'number'},
+    {key:'qty',label:'订单数量',type:'number'},
     {key:'amount',label:'订单金额',type:'number'},
     {key:'prepaid',label:'预付款金额',type:'number'},
     {key:'status',label:'订单进展',type:'select',required:true,options:stOpts,onchange:'prodoStatusChange'},
@@ -4017,7 +4019,7 @@ function importProdoExcel(input){
         if(row.join(',').indexOf('产品分类')>=0||row.join(',').indexOf('订单日期')>=0){headRow=i;break;}
       }
       if(headRow<0){alert('未识别到表头，请先点击"模板"下载模板按格式填写');return;}
-      var map={'客户分类':'custCat','代理商':'agent','客户名称':'custName','订单日期':'date','产品分类':'cat','产品名称':'name','规格':'spec','订单数量（件）':'qty','订单数量(件)':'qty','订单金额':'amount','预付款金额':'prepaid','订单进展':'status','工序':'process','出货时间':'shipDate'};
+      var map={'客户分类':'custCat','代理商':'agent','客户名称':'custName','订单日期':'date','产品分类':'cat','产品名称':'name','规格':'spec','订单数量':'qty','订单数量（件）':'qty','订单数量(件)':'qty','订单金额':'amount','预付款金额':'prepaid','订单进展':'status','工序':'process','出货时间':'shipDate'};
       var head=json[headRow];
       for(var j=0;j<head.length;j++){
         var hc=String(head[j]==null?'':head[j]).trim();
@@ -4060,10 +4062,10 @@ function importProdoExcel(input){
 }
 /* 下载产品订单导入模板 */
 function downProdoTpl(){
-  var headers=['客户分类','代理商','客户名称','订单日期','产品分类','产品名称','规格','订单数量（件）','订单金额','预付款金额','订单进展','工序','出货时间'];
+  var headers=['订单日期','产品分类','产品名称','规格','订单数量','客户分类','代理商','客户名称','订单金额','预付款金额','订单进展','工序','出货时间'];
   var examples=[
-    ['','','','2026-08-28','自销','鹿胎膏','10g*2袋',100,'','','未投产','',''],
-    ['省总','示例代理商医药有限公司','示例客户（商业公司）','2026-08-28','OEM','五福化毒丸','6g*2板*3小盒',200,15000,5000,'已投产','制粒','']
+    ['2026-08-28','自销','鹿胎膏','10g*2袋',100,'','','','','','未投产','',''],
+    ['2026-08-28','OEM','五福化毒丸','6g*2板*3小盒',200,'省总','示例代理商医药有限公司','示例客户（商业公司）',15000,5000,'已投产','制粒','']
   ];
   if(window.XLSX){
     var ws=XLSX.utils.aoa_to_sheet([headers].concat(examples));
