@@ -11,31 +11,18 @@
   --red:#e0656b;--green:#5eb98c;--orange:#e8935a;
   --accent:#6f9f9a;--accent-d:#57827d;--accent-soft:#e3f0ee;--accent-g1:#a8d8d0;--accent-g2:#7fb8b0;
   --shadow:0 2px 10px rgba(60,80,110,.06),0 10px 30px rgba(60,80,110,.07);
-  --shadow-lg:0 12px 40px rgba(60,80,110,.16);
-  --r:16px;--r-sm:10px;
-  --side-w:208px;
+  --r:16px;
 }
-body[data-mod="dash"]{--accent:#b395d6;--accent-d:#9678ba;--accent-soft:#f7f1fb;--accent-g1:#ddc6ec;--accent-g2:#c3a5dd}
-body[data-mod="cust"]{--accent:#93accd;--accent-d:#7790b0;--accent-soft:#eff4f9;--accent-g1:#c1d6ec;--accent-g2:#a4bfdf}
-body[data-mod="prod"]{--accent:#cba2b5;--accent-d:#ad8597;--accent-soft:#faf1f4;--accent-g1:#e8c9d5;--accent-g2:#d5abc1}
-body[data-mod="prodo"]{--accent:#aea0d7;--accent-d:#9182b9;--accent-soft:#f3f0fa;--accent-g1:#d2c6ec;--accent-g2:#b8a9de}
-body[data-mod="stock"]{--accent:#9db888;--accent-d:#7f9a6b;--accent-soft:#f1f6ec;--accent-g1:#cbdebd;--accent-g2:#acc899}
-body[data-mod="order"]{--accent:#d6ab84;--accent-d:#b88d61;--accent-soft:#fbf3ec;--accent-g1:#efd5ba;--accent-g2:#dfb795}
-body[data-mod="ship"]{--accent:#8fb6d2;--accent-d:#7297b3;--accent-soft:#edf4f9;--accent-g1:#c2dcee;--accent-g2:#a2c6dd}
-body[data-mod="pay"]{--accent:#d6a1b3;--accent-d:#b78594;--accent-soft:#fbf0f3;--accent-g1:#f0d1db;--accent-g2:#dfabba}
-body[data-mod="dev"]{--accent:#ccba8f;--accent-d:#ae9a6c;--accent-soft:#faf5ea;--accent-g1:#ecdcb9;--accent-g2:#d7c398}
-body[data-mod="log"]{--accent:#9ea9c2;--accent-d:#818ca5;--accent-soft:#f0f3f7;--accent-g1:#ccd3e2;--accent-g2:#aeb9ce}
-body[data-mod="set"]{--accent:#ae9dcb;--accent-d:#9180ab;--accent-soft:#f5f1f9;--accent-g1:#d2c5e4;--accent-g2:#b5a4d4}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:var(--bg);color:var(--txt);font-size:14px}
 .app{display:flex;min-height:100vh}
 .sidebar{width:200px;background:var(--side);color:var(--side-txt);flex-shrink:0;display:flex;flex-direction:column}
 .sidebar .logo{padding:18px 16px;color:#fff;font-size:17px;font-weight:bold;border-bottom:1px solid rgba(255,255,255,.08)}
-.sidebar .logo small{display:block;font-size:11px;font-weight:normal;color:#7d95bd;margin-top:3px}
+.sidebar .logo small{display:block;font-size:11px;font-weight:normal;color:#8fa4b8;margin-top:3px}
 .nav{flex:1;padding:10px 0}
 .nav a{display:flex;align-items:center;gap:9px;padding:11px 18px;color:var(--side-txt);text-decoration:none;font-size:14px;cursor:pointer;border-left:3px solid transparent}
 .nav a:hover{background:rgba(255,255,255,.06);color:#fff}
-.nav a.active{background:rgba(37,99,235,.28);color:#fff;border-left-color:#60a5fa}
+.nav a.active{background:rgba(255,255,255,.08);color:#fff;border-left-color:var(--accent-g1)}
 .sidebar .foot{padding:12px 16px;font-size:11px;color:#5b7299;border-top:1px solid rgba(255,255,255,.08)}
 .main{flex:1;min-width:0;display:flex;flex-direction:column}
 .topbar{background:var(--card);border-bottom:1px solid var(--line);padding:12px 22px;display:flex;align-items:center;gap:14px}
@@ -50,7 +37,7 @@ body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:var(--bg)
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{background:#f8fafc;text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);color:var(--sub);font-weight:600;white-space:nowrap}
 td{padding:9px 10px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
-tr:hover td{background:#f8fbff}
+tr:hover td{background:#f2f8f7}
 .empty{text-align:center;color:var(--sub);padding:36px 0}
 .btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:6px;border:1px solid var(--line);background:#fff;color:var(--txt);font-size:13px;cursor:pointer}
 .btn:hover{border-color:var(--blue);color:var(--blue)}
@@ -63,14 +50,14 @@ tr:hover td{background:#f8fbff}
 .tabs span{padding:5px 13px;border-radius:16px;background:#f1f5f9;color:var(--sub);font-size:12.5px;cursor:pointer}
 .tabs span.on{background:var(--blue);color:#fff}
 .tag{display:inline-block;padding:2px 9px;border-radius:10px;font-size:12px}
-.tag.c1{background:#dbeafe;color:#1d4ed8}.tag.c2{background:#fef3c7;color:#b45309}.tag.c3{background:#dcfce7;color:#15803d}
+.tag.c1{background:var(--accent-soft);color:var(--accent-d)}.tag.c2{background:#fef3c7;color:#b45309}.tag.c3{background:#dcfce7;color:#15803d}
 .tag.warn{background:#fee2e2;color:#b91c1c}.tag.ok{background:#dcfce7;color:#15803d}.tag.pend{background:#fef3c7;color:#b45309}
 .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media(max-width:1100px){.chart-grid{grid-template-columns:1fr}}
 .bar-row{display:flex;align-items:center;gap:9px;margin-bottom:9px;font-size:12.5px}
 .bar-row .bl{width:110px;text-align:right;color:var(--sub);flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bar-row .bt{flex:1;background:#eef2f7;border-radius:4px;height:18px;position:relative}
-.bar-row .bf{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#60a5fa,#2563eb)}
+.bar-row .bf{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent-g1),var(--accent))}
 .bar-row .bv{width:110px;flex-shrink:0}
 .mask{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;align-items:flex-start;justify-content:center;z-index:100;overflow:auto;padding:30px 16px}
 .mask.show{display:flex}
@@ -102,30 +89,30 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .big-photo-mask img{max-width:92%;max-height:92%}
 .mono{font-family:Consolas,monospace}
 .sec-title{font-size:13px;font-weight:600;color:var(--sub);margin:4px 0 10px}
-.fgroup{grid-column:1/-1;margin-top:4px;padding:7px 10px;background:#f0f5ff;border-radius:6px;font-size:12.5px;font-weight:600;color:var(--blue)}
+.fgroup{grid-column:1/-1;margin-top:4px;padding:7px 10px;background:var(--accent-soft);border-radius:6px;font-size:12.5px;font-weight:600;color:var(--accent-d)}
 .flt{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin-left:2px;border-radius:4px;cursor:pointer;font-size:11px;color:var(--sub);vertical-align:middle;user-select:none}
-.flt:hover{background:#e0e7ff;color:var(--blue)}
+.flt:hover{background:var(--accent-soft);color:var(--accent)}
 .flt.on{background:var(--blue);color:#fff}
 .flt-pop{position:fixed;z-index:300;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(15,23,42,.14);padding:8px;min-width:170px}
 .flt-pop .flt-opt{padding:7px 11px;border-radius:6px;cursor:pointer;font-size:13px}
 .flt-pop .flt-opt:hover{background:#f1f5f9}
-.flt-pop .flt-opt.on{background:#dbeafe;color:var(--blue-d);font-weight:600}
+.flt-pop .flt-opt.on{background:var(--accent-soft);color:var(--accent-d);font-weight:600}
 .flt-pop .flt-input{width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;margin-bottom:7px}
 .flt-pop .flt-input:focus{outline:none;border-color:var(--blue)}
 .flt-pop .row{display:flex;gap:6px;align-items:center;justify-content:space-between}
 /* 列表横向滚动：滚动条常显（macOS 默认隐藏导致"滚轮不能用"的观感）；电脑端单元格单行不换行，宽表横向滚动 */
 .tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
 .tbl-scroll::-webkit-scrollbar{height:9px}
-.tbl-scroll::-webkit-scrollbar-thumb{background:#d9c9ac;border-radius:8px}
+.tbl-scroll::-webkit-scrollbar-thumb{background:#bfd0cd;border-radius:8px}
 .tbl-scroll::-webkit-scrollbar-track{background:transparent}
 @media(min-width:901px){.tbl-scroll td{white-space:nowrap}}
 /* ================= 苹果风增强：马卡龙渐变 / 毛玻璃 / 圆角 / 移动端 ================= */
 html,body{max-width:100%;overflow-x:hidden}
 body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","SF Pro Text","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;background:linear-gradient(180deg,#f5f8fc 0%,#edf2f8 100%);-webkit-font-smoothing:antialiased}
 .main{min-width:0}
-.sidebar{background:linear-gradient(180deg,#23344d 0%,#16202f 100%)}
-.sidebar .logo small{color:#8fa4c4}
-.nav a{gap:10px;border-left:none;border-radius:12px;margin:2px 9px;padding:10px 13px;color:#aeb9c9;transition:all .18s}
+.sidebar{background:linear-gradient(180deg,#2e4342 0%,#1c2b2a 100%)}
+.sidebar .logo small{color:#93aeaa}
+.nav a{gap:10px;border-left:none;border-radius:12px;margin:2px 9px;padding:10px 13px;color:#b3c2c0;transition:all .18s}
 .nav a:hover{background:rgba(255,255,255,.07);color:#fff}
 .nav a.active{background:linear-gradient(90deg,var(--accent-g2) 0%,var(--accent) 100%);color:#fff;box-shadow:0 5px 14px rgba(0,0,0,.22)}
 .nav .nav-ic{font-size:17px;width:22px;text-align:center;flex-shrink:0}
@@ -148,15 +135,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","SF Pro Text","Pin
 .bar-row .bt{border-radius:6px;background:#eef2f7}
 .bar-row .bf{display:block;border-radius:6px;background:linear-gradient(90deg,var(--accent-g1),var(--accent))}
 th{background:#f6f9fc}
-tr:hover td{background:#f6faff}
+tr:hover td{background:#f2f8f7}
 /* 列表隔行斑马纹：同色系更淡的标注，方便观看 */
 tbody tr:nth-child(even) td{background:var(--accent-soft)}
-tbody tr:nth-child(even):hover td{background:#f6faff}
+tbody tr:nth-child(even):hover td{background:#f2f8f7}
 /* 同一订单/发货单多行明细分组标识 */
-tbody tr.grp-hd td{background:#e5eefb;border-top:2px solid #2F5597;border-bottom:1px solid #c9d8f2;color:#1d4ed8;font-weight:700;font-size:12px}
-tbody tr.grp-hd:hover td{background:#e5eefb}
-tbody tr.grp td{background:#f2f7ff}
-tbody tr.grp:hover td{background:#f6faff}
+tbody tr.grp-hd td{background:var(--accent-soft);border-top:2px solid var(--accent-d);border-bottom:1px solid var(--accent-g1);color:var(--accent-d);font-weight:700;font-size:12px}
+tbody tr.grp-hd:hover td{background:var(--accent-soft)}
+tbody tr.grp td{background:#f5f9f8}
+tbody tr.grp:hover td{background:#f2f8f7}
 .grp-hd .mono{font-weight:700}
 .fitem input,.fitem select,.fitem textarea{border-radius:10px;border-color:#e4eaf2;background:#fbfcfe}
 .fitem input:focus,.fitem select:focus,.fitem textarea:focus{border-color:var(--accent);background:#fff}
@@ -198,7 +185,7 @@ tbody tr.grp:hover td{background:#f6faff}
 .hero-tgt small{font-size:11.5px;opacity:.85;font-weight:500}
 /* 产品一览（首页卡片） */
 .pov-tag{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;vertical-align:1px}
-.pov-tag.zx{background:#e8f1fe;color:#1d4ed8}
+.pov-tag.zx{background:var(--accent-soft);color:var(--accent-d)}
 .pov-tag.oem{background:#fff3e8;color:#c2570a}
 .pov-agent{font-size:11px;color:var(--sub);margin-left:6px}
 /* 产品一览紧凑表格（挂网价格为自动取产品档案的只读展示） */
@@ -292,99 +279,16 @@ tbody tr.grp:hover td{background:#f6faff}
 .pay-info th{background:#f3f4f6;font-weight:600}
 .pay-item{border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-bottom:10px}
 .pay-item .fgrid{margin-top:6px}
-/* ================= 可爱线条插画风主题（2026-09-25 整体改版） ================= */
-body{
-  font-family:"Yuanti SC","STYuanti","YouYuan","Varela Round",-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
-  background-color:#fdf9f1;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' fill='none' stroke='%23ddcbab' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='22' cy='26' r='7'/%3E%3Cpath d='M84 14v14M77 21h14'/%3E%3Cpath d='M104 96q6-8 12 0t12 0'/%3E%3Cpath d='M36 102l7 12h-14z'/%3E%3Cpath d='M120 38c3-6 12-3 10 3-1 4-6 7-10 10-4-3-9-6-10-10-2-6 7-9 10-3z'/%3E%3C/svg%3E");
-  background-attachment:fixed;
-  color:#4a3f33;
-}
-/* —— 卡片：奶油底 + 彩色描边 + 贴纸式偏移阴影 —— */
-.card{background:#fffdf8;border:2px solid #e9dcc5;border-radius:18px;box-shadow:0 3px 0 rgba(166,138,99,.18)}
-.card .card-hd{background:transparent;border-bottom:2px dashed #efe3cd;border-radius:16px 16px 0 0}
-.card .card-hd h3{color:#5c4a38;font-weight:700}
-.card .card-hd h3::before{content:"✿";margin-right:7px;font-size:13px;color:var(--accent)}
-.card .card-bd{padding:15px 16px}
-/* —— 首页各卡片不同颜色区分 —— */
-.cx-mint{border-color:#b2dcc3;box-shadow:0 3px 0 #b2dcc3}
-.cx-mint>.card-hd h3{color:#2f8a5e}
-.cx-mint>.card-hd h3::before{color:#5cb88b}
-.cx-sun{border-color:#f0d18a;box-shadow:0 3px 0 #f0d18a}
-.cx-sun>.card-hd h3{color:#a87408}
-.cx-sun>.card-hd h3::before{color:#e8b84b}
-.cx-sky{border-color:#aedcef;box-shadow:0 3px 0 #aedcef}
-.cx-sky>.card-hd h3{color:#2c7ca3}
-.cx-sky>.card-hd h3::before{color:#6db8dd}
-.cx-lav{border-color:#d5c2ef;box-shadow:0 3px 0 #d5c2ef}
-.cx-lav>.card-hd h3{color:#7453b5}
-.cx-lav>.card-hd h3::before{color:#a98bd8}
-.cx-rose{border-color:#f2c1cf;box-shadow:0 3px 0 #f2c1cf}
-.cx-rose>.card-hd h3{color:#c2496e}
-.cx-rose>.card-hd h3::before{color:#e58aa6}
-/* —— 侧边栏 / 底部导航：奶油纸质感 —— */
-.sidebar{background:#fff8ec;color:#6b5a49;border-right:2px solid #ecdcc2;box-shadow:none}
-.sidebar .logo{color:#5c4a38;border-bottom:2px dashed #ecdcc2}
-.sidebar .logo small{color:#b39c7c}
-.nav a{color:#8a7660;border-radius:14px;margin:3px 10px;padding:10px 13px}
-.nav a:hover{background:#f6ead4;color:#5c4a38}
-.nav a.active{background:var(--accent-soft);color:var(--accent-d);border:2px solid var(--accent-g1);box-shadow:none}
-.sidebar .foot{color:#b39c7c;border-top:2px dashed #ecdcc2}
-/* —— 顶栏 —— */
-.topbar{background:rgba(253,249,241,.88);border-bottom:2px dashed #ecdcc2}
-.topbar h2{color:#5c4a38}
-.topbar h2::before{content:"✿";width:auto;height:auto;background:none;color:var(--accent);margin-right:7px;vertical-align:1px}
-.topbar .date{color:#a58e6e}
-/* —— 按钮 / 页签：手绘圆角描边 —— */
-.btn{border-radius:999px;border:2px solid #ddc9a8;background:#fffdf8;color:#6b5a49;box-shadow:0 2px 0 #ddc9a8;transition:all .15s}
-.btn:hover{border-color:var(--accent);color:var(--accent-d);box-shadow:0 2px 0 var(--accent-g1);transform:translateY(-1px)}
-.btn.pri{background:linear-gradient(135deg,var(--accent-g1),var(--accent));border-color:var(--accent-d);color:#fff;box-shadow:0 2px 0 var(--accent-d)}
-.btn.pri:hover{background:linear-gradient(135deg,var(--accent),var(--accent-d));color:#fff;filter:brightness(1.04)}
-.btn.sm{border-radius:999px}
-.btn.ghost{background:rgba(255,255,255,.9);border:2px solid #fff;color:#6a4f8f;box-shadow:none}
-.btn.ghost:hover{background:#fff;color:#6a4f8f}
-.tabs span{border:2px solid #ecdcc2;background:#fffdf8;color:#8a7660}
-.tabs span.on{background:linear-gradient(135deg,var(--accent-g1),var(--accent));border-color:var(--accent-d);color:#fff}
-/* —— 表格：奶油表头 + 虚线分隔 —— */
-th{background:#fbf3e2;color:#8a7660;border-bottom:2px dashed #ecdcc2}
-td{border-bottom:1.5px dashed #f0e6d2}
-tr:hover td{background:#fdf3e1}
-tbody tr:nth-child(even) td{background:#fdf7ec}
-tbody tr:nth-child(even):hover td{background:#fdf3e1}
-/* —— 输入框 / 弹窗 —— */
-.search{border-radius:999px;border:2px solid #ecdcc2;background:#fffdf8}
-.fitem input,.fitem select,.fitem textarea{border-radius:12px;border:2px solid #ecdcc2;background:#fffdf8}
-.fitem input:focus,.fitem select:focus,.fitem textarea:focus{border-color:var(--accent);background:#fff}
-.todo-add input{border:2px solid #ecdcc2;background:#fffdf8;border-radius:999px}
-.modal{border:2px solid #e0cfa9;border-radius:22px}
-.mask{background:rgba(88,70,50,.42)}
-.fgroup{border:2px dashed var(--accent-g1)}
-/* —— 图表条形：圆头奶油轨道 —— */
-.bar-row .bt{background:#f4e9d3;border-radius:999px}
-.bar-row .bf{border-radius:999px;background:linear-gradient(90deg,var(--accent-g1),var(--accent))}
-.yw-track{background:#f4e9d3}
-/* —— 首页 Hero 回款卡：柔和紫+手绘虚线圆圈装饰 —— */
-.hero-card{border:2.5px solid #8a63b8;border-radius:24px;box-shadow:0 4px 0 rgba(138,99,184,.35);color:#4b3663;background:linear-gradient(135deg,#efe3fa 0%,#dcc4f0 55%,#c8a4e6 100%)}
-.hero-card::after,.hero-card::before{background:transparent;border:2px dashed rgba(255,255,255,.75)}
-.hero-lb{color:#6a4f8f;opacity:1}
-.hero-target{color:#4b3663}
-.hero-tgt{color:#6a4f8f;opacity:1}
-.hero-badge.ok{background:#fffdf8;color:#2f8a5e}
-.hero-badge.warn{background:rgba(255,255,255,.55);color:#6a4f8f;border:1.5px dashed #8a63b8}
-.hp-track{background:rgba(255,255,255,.65)}
-.hp-fill{background:linear-gradient(90deg,#9d76c9,#7a4fae)}
-.hp-meta{color:#6a4f8f;opacity:1}
+/* ================= 统一商务主题（2026-09-29 配色收敛）：全站单一主色（青灰绿），仅保留红/绿/橙状态语义色；删去分模块换色、五色卡片与奶油插画风 ================= */
 /* —— 移动端（iPhone）整版优化：一屏放下、不出横向滚动条 —— */
 @media(max-width:900px){
-  .sidebar{background:rgba(253,249,241,.96);border-top:2px dashed #ecdcc2;box-shadow:0 -6px 20px rgba(150,120,80,.14)}
   /* 底部导航：模块名称（销售订单/回款明细等）始终一行显示，不换行 */
   .nav a{padding:8px 6px;margin:0;white-space:nowrap;min-width:72px}
   /* 产品一览：渠道标签（自销/OEM）与代理商名同一行，产品具体名称单独一行 */
   .pov-tag{display:inline-block;margin-bottom:3px}
   .pov-agent{display:inline;font-size:10.5px;margin-left:4px;vertical-align:1px}
   .pov-name{display:block}
-  .nav a.active{background:var(--accent-soft);color:var(--accent-d);border:2px solid var(--accent-g1)}
-  .card .card-hd h3::before{font-size:12px}
+  .nav a.active{background:linear-gradient(135deg,var(--accent-g1) 0%,var(--accent) 100%);color:#fff}
 }
 @media(max-width:520px){
   .content{padding:10px 10px 26px}
@@ -653,7 +557,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20260928f',_verChecking=false;
+var APP_VER='20260929a',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -668,7 +572,7 @@ function checkVer(){
       if(mask&&mask.classList.contains('show')){
         if(!document.getElementById('verToast')){
           var d=document.createElement('div');d.id='verToast';d.onclick=function(){location.reload();};
-          d.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:86px;background:#1d4ed8;color:#fff;padding:9px 16px;border-radius:999px;font-size:13px;box-shadow:0 6px 18px rgba(0,0,0,.2);z-index:9999;cursor:pointer;white-space:nowrap';
+          d.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:86px;background:var(--accent-d);color:#fff;padding:9px 16px;border-radius:999px;font-size:13px;box-shadow:0 6px 18px rgba(0,0,0,.2);z-index:9999;cursor:pointer;white-space:nowrap';
           d.textContent='工作台已更新，点此刷新';
           document.body.appendChild(d);
         }
@@ -1150,7 +1054,7 @@ function formHidden(k){var el=formEl(k);return !!(el&&el.parentNode&&el.parentNo
 function exportXLS(moduleName,cols,rows){
   if(!rows||!rows.length){alert('当前视图无数据可导出');return;}
   var h='<meta charset="utf-8"><title>'+moduleName+'</title><table border="1"><tr>';
-  for(var i=0;i<cols.length;i++)h+='<th style="background:#dbeafe">'+cols[i].label+'</th>';
+  for(var i=0;i<cols.length;i++)h+='<th style="background:var(--accent-soft)">'+cols[i].label+'</th>';
   h+='</tr>';
   for(var r=0;r<rows.length;r++){
     h+='<tr>';
@@ -1439,7 +1343,7 @@ function yearProdWave(cat){
       for(var ri=0;ri<groups[gi].rows.length;ri++)body+=ywBar(groups[gi].rows[ri],col,(gi*0.15+ri*0.05).toFixed(2));
     }
   }else{
-    for(var r1=0;r1<rows.length;r1++)body+=ywBar(rows[r1],'linear-gradient(90deg,#60a5fa,#2563eb)',(r1*0.06).toFixed(2));
+    for(var r1=0;r1<rows.length;r1++)body+=ywBar(rows[r1],'linear-gradient(90deg,var(--accent-g1),var(--accent-d))',(r1*0.06).toFixed(2));
   }
   return h+body;
 }
@@ -1571,7 +1475,7 @@ function waveDetail(cat,idx){
   }
   agList.sort(function(x,y2){return y2.jian-x.jian;});
   /* 弹窗内容 */
-  var g1=cat==='自销'?'linear-gradient(90deg,#60a5fa,#2563eb)':'linear-gradient(90deg,#fdba74,#f97316)';
+  var g1=cat==='自销'?'linear-gradient(90deg,var(--accent-g1),var(--accent-d))':'linear-gradient(90deg,#fdba74,#f97316)';
   var h='<div class="wd-grid">'
     +'<div><div class="k">产品规格</div><div class="v">'+esc(p.spec||'—')+'</div></div>'
     +'<div><div class="k">产品分类 / 代理商</div><div class="v" style="font-size:13px">'+esc(cat)+(p.agent?' · '+esc(p.agent):'')+'</div></div>'
@@ -1639,17 +1543,17 @@ function renderDash(c){
     h+=dashHero();
 
     /* 产品一览（薄荷绿卡片） */
-    h+='<div class="card cx-mint"><div class="card-hd"><h3>产品一览</h3></div><div class="card-bd">'+prodOverviewHTML()+'</div></div>';
+    h+='<div class="card"><div class="card-hd"><h3>产品一览</h3></div><div class="card-bd">'+prodOverviewHTML()+'</div></div>';
 
     /* 待办明细（向日葵黄卡片） */
-    h+='<div class="card cx-sun"><div class="card-hd"><h3>今日待办</h3></div><div class="card-bd">'+todoHTML()+'</div></div>';
+    h+='<div class="card"><div class="card-hd"><h3>今日待办</h3></div><div class="card-bd">'+todoHTML()+'</div></div>';
 
     /* 年度动态表：自销 / OEM 分开两张（天蓝 / 薰衣草紫卡片） */
     h+='<div class="chart-grid">';
-    h+='<div class="card cx-sky"><div class="card-hd"><h3>年度产品销量 · 自销</h3></div><div class="card-bd">'+yearProdWave('自销')+'</div></div>';
-    h+='<div class="card cx-lav"><div class="card-hd"><h3>年度产品销量 · OEM</h3></div><div class="card-bd">'+yearProdWave('OEM')+'</div></div>';
+    h+='<div class="card"><div class="card-hd"><h3>年度产品销量 · 自销</h3></div><div class="card-bd">'+yearProdWave('自销')+'</div></div>';
+    h+='<div class="card"><div class="card-hd"><h3>年度产品销量 · OEM</h3></div><div class="card-bd">'+yearProdWave('OEM')+'</div></div>';
     h+='</div>';
-    h+='<div class="card cx-rose"><div class="card-hd"><h3>月度回款</h3></div><div class="card-bd">'+yearPayTrend()+'</div></div>';
+    h+='<div class="card"><div class="card-hd"><h3>月度回款</h3></div><div class="card-bd">'+yearPayTrend()+'</div></div>';
 
     if(!db.customers.length&&!db.products.length){
       h+='<div class="card"><div class="card-bd" style="text-align:center"><p style="color:var(--sub);margin-bottom:12px">当前还没有任何数据。请先录入客户和产品，再创建订单。</p><button class="btn pri" onclick="loadDemo()">载入示例数据（了解功能）</button></div></div>';
@@ -1880,7 +1784,7 @@ function downCustTpl(){
     XLSX.writeFile(wb,'客户档案导入模板_'+today()+'.xlsx');
   }else{
     var h='<meta charset="utf-8"><title>客户档案模板</title><table border="1"><tr>';
-    headers.forEach(function(l){h+='<th style="background:#dbeafe">'+l+'</th>';});
+    headers.forEach(function(l){h+='<th style="background:var(--accent-soft)">'+l+'</th>';});
     h+='</tr><tr>';
     example.forEach(function(v){h+='<td>'+esc(v)+'</td>';});
     h+='</tr></table>';
@@ -2221,7 +2125,7 @@ function downStockTpl(){
     XLSX.writeFile(wb,'销售库存导入模板_'+today()+'.xlsx');
   }else{
     var h='<meta charset="utf-8"><title>库存模板</title><table border="1"><tr>';
-    headers.forEach(function(l){h+='<th style="background:#dbeafe">'+l+'</th>';});
+    headers.forEach(function(l){h+='<th style="background:var(--accent-soft)">'+l+'</th>';});
     h+='</tr>';
     examples.forEach(function(ex){
       h+='<tr>';
@@ -2717,7 +2621,7 @@ function downOrderTpl(){
     XLSX.writeFile(wb,'销售订单导入模板_'+today()+'.xlsx');
   }else{
     var h='<meta charset="utf-8"><title>订单模板</title><table border="1"><tr>';
-    headers.forEach(function(l){h+='<th style="background:#dbeafe">'+l+'</th>';});
+    headers.forEach(function(l){h+='<th style="background:var(--accent-soft)">'+l+'</th>';});
     h+='</tr>';
     examples.forEach(function(ex){
       h+='<tr>';
@@ -3036,7 +2940,7 @@ function downShipTpl(){
     XLSX.writeFile(wb,'物流明细导入模板_'+today()+'.xlsx');
   }else{
     var h='<meta charset="utf-8"><title>物流明细模板</title><table border="1"><tr>';
-    headers.forEach(function(l){h+='<th style="background:#dbeafe">'+l+'</th>';});
+    headers.forEach(function(l){h+='<th style="background:var(--accent-soft)">'+l+'</th>';});
     h+='</tr>';
     examples.forEach(function(ex){h+='<tr>';ex.forEach(function(v){h+='<td>'+esc(v==null?'':v)+'</td>';});h+='</tr>';});
     h+='</table>';
@@ -3162,7 +3066,7 @@ function payYearCard(){
   rows.forEach(function(p){var mm=parseInt((p.payDate||'').slice(5,7),10);if(mm>=1&&mm<=12)m[mm-1].amt+=Number(p.amount)||0;});
   var max=0;m.forEach(function(x){if(x.amt>max)max=x.amt;});
   var h='<div class="sec-title">月度回款</div>';
-  if(max){m.forEach(function(x){h+='<div class="bar-row"><span class="bl" style="width:56px">'+x.m+'月</span><span class="bt"><span class="bf" style="width:'+(x.amt/max*100)+'%;background:linear-gradient(90deg,#e879f9,#9333ea)"></span></span><span class="bv" style="width:120px">'+fmtN(x.amt)+' 元</span></div>';});}
+  if(max){m.forEach(function(x){h+='<div class="bar-row"><span class="bl" style="width:56px">'+x.m+'月</span><span class="bt"><span class="bf" style="width:'+(x.amt/max*100)+'%;background:linear-gradient(90deg,var(--accent-g1),var(--accent-d))"></span></span><span class="bv" style="width:120px">'+fmtN(x.amt)+' 元</span></div>';});}
   else h+='<div class="empty">本年暂无回款</div>';
   var byCat={};rows.forEach(function(p){byCat[p.cat]=(byCat[p.cat]||0)+(Number(p.amount)||0);});
   h+='<div class="sec-title" style="margin-top:16px">客户分类汇总</div>';
@@ -3696,7 +3600,7 @@ function downPayTpl(){
     XLSX.utils.writeFile(wb,'回款明细导入模板_'+today()+'.xlsx');
   }else{
     var h='<meta charset="utf-8"><title>回款模板</title><table border="1"><tr>';
-    headers.forEach(function(l){h+='<th style="background:#dbeafe">'+l+'</th>';});
+    headers.forEach(function(l){h+='<th style="background:var(--accent-soft)">'+l+'</th>';});
     h+='</tr>';
     examples.forEach(function(ex){h+='<tr>';ex.forEach(function(v){h+='<td>'+(v==null?'':v)+'</td>';});h+='</tr>';});
     h+='</table>';
@@ -3851,7 +3755,7 @@ function downLogTpl(){
     XLSX.writeFile(wb,'工作记录导入模板_'+today()+'.xlsx');
   }else{
     var h='<meta charset="utf-8"><title>工作记录模板</title><table border="1"><tr>';
-    headers.forEach(function(l){h+='<th style="background:#dbeafe">'+l+'</th>';});
+    headers.forEach(function(l){h+='<th style="background:var(--accent-soft)">'+l+'</th>';});
     h+='</tr>';
     examples.forEach(function(ex){h+='<tr>';ex.forEach(function(v){h+='<td>'+esc(v==null?'':v)+'</td>';});h+='</tr>';});
     h+='</table>';
@@ -3996,7 +3900,7 @@ function downProdTpl(){
     XLSX.writeFile(wb,'产品档案导入模板_'+today()+'.xlsx');
   }else{
     var h='<meta charset="utf-8"><title>产品档案模板</title><table border="1"><tr>';
-    headers.forEach(function(l){h+='<th style="background:#dbeafe">'+l+'</th>';});
+    headers.forEach(function(l){h+='<th style="background:var(--accent-soft)">'+l+'</th>';});
     h+='</tr>';
     examples.forEach(function(ex){
       h+='<tr>';
@@ -4268,7 +4172,7 @@ function downProdoTpl(){
     XLSX.writeFile(wb,'产品订单导入模板_'+today()+'.xlsx');
   }else{
     var h='<meta charset="utf-8"><title>产品订单模板</title><table border="1"><tr>';
-    headers.forEach(function(l){h+='<th style="background:#dbeafe">'+l+'</th>';});
+    headers.forEach(function(l){h+='<th style="background:var(--accent-soft)">'+l+'</th>';});
     h+='</tr>';
     examples.forEach(function(ex){
       h+='<tr>';
@@ -4471,7 +4375,7 @@ function downDevTpl(){
     XLSX.writeFile(wb,'新品开发导入模板_'+today()+'.xlsx');
   }else{
     var h='<meta charset="utf-8"><title>新品开发模板</title><table border="1"><tr>';
-    headers.forEach(function(l){h+='<th style="background:#dbeafe">'+l+'</th>';});
+    headers.forEach(function(l){h+='<th style="background:var(--accent-soft)">'+l+'</th>';});
     h+='</tr>';
     examples.forEach(function(ex){h+='<tr>';ex.forEach(function(v){h+='<td>'+esc(v==null?'':v)+'</td>';});h+='</tr>';});
     h+='</table>';
