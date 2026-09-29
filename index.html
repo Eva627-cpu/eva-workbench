@@ -13,6 +13,18 @@
   --shadow:0 2px 10px rgba(60,80,110,.06),0 10px 30px rgba(60,80,110,.07);
   --r:16px;
 }
+/* Apple 系统色 · 每模块一个系统色（iOS/macOS 原生色板），切换模块时整体色调跟随 */
+body[data-mod="dash"]{--accent:#007AFF;--accent-d:#0064D2;--accent-soft:#E8F2FF;--accent-g1:#9CC8FF;--accent-g2:#5FA8FF}
+body[data-mod="cust"]{--accent:#5856D6;--accent-d:#4240A8;--accent-soft:#EEEFFC;--accent-g1:#BEBFF2;--accent-g2:#8B8AE4}
+body[data-mod="prod"]{--accent:#FF375F;--accent-d:#D61E45;--accent-soft:#FFECEF;--accent-g1:#FFB1C0;--accent-g2:#FF7590}
+body[data-mod="prodo"]{--accent:#AF52DE;--accent-d:#8E32BE;--accent-soft:#F6EBFC;--accent-g1:#DDB6F1;--accent-g2:#C77FE8}
+body[data-mod="stock"]{--accent:#34C759;--accent-d:#248A3D;--accent-soft:#E8F8EC;--accent-g1:#A5E6B7;--accent-g2:#72D78F}
+body[data-mod="order"]{--accent:#FF9500;--accent-d:#C46E00;--accent-soft:#FFF2E0;--accent-g1:#FFD28A;--accent-g2:#FFB44F}
+body[data-mod="ship"]{--accent:#32ADE6;--accent-d:#1F84B5;--accent-soft:#E6F4FC;--accent-g1:#A5D9F2;--accent-g2:#6EC2E8}
+body[data-mod="pay"]{--accent:#30B0C7;--accent-d:#1E889C;--accent-soft:#E5F5F8;--accent-g1:#A0DEE8;--accent-g2:#62C8D7}
+body[data-mod="dev"]{--accent:#A2845E;--accent-d:#7D6342;--accent-soft:#F5F0E8;--accent-g1:#D6C3A8;--accent-g2:#B99F7C}
+body[data-mod="log"]{--accent:#8E8E93;--accent-d:#636366;--accent-soft:#F1F1F3;--accent-g1:#C9C9CE;--accent-g2:#ADADB4}
+body[data-mod="set"]{--accent:#00C7BE;--accent-d:#00938C;--accent-soft:#E2F8F7;--accent-g1:#93E8E3;--accent-g2:#4FD9D1}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:var(--bg);color:var(--txt);font-size:14px}
 .app{display:flex;min-height:100vh}
@@ -23,7 +35,7 @@ body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:var(--bg)
 .nav a{display:flex;align-items:center;gap:9px;padding:11px 18px;color:var(--side-txt);text-decoration:none;font-size:14px;cursor:pointer;border-left:3px solid transparent}
 .nav a:hover{background:rgba(255,255,255,.06);color:#fff}
 .nav a.active{background:rgba(255,255,255,.08);color:#fff;border-left-color:var(--accent-g1)}
-.sidebar .foot{padding:12px 16px;font-size:11px;color:#5b7299;border-top:1px solid rgba(255,255,255,.08)}
+.sidebar .foot{padding:12px 16px;font-size:11px;color:#98989d;border-top:1px solid rgba(255,255,255,.08)}
 .main{flex:1;min-width:0;display:flex;flex-direction:column}
 .topbar{background:var(--card);border-bottom:1px solid var(--line);padding:12px 22px;display:flex;align-items:center;gap:14px}
 .topbar h2{font-size:17px}
@@ -37,7 +49,7 @@ body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:var(--bg)
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{background:#f8fafc;text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);color:var(--sub);font-weight:600;white-space:nowrap}
 td{padding:9px 10px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
-tr:hover td{background:#f2f8f7}
+tr:hover td{background:#f7f7f8}
 .empty{text-align:center;color:var(--sub);padding:36px 0}
 .btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:6px;border:1px solid var(--line);background:#fff;color:var(--txt);font-size:13px;cursor:pointer}
 .btn:hover{border-color:var(--blue);color:var(--blue)}
@@ -103,16 +115,16 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 /* 列表横向滚动：滚动条常显（macOS 默认隐藏导致"滚轮不能用"的观感）；电脑端单元格单行不换行，宽表横向滚动 */
 .tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
 .tbl-scroll::-webkit-scrollbar{height:9px}
-.tbl-scroll::-webkit-scrollbar-thumb{background:#bfd0cd;border-radius:8px}
+.tbl-scroll::-webkit-scrollbar-thumb{background:#c7c7cc;border-radius:8px}
 .tbl-scroll::-webkit-scrollbar-track{background:transparent}
 @media(min-width:901px){.tbl-scroll td{white-space:nowrap}}
 /* ================= 苹果风增强：马卡龙渐变 / 毛玻璃 / 圆角 / 移动端 ================= */
 html,body{max-width:100%;overflow-x:hidden}
-body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","SF Pro Text","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;background:linear-gradient(180deg,#f5f8fc 0%,#edf2f8 100%);-webkit-font-smoothing:antialiased}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","SF Pro Text","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;background:#f5f5f7;-webkit-font-smoothing:antialiased}
 .main{min-width:0}
-.sidebar{background:linear-gradient(180deg,#2e4342 0%,#1c2b2a 100%)}
-.sidebar .logo small{color:#93aeaa}
-.nav a{gap:10px;border-left:none;border-radius:12px;margin:2px 9px;padding:10px 13px;color:#b3c2c0;transition:all .18s}
+.sidebar{background:linear-gradient(180deg,#2c2c2e 0%,#1c1c1e 100%)}
+.sidebar .logo small{color:#98989d}
+.nav a{gap:10px;border-left:none;border-radius:12px;margin:2px 9px;padding:10px 13px;color:#b8b8bd;transition:all .18s}
 .nav a:hover{background:rgba(255,255,255,.07);color:#fff}
 .nav a.active{background:linear-gradient(90deg,var(--accent-g2) 0%,var(--accent) 100%);color:#fff;box-shadow:0 5px 14px rgba(0,0,0,.22)}
 .nav .nav-ic{font-size:17px;width:22px;text-align:center;flex-shrink:0}
@@ -121,7 +133,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","SF Pro Text","Pin
 .topbar h2::before{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;background:linear-gradient(135deg,var(--accent-g1),var(--accent));margin-right:9px;vertical-align:2px}
 .card{border:none;border-radius:var(--r);box-shadow:var(--shadow);background:linear-gradient(180deg,var(--accent-soft) 0%,rgba(255,255,255,.99) 12%,rgba(255,255,255,.995) 100%)}
 .card .card-hd{background:linear-gradient(90deg,var(--accent-soft) 0%,rgba(251,253,255,0) 78%);border-bottom:1px solid var(--line);border-radius:var(--r) var(--r) 0 0;padding:13px 18px}
-.card .card-hd h3{font-size:14.5px;color:#33415a}
+.card .card-hd h3{font-size:14.5px;color:#1d1d1f}
 .card .card-bd{padding:16px 18px}
 .btn{border-radius:999px;border:1px solid #e3e9f1;box-shadow:0 1px 2px rgba(60,80,110,.05);transition:all .18s}
 .btn:hover{border-color:var(--accent);color:var(--accent)}
@@ -135,15 +147,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","SF Pro Text","Pin
 .bar-row .bt{border-radius:6px;background:#eef2f7}
 .bar-row .bf{display:block;border-radius:6px;background:linear-gradient(90deg,var(--accent-g1),var(--accent))}
 th{background:#f6f9fc}
-tr:hover td{background:#f2f8f7}
+tr:hover td{background:#f7f7f8}
 /* 列表隔行斑马纹：同色系更淡的标注，方便观看 */
 tbody tr:nth-child(even) td{background:var(--accent-soft)}
-tbody tr:nth-child(even):hover td{background:#f2f8f7}
+tbody tr:nth-child(even):hover td{background:#f7f7f8}
 /* 同一订单/发货单多行明细分组标识 */
 tbody tr.grp-hd td{background:var(--accent-soft);border-top:2px solid var(--accent-d);border-bottom:1px solid var(--accent-g1);color:var(--accent-d);font-weight:700;font-size:12px}
 tbody tr.grp-hd:hover td{background:var(--accent-soft)}
-tbody tr.grp td{background:#f5f9f8}
-tbody tr.grp:hover td{background:#f2f8f7}
+tbody tr.grp td{background:#f7f7f8}
+tbody tr.grp:hover td{background:#f7f7f8}
 .grp-hd .mono{font-weight:700}
 .fitem input,.fitem select,.fitem textarea{border-radius:10px;border-color:#e4eaf2;background:#fbfcfe}
 .fitem input:focus,.fitem select:focus,.fitem textarea:focus{border-color:var(--accent);background:#fff}
@@ -557,7 +569,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20260929a',_verChecking=false;
+var APP_VER='20260929b',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
