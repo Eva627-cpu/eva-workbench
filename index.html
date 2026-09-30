@@ -581,7 +581,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20260930c',_verChecking=false;
+var APP_VER='20260930d',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -844,9 +844,13 @@ function smartTableHTML(mod,cols,rows,actionsFn,redraw,grp){
   if(!rows.length)return '<div class="empty">暂无数据</div>';
   var colTotal=cols.length+1+(actionsFn?1:0);
   var merge=!!(grp&&grp.merge);
-  var gcnt={},grows={},gsame={};
+  var gcnt={},grows={},gsame={},gnum={},gn=0;
   if(grp&&grp.key){
-    for(var q=0;q<rows.length;q++){var gk=grp.key(rows[q]);gcnt[gk]=(gcnt[gk]||0)+1;(grows[gk]||(grows[gk]=[])).push(rows[q]);}
+    for(var q=0;q<rows.length;q++){
+      var gk=grp.key(rows[q]);
+      gcnt[gk]=(gcnt[gk]||0)+1;(grows[gk]||(grows[gk]=[])).push(rows[q]);
+      if(gnum[gk]==null)gnum[gk]=++gn;   /* 同组（同一订单）共用一个序号 */
+    }
     if(merge){
       for(var kk in grows){
         if(gcnt[kk]<2)continue;
@@ -874,17 +878,19 @@ function smartTableHTML(mod,cols,rows,actionsFn,redraw,grp){
     var first=grouped&&grows[ck][0]===rows[r];
     var last=grouped&&grows[ck][grows[ck].length-1]===rows[r];
     if(grouped){
-      if(first)h+='<tr class="grp-hd"><td colspan="'+colTotal+'">'+grp.head(grows[ck]||[],ck)+'</td></tr>';
+      if(first&&!grp.noHead)h+='<tr class="grp-hd"><td colspan="'+colTotal+'">'+grp.head(grows[ck]||[],ck)+'</td></tr>';
       lastG=ck;
       h+='<tr class="grp'+(first?' grp-first':'')+(last?' grp-last':'')+'">';
     }else{
       lastG=ck;
       h+='<tr>';
     }
+    var numByG=!!(grp&&grp.key&&(grp.numByGroup||grp.merge));
+    var rn=(numByG&&ck!=null&&gnum[ck]!=null)?gnum[ck]:(r+1);
     if(grouped&&merge){
-      if(first)h+='<td class="mg" rowspan="'+gcnt[ck]+'">'+(r+1)+'</td>';
+      if(first)h+='<td class="mg" rowspan="'+gcnt[ck]+'">'+rn+'</td>';
     }else{
-      h+='<td>'+(r+1)+'</td>';
+      h+='<td>'+rn+'</td>';
     }
     for(var c=0;c<cols.length;c++){
       var cc=cols[c];
@@ -2269,13 +2275,6 @@ function orderCols(){
     {key:'st',label:'状态',fmt:function(r){var s=orderStatus(r);return '<span class="tag '+(s.c==='ok'?'ok':s.c==='warn'?'warn':'pend')+'">'+s.t+'</span>';}}
   ];
 }
-/* 同一订单多品种：分组表头（单号+客户+品种数+整单金额+回款状态），防止看漏 */
-function orderGrpHead(rs){
-  var o=rs[0];
-  var amt=0;rs.forEach(function(x){amt+=Number(x.amount)||0;});
-  var st=orderStatus(o);
-  return '同一订单　<span class="tag c1">'+rs.length+' 个品种</span>　整单金额 '+fmtN(amt)+' 元　<span class="tag '+(st.c==='ok'?'ok':'warn')+'">'+st.t+'</span>';
-}
 function drawOrder(){
   var rows=filterOrder().slice();
   sortDateAgentCust(rows,
@@ -2290,7 +2289,7 @@ function drawOrder(){
     btns+='<button class="btn sm" onclick="openPayForm(null,\''+r.no+'\')">记回款</button>';
     btns+='<button class="btn sm dgr" onclick="delOrder(\''+r.id+'\')">删除</button>';
     return btns;
-  },drawOrder,{key:function(r){return r.no;},head:orderGrpHead,merge:true});
+  },drawOrder,{key:function(r){return r.no;},merge:true,noHead:true});
 }
 /* ================= 销售订单表单：客户分类→代理商→客户名称联动 + 多产品明细 ================= */
 var OF={};
