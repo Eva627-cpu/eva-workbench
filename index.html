@@ -146,10 +146,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","SF Pro Text","Pin
 .bar-row .bf{display:block;border-radius:6px;background:linear-gradient(90deg,var(--accent-g1),var(--accent))}
 th{background:var(--accent-g1);color:var(--accent-d)}
 tr:hover td{background:var(--accent-hv)}
-/* 明细列表隔行底色：全工作台统一口径——序号为「双数」的行着色，单数留白。
+/* 明细列表隔行底色：全工作台统一口径——「单数序号纯白、双数序号着色」。
+   单元格必须显式白底，否则会透出卡片顶部的模块色渐变 → 出现「深浅不一的橘色 / 序号1不是纯白」。
    同一订单/发货单共用一个序号 → 整单一块同色，相邻单交替（.grp-first/.grp-last 为块首尾分隔线） */
+tbody tr td{background:#fff}
 tbody tr.z2 td{background:var(--accent-soft)}
 tbody tr.z2:hover td{background:var(--accent-hv)}
+tfoot td{background:#fff}
 .fitem input,.fitem select,.fitem textarea{border-radius:10px;border-color:#e4eaf2;background:#fbfcfe}
 .fitem input:focus,.fitem select:focus,.fitem textarea:focus{border-color:var(--accent);background:#fff}
 .fgroup{background:var(--accent-soft);color:var(--accent-d);border-radius:8px}
@@ -567,7 +570,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20260930g',_verChecking=false;
+var APP_VER='20260930h',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
