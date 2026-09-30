@@ -146,13 +146,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","SF Pro Text","Pin
 .bar-row .bf{display:block;border-radius:6px;background:linear-gradient(90deg,var(--accent-g1),var(--accent))}
 th{background:var(--accent-g1);color:var(--accent-d)}
 tr:hover td{background:var(--accent-hv)}
-/* 明细列表隔行底色：按「序号」单双着色（同一订单共用一个序号 → 整单同色，便于观看） */
+/* 明细列表隔行底色：全工作台统一口径——序号为「双数」的行着色，单数留白。
+   同一订单/发货单共用一个序号 → 整单一块同色，相邻单交替（.grp-first/.grp-last 为块首尾分隔线） */
 tbody tr.z2 td{background:var(--accent-soft)}
 tbody tr.z2:hover td{background:var(--accent-hv)}
-/* 同一订单/发货单多行明细分组标识 */
-tbody tr.grp-hd td{background:var(--accent-soft);border-top:2px solid var(--accent-d);border-bottom:1px solid var(--accent-g1);color:var(--accent-d);font-weight:700;font-size:12px}
-tbody tr.grp-hd:hover td{background:var(--accent-soft)}
-.grp-hd .mono{font-weight:700}
 .fitem input,.fitem select,.fitem textarea{border-radius:10px;border-color:#e4eaf2;background:#fbfcfe}
 .fitem input:focus,.fitem select:focus,.fitem textarea:focus{border-color:var(--accent);background:#fff}
 .fgroup{background:var(--accent-soft);color:var(--accent-d);border-radius:8px}
@@ -570,7 +567,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20260930f',_verChecking=false;
+var APP_VER='20260930g',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -824,33 +821,30 @@ function smartFiltered(mod,cols,rows){
 /* 智能表格：第一列自动序号；每列 ▾ 筛选；末行合计（列配 sum:true 或 sumFn） */
 function cellHTML(col,row){return col.fmt?col.fmt(row):esc(row[col.key]==null?'':row[col.key]);}
 /* 智能表格：第一列自动序号；每列 ▾ 筛选；末行合计（列配 sum:true 或 sumFn）
-   grp 分组：同组（同一订单/同一发货单/同一代理商…）多行时插入分组表头行；
-   grp.merge=true 时，组内取值完全相同的列合并为一个单元格（rowspan），一眼可辨同组 */
+   grp 分组（同订单/同发货单/同代理商+客户）：同一单共用「一个序号」+「一个单号」，
+   组内取值完全相同的列合并为一个单元格（rowspan），不再插分组表头行 */
 function smartTableHTML(mod,cols,rows,actionsFn,redraw,grp){
   colFilterData[mod]={cols:cols,rows:rows||[],redraw:redraw||null};
   rows=smartFiltered(mod,cols,(rows||[]).slice());
   var st=colFilterState[mod]||{};
   if(!rows.length)return '<div class="empty">暂无数据</div>';
-  var colTotal=cols.length+1+(actionsFn?1:0);
-  var merge=!!(grp&&grp.merge);
-  var gcnt={},grows={},gsame={},gnum={},gn=0;
-  if(grp&&grp.key){
+  var hasGrp=!!(grp&&grp.key);
+  var rowG=[],gnum=[],gstart=[],gcnt=[],gsame=[],gn=0,gkey=null;
+  if(hasGrp){
+    /* 按行序切成连续块：同一单号的多行必然相邻，避免 rowspan 跨组错位 */
     for(var q=0;q<rows.length;q++){
-      var gk=grp.key(rows[q]);
-      gcnt[gk]=(gcnt[gk]||0)+1;(grows[gk]||(grows[gk]=[])).push(rows[q]);
-      if(gnum[gk]==null)gnum[gk]=++gn;   /* 同组（同一订单）共用一个序号 */
+      var kk=String(grp.key(rows[q])==null?'':grp.key(rows[q]));
+      if(q===0||kk!==gkey){gkey=kk;gn++;gstart.push(q);gcnt.push(1);}else{gcnt[gn-1]++;}
+      rowG[q]=gn-1;gnum[q]=gn;
     }
-    if(merge){
-      for(var kk in grows){
-        if(gcnt[kk]<2)continue;
-        var gs=grows[kk],flags=[];
-        for(var mc=0;mc<cols.length;mc++){
-          var cd=cols[mc],same=true,v0=cellHTML(cd,gs[0]);
-          for(var mz=1;mz<gs.length;mz++){if(cellHTML(cd,gs[mz])!==v0){same=false;break;}}
-          flags.push(same);
-        }
-        gsame[kk]=flags;
+    for(var g=0;g<gn;g++){
+      var s0=gstart[g],n0=gcnt[g],flags=[];
+      for(var mc=0;mc<cols.length;mc++){
+        var cd=cols[mc],same=n0>1,v0=cellHTML(cd,rows[s0]);
+        for(var mz=1;same&&mz<n0;mz++){if(cellHTML(cd,rows[s0+mz])!==v0)same=false;}
+        flags.push(same);
       }
+      gsame.push(flags);
     }
   }
   var h='<div class="tbl-wrap"><div class="tbl-scroll"><table><thead><tr><th style="width:44px">序号</th>';
@@ -861,29 +855,22 @@ function smartTableHTML(mod,cols,rows,actionsFn,redraw,grp){
   if(actionsFn)h+='<th style="width:130px">操作</th>';
   h+='</tr></thead><tbody>';
   for(var r=0;r<rows.length;r++){
-    var ck=(grp&&grp.key)?grp.key(rows[r]):null;
-    var grouped=ck!=null&&gcnt[ck]>1;
-    var first=grouped&&grows[ck][0]===rows[r];
-    var last=grouped&&grows[ck][grows[ck].length-1]===rows[r];
-    /* 序号：同组（同一订单）共用一个序号；按序号单双着色，同组整块同色，便于观看 */
-    var numByG=!!(grp&&grp.key&&(grp.numByGroup||grp.merge));
-    var rn=(numByG&&ck!=null&&gnum[ck]!=null)?gnum[ck]:(r+1);
-    var zodd=(rn%2===0);
-    if(grouped){
-      if(first&&!grp.noHead)h+='<tr class="grp-hd'+(zodd?' z2':'')+'"><td colspan="'+colTotal+'">'+grp.head(grows[ck]||[],ck)+'</td></tr>';
-      h+='<tr class="grp'+(zodd?' z2':'')+(first?' grp-first':'')+(last?' grp-last':'')+'">';
-    }else{
-      h+='<tr'+(zodd?' class="z2"':'')+'>';
-    }
-    if(grouped&&merge){
-      if(first)h+='<td class="mg" rowspan="'+gcnt[ck]+'">'+rn+'</td>';
-    }else{
-      h+='<td>'+rn+'</td>';
-    }
+    var gg=hasGrp?rowG[r]:null;
+    var grouped=gg!=null&&gcnt[gg]>1;
+    var first=grouped&&gstart[gg]===r;
+    var last=grouped&&gstart[gg]+gcnt[gg]-1===r;
+    /* 序号：同一单（同组）共用一个序号；按序号单双着色 → 整单同色、相邻单交替，便于观看 */
+    var rn=hasGrp?gnum[r]:(r+1);
+    var zebra=(rn%2===0);
+    var cls=(zebra?'z2 ':'')+(grouped?'grp ':'')+(first?'grp-first ':'')+(last?'grp-last':'');
+    cls=cls.replace(/\s+$/,'');
+    h+='<tr'+(cls?' class="'+cls+'"':'')+'>';
+    if(grouped&&first)h+='<td class="mg" rowspan="'+gcnt[gg]+'">'+rn+'</td>';
+    else if(!grouped)h+='<td>'+rn+'</td>';
     for(var c=0;c<cols.length;c++){
       var cc=cols[c];
-      if(grouped&&merge&&gsame[ck]&&gsame[ck][c]){
-        if(first)h+='<td class="mg" rowspan="'+gcnt[ck]+'">'+cellHTML(cc,rows[r])+'</td>';
+      if(grouped&&gsame[gg][c]){
+        if(first)h+='<td class="mg" rowspan="'+gcnt[gg]+'">'+cellHTML(cc,rows[r])+'</td>';
       }else{
         h+='<td>'+cellHTML(cc,rows[r])+'</td>';
       }
@@ -1276,7 +1263,7 @@ function prodOverviewHTML(){
   for(var r=0;r<rows.length;r++){
     var o3=rows[r];
     var st=o3.stock>0?(Math.floor(o3.stock/o3.per)+'件'+(o3.stock%o3.per)+'盒'):'0';
-    h+='<tr'+(r%2?'':' class="z2"')+' data-key="'+esc(o3._key)+'"><td>'+(r+1)+'</td>'
+    h+='<tr'+(((r+1)%2===0)?' class="z2"':'')+' data-key="'+esc(o3._key)+'"><td>'+(r+1)+'</td>'
       +'<td><span class="pov-tag '+(o3.cat==='OEM'?'oem':'zx')+'">'+esc(o3.cat||'—')+'</span>'+(o3.cat==='OEM'?'<span class="pov-agent">'+esc(o3.agent||'未关联代理商')+'</span>':'')+'<span class="pov-name">'+esc(o3.name)+'</span></td>'
       +'<td>'+esc(o3.spec)+'</td>'
       +'<td>'+(o3.basePrice?fmtN(o3.basePrice):'—')+'</td>'
@@ -2289,7 +2276,7 @@ function drawOrder(){
     btns+='<button class="btn sm" onclick="openPayForm(null,\''+r.no+'\')">记回款</button>';
     btns+='<button class="btn sm dgr" onclick="delOrder(\''+r.id+'\')">删除</button>';
     return btns;
-  },drawOrder,{key:function(r){return r.no;},merge:true,noHead:true});
+  },drawOrder,{key:function(r){return r.no;}});
 }
 /* ================= 销售订单表单：客户分类→代理商→客户名称联动 + 多产品明细 ================= */
 var OF={};
@@ -2849,18 +2836,11 @@ function shipCols(){
     {key:'photo',label:'随货同行单',fmt:function(r){return r.photo?'<img class="photo-thumb" src="'+r.photo+'" onclick="showBig(this.src)" title="点击放大">':'—';}}
   ];
 }
-/* 同一发货单多条物流明细：分组表头（单号+客户+明细数+合计数量） */
-function shipGrpHead(rs){
-  var o=shipOrder(rs[0])||{};
-  var b=0,u=0;rs.forEach(function(s){b+=Number(s.qtyBoxes)||0;u+=Number(s.qtyUnits)||0;});
-  var neg=rs.some(function(s){return (Number(s.totalUnits)||0)<0;});
-  return '同一发货单 <span class="mono">'+esc(rs[0].orderNo)+'</span>　'+esc(o.agentName||'')+' → '+esc(o.custName||'')+'　'+esc(rs[0].shipDate||'')
-    +'　<span class="tag c1">'+rs.length+' 条明细</span>　合计 '+(u?(b+' 件 '+u+' 盒'):(b+' 件'))+(neg?'　<span class="tag warn">含退货入库</span>':'');
-}
+/* 同一发货单多条物流明细：与销售订单一致——同一单号共用一个序号、单号/客户/日期合并单元格 */
 function drawShip(){
   document.getElementById('shipTbl').innerHTML=smartTableHTML('ship',shipCols(),filterShip(),function(r){
     return actB(r.id,'openShipForm','delShip');
-  },drawShip,{key:function(r){return r.orderNo;},head:shipGrpHead});
+  },drawShip,{key:function(r){return r.orderNo;}});
 }
 function openShipForm(id,preOrderNo){
   var s=id?db.shipments.filter(function(x){return x.id===id;})[0]:null;
@@ -3891,11 +3871,7 @@ function drawPolicy(){
   var cnt=document.getElementById('policyCnt');
   if(cnt)cnt.textContent='共 '+db.prodPolicies.length+' 条政策';
   holder.innerHTML=smartTableHTML('policy',policyCols(),rows,function(r){return actB(r.id,'openPolicyForm','delPolicy');},drawPolicy,
-    {key:function(r){return (r.agent||'')+'\u0000'+(r.custName||'');},
-     head:function(grs,k){
-       var ps=k.split('\u0000');
-       return '<span class="tag c1">'+esc(ps[0]||'—')+'</span>　'+(ps[1]?esc(ps[1]):'<span class="tag c3">全部客户</span>')+'　共 '+grs.length+' 条政策';
-     }});
+    {key:function(r){return (r.agent||'')+'\u0000'+(r.custName||'');}});
 }
 /* 客户分类 → 代理商 → 客户名称 联动（与其它模块口径一致） */
 function policyCatChg(sel){
