@@ -9,22 +9,22 @@
   --blue:var(--accent);--blue-d:var(--accent-d);
   --bg:#f5f5f7;--card:#fff;--line:#e5e5ea;--txt:#1d1d1f;--sub:#6e6e73;
   --red:#e5878c;--green:#6fbf94;--orange:#eda768;
-  --accent:#6f9f9a;--accent-d:#57827d;--accent-soft:#e3f0ee;--accent-g1:#a8d8d0;--accent-g2:#7fb8b0;
+  --accent:#6f9f9a;--accent-d:#57827d;--accent-soft:#e3f0ee;--accent-hv:#C5E4DF;--accent-g1:#a8d8d0;--accent-g2:#7fb8b0;
   --shadow:0 2px 10px rgba(60,80,110,.06),0 10px 30px rgba(60,80,110,.07);
   --r:16px;
 }
 /* Apple 系统色 · 每模块一个系统色（iOS/macOS 原生色板），切换模块时整体色调跟随 */
-body[data-mod="dash"]{--accent:#4B93E8;--accent-d:#2C6BB8;--accent-soft:#EDF4FE;--accent-g1:#C3DCFA;--accent-g2:#9CC4F0}
-body[data-mod="cust"]{--accent:#7A78D8;--accent-d:#5553AB;--accent-soft:#F0F0FC;--accent-g1:#CBCAF1;--accent-g2:#A9A7E5}
-body[data-mod="prod"]{--accent:#F1708F;--accent-d:#C24A66;--accent-soft:#FDF0F3;--accent-g1:#F9C6D3;--accent-g2:#F39CB2}
-body[data-mod="prodo"]{--accent:#B477DA;--accent-d:#8A50AC;--accent-soft:#F7F1FC;--accent-g1:#E0C6F0;--accent-g2:#C99BE4}
-body[data-mod="stock"]{--accent:#63C67F;--accent-d:#3E8F58;--accent-soft:#EDF9F0;--accent-g1:#BEE7C9;--accent-g2:#93D5A8}
-body[data-mod="order"]{--accent:#F0A44E;--accent-d:#B87329;--accent-soft:#FEF5EA;--accent-g1:#FADCB5;--accent-g2:#F5C384}
-body[data-mod="ship"]{--accent:#66B8E4;--accent-d:#3C86AE;--accent-soft:#EEF7FD;--accent-g1:#C2E2F5;--accent-g2:#99CCEA}
-body[data-mod="pay"]{--accent:#5FBDCC;--accent-d:#35899A;--accent-soft:#EDF8FA;--accent-g1:#BEE3E9;--accent-g2:#93CED8}
-body[data-mod="dev"]{--accent:#B49B7C;--accent-d:#856F52;--accent-soft:#F7F3EC;--accent-g1:#DCCFBB;--accent-g2:#C8B69B}
-body[data-mod="log"]{--accent:#A0A0A6;--accent-d:#6E6E73;--accent-soft:#F5F5F7;--accent-g1:#D6D6DA;--accent-g2:#BEBEC4}
-body[data-mod="set"]{--accent:#4FC7BF;--accent-d:#2A948D;--accent-soft:#EBF9F8;--accent-g1:#B0E8E4;--accent-g2:#86DAD4}
+body[data-mod="dash"]{--accent:#4B93E8;--accent-d:#2C6BB8;--accent-soft:#EDF4FE;--accent-hv:#D8E8FC;--accent-g1:#C3DCFA;--accent-g2:#9CC4F0}
+body[data-mod="cust"]{--accent:#7A78D8;--accent-d:#5553AB;--accent-soft:#F0F0FC;--accent-hv:#DDDDF6;--accent-g1:#CBCAF1;--accent-g2:#A9A7E5}
+body[data-mod="prod"]{--accent:#F1708F;--accent-d:#C24A66;--accent-soft:#FDF0F3;--accent-hv:#FBDBE3;--accent-g1:#F9C6D3;--accent-g2:#F39CB2}
+body[data-mod="prodo"]{--accent:#B477DA;--accent-d:#8A50AC;--accent-soft:#F7F1FC;--accent-hv:#EBDBF6;--accent-g1:#E0C6F0;--accent-g2:#C99BE4}
+body[data-mod="stock"]{--accent:#63C67F;--accent-d:#3E8F58;--accent-soft:#EDF9F0;--accent-hv:#D5F0DC;--accent-g1:#BEE7C9;--accent-g2:#93D5A8}
+body[data-mod="order"]{--accent:#F0A44E;--accent-d:#B87329;--accent-soft:#FEF5EA;--accent-hv:#FCE8CF;--accent-g1:#FADCB5;--accent-g2:#F5C384}
+body[data-mod="ship"]{--accent:#66B8E4;--accent-d:#3C86AE;--accent-soft:#EEF7FD;--accent-hv:#D8ECF9;--accent-g1:#C2E2F5;--accent-g2:#99CCEA}
+body[data-mod="pay"]{--accent:#5FBDCC;--accent-d:#35899A;--accent-soft:#EDF8FA;--accent-hv:#D5EDF1;--accent-g1:#BEE3E9;--accent-g2:#93CED8}
+body[data-mod="dev"]{--accent:#B49B7C;--accent-d:#856F52;--accent-soft:#F7F3EC;--accent-hv:#E9E1D3;--accent-g1:#DCCFBB;--accent-g2:#C8B69B}
+body[data-mod="log"]{--accent:#A0A0A6;--accent-d:#6E6E73;--accent-soft:#F5F5F7;--accent-hv:#E5E5E8;--accent-g1:#D6D6DA;--accent-g2:#BEBEC4}
+body[data-mod="set"]{--accent:#4FC7BF;--accent-d:#2A948D;--accent-soft:#EBF9F8;--accent-hv:#CDF0EE;--accent-g1:#B0E8E4;--accent-g2:#86DAD4}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:var(--bg);color:var(--txt);font-size:14px}
 .app{display:flex;min-height:100vh}
@@ -33,34 +33,23 @@ body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:var(--bg)
 .sidebar .logo small{display:block;font-size:11px;font-weight:normal;color:#8e8e93;margin-top:3px}
 .nav{flex:1;padding:10px 0}
 .nav a{display:flex;align-items:center;gap:9px;padding:11px 18px;color:#3c3c43;text-decoration:none;font-size:14px;cursor:pointer}
-.nav a:hover{background:rgba(0,0,0,.05);color:#1d1d1f}
-.nav a.active{background:linear-gradient(135deg,var(--accent),var(--accent-d));color:#fff}
 .sidebar .foot{padding:12px 16px;font-size:11px;color:var(--sub);border-top:1px solid var(--accent-g1)}
 .main{flex:1;min-width:0;display:flex;flex-direction:column}
 .topbar{background:var(--card);border-bottom:1px solid var(--line);padding:12px 22px;display:flex;align-items:center;gap:14px}
-.topbar h2{font-size:17px}
 .topbar .date{color:var(--sub);font-size:13px}
 .content{padding:20px 22px;flex:1}
 .card{background:var(--card);border:1px solid var(--line);border-radius:8px;margin-bottom:16px;overflow:hidden}
 .card .card-hd{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.card .card-hd h3{font-size:15px}
 .card .card-hd .sp{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
-.card .card-bd{padding:14px 16px}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{background:var(--accent-g1);text-align:left;padding:9px 10px;border-bottom:1px solid var(--accent-g1);color:var(--accent-d);font-weight:600;white-space:nowrap}
 td{padding:9px 10px;border-bottom:1px solid var(--accent-soft);vertical-align:middle}
-tr:hover td{background:#f7f7f8}
 .empty{text-align:center;color:var(--sub);padding:36px 0}
 .btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:6px;border:1px solid var(--line);background:#fff;color:var(--txt);font-size:13px;cursor:pointer}
-.btn:hover{border-color:var(--blue);color:var(--blue)}
-.btn.pri{background:var(--blue);border-color:var(--blue);color:#fff}
-.btn.pri:hover{background:var(--blue-d);color:#fff}
 .btn.dgr{color:var(--red)}
-.btn.dgr:hover{border-color:var(--red)}
 .btn.sm{padding:3px 9px;font-size:12px}
 .tabs{display:flex;gap:6px;flex-wrap:wrap}
 .tabs span{padding:5px 13px;border-radius:16px;background:var(--accent-soft);color:var(--accent-d);font-size:12.5px;cursor:pointer}
-.tabs span.on{background:var(--blue);color:#fff}
 .tag{display:inline-block;padding:2px 9px;border-radius:10px;font-size:12px}
 .tag.c1{background:var(--accent-soft);color:var(--accent-d)}.tag.c2{background:#fef3c7;color:#b45309}.tag.c3{background:#dcfce7;color:#15803d}
 .tag.warn{background:#fee2e2;color:#b91c1c}.tag.ok{background:#dcfce7;color:#15803d}.tag.pend{background:#fef3c7;color:#b45309}
@@ -103,8 +92,6 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .sec-title{font-size:13px;font-weight:600;color:var(--sub);margin:4px 0 10px}
 .fgroup{grid-column:1/-1;margin-top:4px;padding:7px 10px;background:var(--accent-soft);border-radius:6px;font-size:12.5px;font-weight:600;color:var(--accent-d)}
 .flt{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin-left:2px;border-radius:4px;cursor:pointer;font-size:11px;color:var(--sub);vertical-align:middle;user-select:none}
-.flt:hover{background:var(--accent-soft);color:var(--accent)}
-.flt.on{background:var(--blue);color:#fff}
 .flt-pop{position:fixed;z-index:300;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(15,23,42,.14);padding:8px;min-width:170px}
 .flt-pop .flt-opt{padding:7px 11px;border-radius:6px;cursor:pointer;font-size:13px}
 .flt-pop .flt-opt:hover{background:#f1f5f9}
@@ -118,12 +105,13 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .tbl-scroll::-webkit-scrollbar{height:9px}
 .tbl-scroll::-webkit-scrollbar-thumb{background:#c7c7cc;border-radius:8px}
 .tbl-scroll::-webkit-scrollbar-track{background:transparent}
-/* 表格上方同步滚动条：不用滑到表格底部就能左右移动 */
-.tbl-top{overflow-x:auto;overflow-y:hidden;height:12px;display:none;margin-bottom:3px}
-.tbl-top>div{height:1px}
-.tbl-top::-webkit-scrollbar{height:10px}
-.tbl-top::-webkit-scrollbar-thumb{background:#aeaeb4;border-radius:8px}
-.tbl-top::-webkit-scrollbar-track{background:#f2f2f4;border-radius:8px}
+/* 横向滚动条：固定在整个工作台底部，竖向滑到任何位置都能看到；自动跟随当前可见的宽表 */
+#hbar{position:fixed;left:0;right:0;bottom:0;height:16px;overflow-x:auto;overflow-y:hidden;display:none;z-index:70;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--accent-g1);padding:2px 0}
+#hbar>div{height:1px}
+#hbar::-webkit-scrollbar{height:11px}
+#hbar::-webkit-scrollbar-thumb{background:#aeaeb4;border-radius:8px}
+#hbar::-webkit-scrollbar-track{background:transparent}
+body.hbar-on .content{padding-bottom:40px}
 td.mg{vertical-align:middle}
 tbody tr.grp-first td{border-top:1px solid var(--accent-g1)}
 tbody tr.grp-last td{border-bottom:1px solid var(--accent-g1)}
@@ -157,15 +145,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","SF Pro Text","Pin
 .bar-row .bt{border-radius:6px;background:var(--accent-soft)}
 .bar-row .bf{display:block;border-radius:6px;background:linear-gradient(90deg,var(--accent-g1),var(--accent))}
 th{background:var(--accent-g1);color:var(--accent-d)}
-tr:hover td{background:#f7f7f8}
-/* 列表隔行斑马纹：同色系更淡的标注，方便观看 */
-tbody tr:nth-child(even) td{background:var(--accent-soft)}
-tbody tr:nth-child(even):hover td{background:#f7f7f8}
+tr:hover td{background:var(--accent-hv)}
+/* 明细列表隔行底色：按「序号」单双着色（同一订单共用一个序号 → 整单同色，便于观看） */
+tbody tr.z2 td{background:var(--accent-soft)}
+tbody tr.z2:hover td{background:var(--accent-hv)}
 /* 同一订单/发货单多行明细分组标识 */
 tbody tr.grp-hd td{background:var(--accent-soft);border-top:2px solid var(--accent-d);border-bottom:1px solid var(--accent-g1);color:var(--accent-d);font-weight:700;font-size:12px}
 tbody tr.grp-hd:hover td{background:var(--accent-soft)}
-tbody tr.grp td{background:#f7f7f8}
-tbody tr.grp:hover td{background:#f7f7f8}
 .grp-hd .mono{font-weight:700}
 .fitem input,.fitem select,.fitem textarea{border-radius:10px;border-color:#e4eaf2;background:#fbfcfe}
 .fitem input:focus,.fitem select:focus,.fitem textarea:focus{border-color:var(--accent);background:#fff}
@@ -290,9 +276,7 @@ tbody tr.grp:hover td{background:#f7f7f8}
   .mask{padding:14px 10px}
 }
 @media(max-width:520px){
-  .topbar h2{font-size:15px}
   .card .card-hd{padding:11px 14px}
-  .card .card-bd{padding:13px 14px}
   .toolbar-card .tabs{width:100%;order:99}
 }
 /* 回款表单 */
@@ -308,6 +292,10 @@ tbody tr.grp:hover td{background:#f7f7f8}
 @media(max-width:900px){
   /* 底部导航：模块名称（销售订单/回款明细等）始终一行显示，不换行 */
   .nav a{padding:8px 6px;margin:0;white-space:nowrap;min-width:72px}
+  /* 操作列：手机端表格被压到最小宽度、按钮文字会竖折把行撑到 200px+；
+     设最小宽度让按钮两列排布 + 禁止按钮文字折行，行高降到约 60px */
+  td.act{min-width:112px;padding:6px 8px}
+  td.act .btn.sm{white-space:nowrap;padding:3px 8px;font-size:11.5px;line-height:1.3;margin:1px 1px 1px 0}
   /* 产品一览：渠道标签（自销/OEM）与代理商名同一行，产品具体名称单独一行 */
   .pov-tag{display:inline-block;margin-bottom:3px}
   .pov-agent{display:inline;font-size:10.5px;margin-left:4px;vertical-align:1px}
@@ -372,6 +360,7 @@ tbody tr.grp:hover td{background:#f7f7f8}
   <div class="m-bd" id="wdBody" data-page-node-id="9aGqVAFJd8gVFWTGSlQNFY"></div>
   <div class="m-ft" data-page-node-id="YF3GBmIFaKjCrUVrE0p2RJ"><button class="btn pri" onclick="closeWaveDetail()" data-page-node-id="iNJlgu5Xpe9UEuvNI6hhBe">关闭</button></div>
 </div></div>
+<div id="hbar"><div></div></div>
 <script>
 /* ================= 存储 ================= */
 var DB_KEY='pharmaSalesWorkbench';
@@ -581,7 +570,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20260930d',_verChecking=false;
+var APP_VER='20260930f',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -864,29 +853,28 @@ function smartTableHTML(mod,cols,rows,actionsFn,redraw,grp){
       }
     }
   }
-  var h='<div class="tbl-wrap"><div class="tbl-top"><div></div></div><div class="tbl-scroll"><table><thead><tr><th style="width:44px">序号</th>';
+  var h='<div class="tbl-wrap"><div class="tbl-scroll"><table><thead><tr><th style="width:44px">序号</th>';
   for(var i=0;i<cols.length;i++){
     var on=st[cols[i].key]?' on':'';
     h+='<th>'+cols[i].label+' <span class="flt'+on+'" onclick="openColFilter(\''+mod+'\',\''+cols[i].key+'\',this)" title="筛选">▾</span></th>';
   }
   if(actionsFn)h+='<th style="width:130px">操作</th>';
   h+='</tr></thead><tbody>';
-  var lastG=null;
   for(var r=0;r<rows.length;r++){
     var ck=(grp&&grp.key)?grp.key(rows[r]):null;
     var grouped=ck!=null&&gcnt[ck]>1;
     var first=grouped&&grows[ck][0]===rows[r];
     var last=grouped&&grows[ck][grows[ck].length-1]===rows[r];
-    if(grouped){
-      if(first&&!grp.noHead)h+='<tr class="grp-hd"><td colspan="'+colTotal+'">'+grp.head(grows[ck]||[],ck)+'</td></tr>';
-      lastG=ck;
-      h+='<tr class="grp'+(first?' grp-first':'')+(last?' grp-last':'')+'">';
-    }else{
-      lastG=ck;
-      h+='<tr>';
-    }
+    /* 序号：同组（同一订单）共用一个序号；按序号单双着色，同组整块同色，便于观看 */
     var numByG=!!(grp&&grp.key&&(grp.numByGroup||grp.merge));
     var rn=(numByG&&ck!=null&&gnum[ck]!=null)?gnum[ck]:(r+1);
+    var zodd=(rn%2===0);
+    if(grouped){
+      if(first&&!grp.noHead)h+='<tr class="grp-hd'+(zodd?' z2':'')+'"><td colspan="'+colTotal+'">'+grp.head(grows[ck]||[],ck)+'</td></tr>';
+      h+='<tr class="grp'+(zodd?' z2':'')+(first?' grp-first':'')+(last?' grp-last':'')+'">';
+    }else{
+      h+='<tr'+(zodd?' class="z2"':'')+'>';
+    }
     if(grouped&&merge){
       if(first)h+='<td class="mg" rowspan="'+gcnt[ck]+'">'+rn+'</td>';
     }else{
@@ -900,7 +888,7 @@ function smartTableHTML(mod,cols,rows,actionsFn,redraw,grp){
         h+='<td>'+cellHTML(cc,rows[r])+'</td>';
       }
     }
-    if(actionsFn)h+='<td>'+actionsFn(rows[r])+'</td>';
+    if(actionsFn)h+='<td class="act">'+actionsFn(rows[r])+'</td>';
     h+='</tr>';
   }
   h+='</tbody><tfoot><tr><td><b>合计</b></td>';
@@ -911,45 +899,57 @@ function smartTableHTML(mod,cols,rows,actionsFn,redraw,grp){
     else if(c2===0)h+='<td>共 '+rows.length+' 条</td>';
     else h+='<td></td>';
   }
-  if(actionsFn)h+='<td></td>';
+  if(actionsFn)h+='<td class="act"></td>';
   h+='</tr></tfoot></table></div></div>';
   return h;
 }
-/* 顶部滚动条与表格滚动同步：不用滑到表格最底部就能左右移动 */
-function tsFit(w){
-  var sc=w.querySelector('.tbl-scroll'),top=w.querySelector('.tbl-top');
-  if(!sc||!top)return;
-  var inner=top.firstElementChild;if(!inner)return;
-  var nw=sc.scrollWidth;
-  if(inner.style.width!==nw+'px')inner.style.width=nw+'px';
-  var disp=(nw-sc.clientWidth>2)?'block':'none';
-  if(top.style.display!==disp)top.style.display=disp;
-  if(top.scrollLeft!==sc.scrollLeft)top.scrollLeft=sc.scrollLeft;
+/* 横向滚动条固定在工作台底部：竖向滑到任何位置都可见，自动跟随当前可见的宽表 */
+var HBAR_T=null,HBAR_LOCK=false,HBAR_RAF=0;
+function hbarLayout(sc){
+  var bar=document.getElementById('hbar');if(!bar)return;
+  var sb=document.querySelector('.sidebar');
+  if(!sc||!sb){bar.style.left='0px';bar.style.right='0px';return;}
+  var t=sc.getBoundingClientRect(),iw=window.innerWidth,ih=window.innerHeight;
+  bar.style.left=Math.max(0,Math.round(t.left))+'px';
+  bar.style.right=Math.max(0,Math.round(iw-t.right))+'px';
+  /* 手机端：底部导航占了底部，横条压在导航之上 */
+  bar.style.bottom=(sb.getBoundingClientRect().top>ih/2)?Math.max(0,Math.round(ih-sb.getBoundingClientRect().top))+'px':'0px';
 }
-function initTableScroll(){
-  var list=document.querySelectorAll('.tbl-wrap');
+function hbarUpdate(){
+  var bar=document.getElementById('hbar');if(!bar)return;
+  var list=document.querySelectorAll('.tbl-scroll');
+  var ih=window.innerHeight,best=null,bestScore=0;
   for(var i=0;i<list.length;i++){
-    var w=list[i];
-    if(!w.getAttribute('data-ts')){
-      w.setAttribute('data-ts','1');
-      (function(w){
-        var sc=w.querySelector('.tbl-scroll'),top=w.querySelector('.tbl-top');
-        if(!sc||!top)return;
-        top.addEventListener('scroll',function(){if(sc.scrollLeft!==top.scrollLeft)sc.scrollLeft=top.scrollLeft;});
-        sc.addEventListener('scroll',function(){if(top.scrollLeft!==sc.scrollLeft)top.scrollLeft=sc.scrollLeft;});
-      })(w);
-    }
-    tsFit(w);
+    var sc=list[i];
+    if(sc.scrollWidth-sc.clientWidth<=2)continue;      /* 无横向溢出的表不参与 */
+    var r=sc.getBoundingClientRect();
+    var vis=Math.min(r.bottom,ih)-Math.max(r.top,0);
+    if(vis<=0)continue;                                 /* 不在视口内的表不参与 */
+    var score=vis+(sc===HBAR_T?20:0);                   /* 优先保持当前目标，避免跳动 */
+    if(score>bestScore){bestScore=score;best=sc;}
   }
+  HBAR_T=best;
+  if(!best){bar.style.display='none';document.body.classList.remove('hbar-on');return;}
+  hbarLayout(best);
+  var inner=bar.firstElementChild;
+  if(inner&&inner.style.width!==best.scrollWidth+'px')inner.style.width=best.scrollWidth+'px';
+  bar.style.display='block';
+  document.body.classList.add('hbar-on');
+  if(Math.abs(bar.scrollLeft-best.scrollLeft)>1)bar.scrollLeft=best.scrollLeft;
 }
-window.addEventListener('resize',function(){
-  var ws=document.querySelectorAll('.tbl-wrap');
-  for(var i=0;i<ws.length;i++)tsFit(ws[i]);
-});
-new MutationObserver(function(){
-  clearTimeout(window._tsT);
-  window._tsT=setTimeout(initTableScroll,30);
-}).observe(document.documentElement,{childList:true,subtree:true});
+function hbarSync(){if(HBAR_RAF)return;HBAR_RAF=requestAnimationFrame(function(){HBAR_RAF=0;hbarUpdate();});}
+(function hbarBind(){
+  var bar=document.getElementById('hbar');if(!bar)return;
+  bar.addEventListener('scroll',function(){
+    if(HBAR_LOCK||!HBAR_T)return;
+    HBAR_LOCK=true;HBAR_T.scrollLeft=bar.scrollLeft;
+    setTimeout(function(){HBAR_LOCK=false;},0);
+  });
+  window.addEventListener('scroll',hbarSync,true);   /* 捕获阶段：页面竖向滚动与表内横向滚动都能收到 */
+  window.addEventListener('resize',hbarSync);
+  new MutationObserver(hbarSync).observe(document.documentElement,{childList:true,subtree:true});
+  hbarSync();
+})();
 function colFltPos(dv,btn){
   var r=btn.getBoundingClientRect();
   dv.style.top=(r.bottom+6)+'px';
@@ -1272,11 +1272,11 @@ function prodOverviewHTML(){
   });
   var rows=zx.concat(oem);
   if(!rows.length)return '<div class="empty">暂无产品数据</div>';
-  var h='<div class="tbl-wrap"><div class="tbl-top"><div></div></div><div class="tbl-scroll"><table class="pov-tbl"><thead><tr><th style="width:38px">序号</th><th>产品名称</th><th>产品规格</th><th style="width:64px">底价</th><th style="width:92px">库存</th><th style="width:72px">订单件数</th><th style="width:72px">挂网价格</th></tr></thead><tbody>';
+  var h='<div class="tbl-wrap"><div class="tbl-scroll"><table class="pov-tbl"><thead><tr><th style="width:38px">序号</th><th>产品名称</th><th>产品规格</th><th style="width:64px">底价</th><th style="width:92px">库存</th><th style="width:72px">订单件数</th><th style="width:72px">挂网价格</th></tr></thead><tbody>';
   for(var r=0;r<rows.length;r++){
     var o3=rows[r];
     var st=o3.stock>0?(Math.floor(o3.stock/o3.per)+'件'+(o3.stock%o3.per)+'盒'):'0';
-    h+='<tr data-key="'+esc(o3._key)+'"><td>'+(r+1)+'</td>'
+    h+='<tr'+(r%2?'':' class="z2"')+' data-key="'+esc(o3._key)+'"><td>'+(r+1)+'</td>'
       +'<td><span class="pov-tag '+(o3.cat==='OEM'?'oem':'zx')+'">'+esc(o3.cat||'—')+'</span>'+(o3.cat==='OEM'?'<span class="pov-agent">'+esc(o3.agent||'未关联代理商')+'</span>':'')+'<span class="pov-name">'+esc(o3.name)+'</span></td>'
       +'<td>'+esc(o3.spec)+'</td>'
       +'<td>'+(o3.basePrice?fmtN(o3.basePrice):'—')+'</td>'
@@ -4538,6 +4538,7 @@ function prodoFillProdOpts(catChanged){
 function prodoNameChg(el){prodoFillProdOpts(false);}
 /* 分类联动：自销隐藏 客户分类/代理商/客户名称/订单金额/预付款金额；OEM 显示；同时刷新产品/规格候选 */
 function prodoCatChange(sel){
+  var cat=(sel&&sel.value!=null)?sel.value:(formVal('cat')||'');   /* 修复：原先引用了未定义的 cat 变量，打开表单即报错、自销/OEM 联动失效 */
   var oem=(cat==='OEM');
   formToggle('custCat',oem);
   formToggle('agent',oem);
