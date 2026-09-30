@@ -113,10 +113,20 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .flt-pop .flt-input:focus{outline:none;border-color:var(--blue)}
 .flt-pop .row{display:flex;gap:6px;align-items:center;justify-content:space-between}
 /* 列表横向滚动：滚动条常显（macOS 默认隐藏导致"滚轮不能用"的观感）；电脑端单元格单行不换行，宽表横向滚动 */
+.tbl-wrap{max-width:100%}
 .tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
 .tbl-scroll::-webkit-scrollbar{height:9px}
 .tbl-scroll::-webkit-scrollbar-thumb{background:#c7c7cc;border-radius:8px}
 .tbl-scroll::-webkit-scrollbar-track{background:transparent}
+/* 表格上方同步滚动条：不用滑到表格底部就能左右移动 */
+.tbl-top{overflow-x:auto;overflow-y:hidden;height:12px;display:none;margin-bottom:3px}
+.tbl-top>div{height:1px}
+.tbl-top::-webkit-scrollbar{height:10px}
+.tbl-top::-webkit-scrollbar-thumb{background:#aeaeb4;border-radius:8px}
+.tbl-top::-webkit-scrollbar-track{background:#f2f2f4;border-radius:8px}
+td.mg{vertical-align:middle}
+tbody tr.grp-first td{border-top:1px solid var(--accent-g1)}
+tbody tr.grp-last td{border-bottom:1px solid var(--accent-g1)}
 @media(min-width:901px){.tbl-scroll td{white-space:nowrap}}
 /* ================= 苹果风增强：马卡龙渐变 / 毛玻璃 / 圆角 / 移动端 ================= */
 html,body{max-width:100%;overflow-x:hidden}
@@ -291,6 +301,8 @@ tbody tr.grp:hover td{background:#f7f7f8}
 .pay-info th{background:var(--accent-soft);color:var(--accent-d);font-weight:600}
 .pay-item{border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-bottom:10px}
 .pay-item .fgrid{margin-top:6px}
+.pay-item.gift{border-color:var(--accent-g1);background:var(--accent-soft)}
+.pay-item.gift .fitem label{color:var(--accent-d)}
 /* ================= 统一商务主题（2026-09-29 配色收敛）：全站单一主色（青灰绿），仅保留红/绿/橙状态语义色；删去分模块换色、五色卡片与奶油插画风 ================= */
 /* —— 移动端（iPhone）整版优化：一屏放下、不出横向滚动条 —— */
 @media(max-width:900px){
@@ -569,7 +581,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20260930b',_verChecking=false;
+var APP_VER='20260930c',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -821,18 +833,34 @@ function smartFiltered(mod,cols,rows){
   return rows;
 }
 /* 智能表格：第一列自动序号；每列 ▾ 筛选；末行合计（列配 sum:true 或 sumFn） */
+function cellHTML(col,row){return col.fmt?col.fmt(row):esc(row[col.key]==null?'':row[col.key]);}
+/* 智能表格：第一列自动序号；每列 ▾ 筛选；末行合计（列配 sum:true 或 sumFn）
+   grp 分组：同组（同一订单/同一发货单/同一代理商…）多行时插入分组表头行；
+   grp.merge=true 时，组内取值完全相同的列合并为一个单元格（rowspan），一眼可辨同组 */
 function smartTableHTML(mod,cols,rows,actionsFn,redraw,grp){
   colFilterData[mod]={cols:cols,rows:rows||[],redraw:redraw||null};
   rows=smartFiltered(mod,cols,(rows||[]).slice());
   var st=colFilterState[mod]||{};
-  if(!rows.length){
-    var fany=false;for(var kk in st)if(st[kk])fany=true;
-    return '<div class="empty">'+(fany?'当前筛选条件下暂无数据，可点击列头 ▾ 清除筛选':'暂无数据，请点击右上角"新增"录入')+'</div>';
-  }
+  if(!rows.length)return '<div class="empty">暂无数据</div>';
   var colTotal=cols.length+1+(actionsFn?1:0);
-  var gcnt={},grows={};
-  if(grp&&grp.key){for(var q=0;q<rows.length;q++){var gk=grp.key(rows[q]);gcnt[gk]=(gcnt[gk]||0)+1;(grows[gk]||(grows[gk]=[])).push(rows[q]);}}
-  var h='<div class="tbl-scroll"><table><thead><tr><th style="width:44px">序号</th>';
+  var merge=!!(grp&&grp.merge);
+  var gcnt={},grows={},gsame={};
+  if(grp&&grp.key){
+    for(var q=0;q<rows.length;q++){var gk=grp.key(rows[q]);gcnt[gk]=(gcnt[gk]||0)+1;(grows[gk]||(grows[gk]=[])).push(rows[q]);}
+    if(merge){
+      for(var kk in grows){
+        if(gcnt[kk]<2)continue;
+        var gs=grows[kk],flags=[];
+        for(var mc=0;mc<cols.length;mc++){
+          var cd=cols[mc],same=true,v0=cellHTML(cd,gs[0]);
+          for(var mz=1;mz<gs.length;mz++){if(cellHTML(cd,gs[mz])!==v0){same=false;break;}}
+          flags.push(same);
+        }
+        gsame[kk]=flags;
+      }
+    }
+  }
+  var h='<div class="tbl-wrap"><div class="tbl-top"><div></div></div><div class="tbl-scroll"><table><thead><tr><th style="width:44px">序号</th>';
   for(var i=0;i<cols.length;i++){
     var on=st[cols[i].key]?' on':'';
     h+='<th>'+cols[i].label+' <span class="flt'+on+'" onclick="openColFilter(\''+mod+'\',\''+cols[i].key+'\',this)" title="筛选">▾</span></th>';
@@ -842,33 +870,80 @@ function smartTableHTML(mod,cols,rows,actionsFn,redraw,grp){
   var lastG=null;
   for(var r=0;r<rows.length;r++){
     var ck=(grp&&grp.key)?grp.key(rows[r]):null;
-    if(ck!=null&&gcnt[ck]>1){
-      if(ck!==lastG){
-        var grs=grows[ck]||[];
-        h+='<tr class="grp-hd"><td colspan="'+colTotal+'">'+grp.head(grs,ck)+'</td></tr>';
-        lastG=ck;
-      }
-      h+='<tr class="grp"><td>'+(r+1)+'</td>';
+    var grouped=ck!=null&&gcnt[ck]>1;
+    var first=grouped&&grows[ck][0]===rows[r];
+    var last=grouped&&grows[ck][grows[ck].length-1]===rows[r];
+    if(grouped){
+      if(first)h+='<tr class="grp-hd"><td colspan="'+colTotal+'">'+grp.head(grows[ck]||[],ck)+'</td></tr>';
+      lastG=ck;
+      h+='<tr class="grp'+(first?' grp-first':'')+(last?' grp-last':'')+'">';
     }else{
       lastG=ck;
-      h+='<tr><td>'+(r+1)+'</td>';
+      h+='<tr>';
     }
-    for(var c=0;c<cols.length;c++){var cd=cols[c];h+='<td>'+(cd.fmt?cd.fmt(rows[r]):esc(rows[r][cd.key]==null?'':rows[r][cd.key]))+'</td>';}
+    if(grouped&&merge){
+      if(first)h+='<td class="mg" rowspan="'+gcnt[ck]+'">'+(r+1)+'</td>';
+    }else{
+      h+='<td>'+(r+1)+'</td>';
+    }
+    for(var c=0;c<cols.length;c++){
+      var cc=cols[c];
+      if(grouped&&merge&&gsame[ck]&&gsame[ck][c]){
+        if(first)h+='<td class="mg" rowspan="'+gcnt[ck]+'">'+cellHTML(cc,rows[r])+'</td>';
+      }else{
+        h+='<td>'+cellHTML(cc,rows[r])+'</td>';
+      }
+    }
     if(actionsFn)h+='<td>'+actionsFn(rows[r])+'</td>';
     h+='</tr>';
   }
   h+='</tbody><tfoot><tr><td><b>合计</b></td>';
   for(var c2=0;c2<cols.length;c2++){
-    var cc=cols[c2];
-    if(cc.sum===true)h+='<td><b>'+fmtN(sumCol(rows,cc.key))+'</b></td>';
-    else if(cc.sumFn)h+='<td><b>'+cc.sumFn(rows)+'</b></td>';
+    var cf=cols[c2];
+    if(cf.sum===true)h+='<td><b>'+fmtN(sumCol(rows,cf.key))+'</b></td>';
+    else if(cf.sumFn)h+='<td><b>'+cf.sumFn(rows)+'</b></td>';
     else if(c2===0)h+='<td>共 '+rows.length+' 条</td>';
     else h+='<td></td>';
   }
   if(actionsFn)h+='<td></td>';
-  h+='</tr></tfoot></table></div>';
+  h+='</tr></tfoot></table></div></div>';
   return h;
 }
+/* 顶部滚动条与表格滚动同步：不用滑到表格最底部就能左右移动 */
+function tsFit(w){
+  var sc=w.querySelector('.tbl-scroll'),top=w.querySelector('.tbl-top');
+  if(!sc||!top)return;
+  var inner=top.firstElementChild;if(!inner)return;
+  var nw=sc.scrollWidth;
+  if(inner.style.width!==nw+'px')inner.style.width=nw+'px';
+  var disp=(nw-sc.clientWidth>2)?'block':'none';
+  if(top.style.display!==disp)top.style.display=disp;
+  if(top.scrollLeft!==sc.scrollLeft)top.scrollLeft=sc.scrollLeft;
+}
+function initTableScroll(){
+  var list=document.querySelectorAll('.tbl-wrap');
+  for(var i=0;i<list.length;i++){
+    var w=list[i];
+    if(!w.getAttribute('data-ts')){
+      w.setAttribute('data-ts','1');
+      (function(w){
+        var sc=w.querySelector('.tbl-scroll'),top=w.querySelector('.tbl-top');
+        if(!sc||!top)return;
+        top.addEventListener('scroll',function(){if(sc.scrollLeft!==top.scrollLeft)sc.scrollLeft=top.scrollLeft;});
+        sc.addEventListener('scroll',function(){if(top.scrollLeft!==sc.scrollLeft)top.scrollLeft=sc.scrollLeft;});
+      })(w);
+    }
+    tsFit(w);
+  }
+}
+window.addEventListener('resize',function(){
+  var ws=document.querySelectorAll('.tbl-wrap');
+  for(var i=0;i<ws.length;i++)tsFit(ws[i]);
+});
+new MutationObserver(function(){
+  clearTimeout(window._tsT);
+  window._tsT=setTimeout(initTableScroll,30);
+}).observe(document.documentElement,{childList:true,subtree:true});
 function colFltPos(dv,btn){
   var r=btn.getBoundingClientRect();
   dv.style.top=(r.bottom+6)+'px';
@@ -1191,7 +1266,7 @@ function prodOverviewHTML(){
   });
   var rows=zx.concat(oem);
   if(!rows.length)return '<div class="empty">暂无产品数据</div>';
-  var h='<div class="tbl-scroll"><table class="pov-tbl"><thead><tr><th style="width:38px">序号</th><th>产品名称</th><th>产品规格</th><th style="width:64px">底价</th><th style="width:92px">库存</th><th style="width:72px">订单件数</th><th style="width:72px">挂网价格</th></tr></thead><tbody>';
+  var h='<div class="tbl-wrap"><div class="tbl-top"><div></div></div><div class="tbl-scroll"><table class="pov-tbl"><thead><tr><th style="width:38px">序号</th><th>产品名称</th><th>产品规格</th><th style="width:64px">底价</th><th style="width:92px">库存</th><th style="width:72px">订单件数</th><th style="width:72px">挂网价格</th></tr></thead><tbody>';
   for(var r=0;r<rows.length;r++){
     var o3=rows[r];
     var st=o3.stock>0?(Math.floor(o3.stock/o3.per)+'件'+(o3.stock%o3.per)+'盒'):'0';
@@ -1203,7 +1278,7 @@ function prodOverviewHTML(){
       +'<td title="'+o3.orders+' 笔产品订单，合计 '+fmtN(o3.qty)+' 件">'+(o3.qty>0?fmtN(o3.qty):'—')+'</td>'
       +'<td>'+(o3.net!==''?fmtN(o3.net):'—')+'</td></tr>';
   }
-  h+='</tbody></table></div>';
+  h+='</tbody></table></div></div>';
   return h;
 }
 function setPayTarget(){
@@ -1693,8 +1768,8 @@ function openCustForm(id,preAgent){
   var curAgent=r?(r.agent||''):'';
   var fields=[
     {key:'cat',label:'客户分类',type:'select',required:true,onchange:'custFormCatChg',options:[{v:'省总',t:'省总'},{v:'大包商',t:'大包商'},{v:'零散客户',t:'零散客户'}]},
-    {key:'agent',label:'代理商',ph:'如：xx医药有限公司',hint:'可手动输入，也可从该分类已有记录中选择',datalist:function(){return custDLOpts('agent',curCat);},oninput:'custFormAgentChg'},
-    {key:'company',label:'客户名称',required:true,ph:'客户全称',hint:'候选为该代理商下已有客户，也可手动输入新客户名称',datalist:function(){return custDLOpts('company',curCat,curAgent);}},
+    {key:'agent',label:'代理商',ph:'如：xx医药有限公司',datalist:function(){return custDLOpts('agent',curCat);},oninput:'custFormAgentChg'},
+    {key:'company',label:'客户名称',required:true,ph:'客户全称',datalist:function(){return custDLOpts('company',curCat,curAgent);}},
     {key:'contact',label:'收货人'},
     {key:'phone',label:'联系电话'},
     {key:'addr',label:'收货地址',full:true},
@@ -1936,10 +2011,10 @@ function openInForm(bid){
   var bp=b?findProd(b.pid):null;
   var fields=[
     {key:'cat',label:'产品分类',type:'select',required:true,options:[{v:'自销',t:'自销'},{v:'OEM',t:'OEM'}],onchange:'stockCatSel'},
-    {key:'agent',label:'代理商',datalist:function(){return stockAgentOpts('OEM');},oninput:'stockAgentChg',hint:'选定代理商后，产品名称只列该代理商负责的产品（自销无代理商）'},
-    {key:'pid',label:'产品名称',type:'select',required:true,options:[],onchange:'stockProdSel',hint:'只列出产品档案中与所选分类/代理商一致的产品'},
+    {key:'agent',label:'代理商',datalist:function(){return stockAgentOpts('OEM');},oninput:'stockAgentChg'},
+    {key:'pid',label:'产品名称',type:'select',required:true,options:[],onchange:'stockProdSel'},
     {key:'spec',label:'规格',readonly:true},
-    {key:'totalUnits',label:'数量（总盒数）',type:'number',required:true,minZero:true,ph:'如 1000',hint:'按件装量自动换算为 x件y盒'},
+    {key:'totalUnits',label:'数量（总盒数）',type:'number',required:true,minZero:true,ph:'如 1000'},
     {key:'batchNo',label:'批号',required:true},
     {key:'expire',label:'有效期至',type:'date',required:true},
     {key:'brand',label:'商标',readonly:true},
@@ -2025,11 +2100,11 @@ function stockCalcQty(){
   var hintEl=qtyEl.parentNode?qtyEl.parentNode.querySelector('.hint'):null;
   var p=pidSel?findProd(pidSel.value):null;
   if(!hintEl)return;
-  if(!p){hintEl.textContent='按件装量自动换算为 x件y盒';return;}
+  if(!p){hintEl.textContent='';return;}
   var per=prodPerBox(p);
   var t=Math.floor(Number(qtyEl.value)||0);
-  if(t>0)hintEl.textContent='= '+Math.floor(t/per)+'件'+(t%per)+'盒（件装量'+per+'盒/件）';
-  else hintEl.textContent='按件装量自动换算为 x件y盒（件装量'+per+'盒/件）';
+  if(t>0)hintEl.textContent='= '+Math.floor(t/per)+'件'+(t%per)+'盒';
+  else hintEl.textContent='';
 }
 function delBatch(id){
   if(!confirm('确定删除该条库存记录？'))return;
@@ -2180,7 +2255,7 @@ function orderCols(){
     {key:'agentName',label:'代理商'},
     {key:'custName',label:'客户名称（下游）'},
     {key:'shipDate',label:'发货日期'},
-    {key:'prodLabel',label:'产品名称 / 规格'},
+    {key:'prodLabel',label:'产品名称 / 规格',fmt:function(r){return esc(r.prodLabel||'')+(r.gift?' <span class="tag c3">赠品</span>':'');}},
     {key:'batchNo',label:'批号',fmt:function(r){return esc(r.batchNo||'—');}},
     {key:'qty',label:'数量',fmt:function(r){var b=Number(r.qtyBoxes)||0,u=Number(r.qtyUnits)||0;return b>0?(u>0?(b+'件'+u+'盒'):(b+'件')):(u+'盒');}},
     {key:'basePrice',label:'底价',fmt:function(r){return fmtN(r.basePrice);}},
@@ -2199,8 +2274,7 @@ function orderGrpHead(rs){
   var o=rs[0];
   var amt=0;rs.forEach(function(x){amt+=Number(x.amount)||0;});
   var st=orderStatus(o);
-  return '同一订单 <span class="mono">'+esc(o.no)+'</span>　'+esc(o.agentName||'')+' → '+esc(o.custName||'')+'　'+esc(o.shipDate||'')
-    +'　<span class="tag c1">'+rs.length+' 个品种</span>　整单金额 '+fmtN(amt)+' 元　<span class="tag '+(st.c==='ok'?'ok':'warn')+'">'+st.t+'</span>';
+  return '同一订单　<span class="tag c1">'+rs.length+' 个品种</span>　整单金额 '+fmtN(amt)+' 元　<span class="tag '+(st.c==='ok'?'ok':'warn')+'">'+st.t+'</span>';
 }
 function drawOrder(){
   var rows=filterOrder().slice();
@@ -2216,12 +2290,12 @@ function drawOrder(){
     btns+='<button class="btn sm" onclick="openPayForm(null,\''+r.no+'\')">记回款</button>';
     btns+='<button class="btn sm dgr" onclick="delOrder(\''+r.id+'\')">删除</button>';
     return btns;
-  },drawOrder,{key:function(r){return r.no;},head:orderGrpHead});
+  },drawOrder,{key:function(r){return r.no;},head:orderGrpHead,merge:true});
 }
 /* ================= 销售订单表单：客户分类→代理商→客户名称联动 + 多产品明细 ================= */
 var OF={};
 function pySortArr(arr){return arr.slice().sort(pyCmp);}
-function orderNewItem(){return {pid:'',prodCat:'',batchNo:'',qty:'',basePrice:'',supplyPrice:'',invoicePrice:'',amount:'',tax:'',taxManual:false,refund:'',refundManual:false,rebateOn:false,rebatePer:'',rebate:''};}
+function orderNewItem(){return {pid:'',prodCat:'',batchNo:'',qty:'',basePrice:'',supplyPrice:'',invoicePrice:'',amount:'',amountManual:false,tax:'',taxManual:false,refund:'',refundManual:false,rebateOn:false,rebatePer:'',rebate:'',gift:false};}
 function openOrderForm(id){
   var r=id?db.orders.filter(function(x){return x.id===id;})[0]:null;
   var rows=r?db.orders.filter(function(x){return x.no===r.no;}):[]; /* 同订单号的多行产品 */
@@ -2236,8 +2310,9 @@ function openOrderForm(id){
       qty:(Number(o.qtyBoxes)||0)*prodPerBox(p)+(Number(o.qtyUnits)||0),
       basePrice:Number(o.basePrice)||'',supplyPrice:Number(o.supplyPrice)||'',
       invoicePrice:Number(o.invoicePrice)||(Number(p.invoicePrice)||''),
-      amount:Number(o.amount)||'',tax:Number(o.tax)||'',taxManual:false,refund:Number(o.refund)||'',refundManual:false,
-      rebateOn:!!o.rebateOn,rebatePer:Number(o.rebatePer)||'',rebate:Number(o.rebate)||''});
+      amount:Number(o.amount)||'',amountManual:!!o.gift,tax:Number(o.tax)||'',taxManual:false,
+      refund:Number(o.refund)||'',refundManual:false,
+      rebateOn:!!o.rebateOn,rebatePer:Number(o.rebatePer)||'',rebate:Number(o.rebate)||'',gift:!!o.gift});
   });
   if(!OF.items.length)OF.items.push(orderNewItem());
   document.getElementById('mTitle').textContent=id?'编辑订单':'新增销售订单';
@@ -2259,7 +2334,7 @@ function renderOrderForm(){
   for(var d=0;d<cl.length;d++)h+='<option value="'+esc(cl[d])+'">';
   h+='</datalist></div>';
   h+='<div class="fitem"><label>发货日期 <b>*</b></label><input type="date" data-k="shipDate" value="'+esc(OF.shipDate)+'"></div>';
-  h+='<div class="fgroup">产品明细（可添加多个产品）</div>';
+  h+='<div class="fgroup">产品明细</div>';
   h+='<div id="ofItems"></div>';
   h+='<div class="fitem full"><button type="button" class="btn sm" onclick="orderAddItem()">＋ 添加产品</button></div>';
   h+='<div class="fitem"><label>付款方式</label><select data-k="payMethod">';
@@ -2303,7 +2378,7 @@ function saveOrderForm(){
       shipDate:shipDate,pid:it.pid,prodLabel:prodLabel(p),batchNo:it.batchNo||'',qtyBoxes:0,qtyUnits:Number(it.qty)||0,
       basePrice:Number(it.basePrice)||0,supplyPrice:Number(it.supplyPrice)||0,invoicePrice:Number(it.invoicePrice)||0,
       amount:Number(it.amount)||0,rebate:Number(it.rebate)||0,rebateOn:!!it.rebateOn,rebatePer:Number(it.rebatePer)||0,
-      tax:Number(it.tax)||0,refund:Number(it.refund)||0,payMethod:payMethod,note:note});
+      tax:Number(it.tax)||0,refund:Number(it.refund)||0,gift:it.gift?1:0,payMethod:payMethod,note:note});
   });
   save();closeModal();render();
 }
@@ -2382,14 +2457,6 @@ function orderProdOptsHTML(it,src){
     if(cp)h+='<option value="'+esc(cp.id)+'" selected>'+esc(cp.name+(cp.spec?('　'+cp.spec):''))+'（不在当前筛选内）</option>';}
   return h;
 }
-function orderProdHintHTML(it,src){
-  if(it.prodCat==='OEM'){
-    if(!src.agent)return '未选择代理商，暂列出全部OEM产品；选择代理商后仅列出该代理商的OEM产品（按名称首字排序）';
-    if(src.fallback)return '未找到代理商「'+esc(src.agent)+'」名下的OEM产品，已退回列出全部OEM产品';
-    return '仅列出代理商「'+esc(src.agent)+'」名下的OEM产品（按名称首字排序）';
-  }
-  return it.prodCat?('列出全部'+it.prodCat+'产品（按名称首字排序）'):'列出全部产品（按名称首字排序）';
-}
 /* 代理商变化后只重建产品下拉，不重绘整行（避免输入框失焦） */
 function orderRefreshItemProds(){
   if(!OF||!OF.items)return;
@@ -2397,40 +2464,49 @@ function orderRefreshItemProds(){
     var it=OF.items[i];
     var sel=document.querySelector('.pay-item[data-i="'+i+'"] [data-f="prod"]');
     if(!sel)continue;
-    var src=orderProdsFor(it);
-    sel.innerHTML=orderProdOptsHTML(it,src);
-    var hint=document.querySelector('.pay-item[data-i="'+i+'"] [data-f="prodHint"]');
-    if(hint)hint.innerHTML=orderProdHintHTML(it,src);
+    sel.innerHTML=orderProdOptsHTML(it,orderProdsFor(it));
   }
 }
 function orderItemHTML(i){
   var it=OF.items[i];
   var src=orderProdsFor(it);
-  var prods=src.list;
   var opts=orderProdOptsHTML(it,src);
   var cats=[['','全部'],['自销','自销'],['OEM','OEM']];
-  var catH='<select onchange="orderItemCatSel('+i+',this)">';
+  var dis=it.gift?' disabled':'';
+  var catH='<select onchange="orderItemCatSel('+i+',this)"'+dis+'>';
   for(var c=0;c<cats.length;c++)catH+='<option value="'+esc(cats[c][0])+'"'+(it.prodCat===cats[c][0]?' selected':'')+'>'+esc(cats[c][1])+'</option>';
   catH+='</select>';
-  return '<div class="pay-item" data-i="'+i+'"><div class="fgrid">'
-    +'<div class="fitem"><label>产品分类</label>'+catH+'</div>'
-    +'<div class="fitem"><label>产品 <b>*</b></label><select data-f="prod" onchange="orderItemSel('+i+',this)">'+opts+'</select><div class="hint" data-f="prodHint">'+orderProdHintHTML(it,src)+'</div></div>'
-    +'<div class="fitem"><label>批号</label><select data-f="batchNo" onchange="orderItemBatchSel('+i+',this)">'+orderBatchOpts(it.pid,it.batchNo)+'</select></div>'
+  var h='<div class="pay-item'+(it.gift?' gift':'')+'" data-i="'+i+'"><div class="fgrid">'
+    +'<div class="fitem"><label>产品分类'+(it.gift?' <span class="tag c3">赠品</span>':'')+'</label>'+catH+'</div>'
+    +'<div class="fitem"><label>产品 <b>*</b></label><select data-f="prod" onchange="orderItemSel('+i+',this)"'+dis+'>'+opts+'</select></div>'
+    +'<div class="fitem"><label>批号</label><select data-f="batchNo" onchange="orderItemBatchSel('+i+',this)"'+dis+'>'+orderBatchOpts(it.pid,it.batchNo)+'</select></div>'
     +'<div class="fitem"><label>数量（盒）<b>*</b></label><input type="number" step="any" data-f="qty" value="'+esc(it.qty||'')+'" oninput="orderItemCalc('+i+')"><div class="hint" data-f="stockHint"></div></div>'
     +'<div class="fitem"><label>底价（元/盒）</label><input type="number" step="any" data-f="basePrice" value="'+esc(it.basePrice||'')+'" oninput="orderItemCalc('+i+')"></div>'
     +'<div class="fitem"><label>供货价（元/盒）</label><input type="number" step="any" data-f="supplyPrice" value="'+esc(it.supplyPrice||'')+'" oninput="orderItemCalc('+i+')"></div>'
     +'<div class="fitem"><label>开票价（元/盒）</label><input type="number" step="any" data-f="invoicePrice" value="'+esc(it.invoicePrice||'')+'" oninput="orderItemCalc('+i+')"></div>'
-    +'<div class="fitem"><label>金额</label><input data-f="amount" value="'+esc(it.amount||'')+'" readonly></div>'
-    +'<div class="fitem"><label>税金（元）</label><input type="number" step="any" data-f="tax" value="'+esc(it.tax||'')+'" oninput="orderItemTaxInput('+i+')"></div>'
-    +'<div class="fitem"><label>返款金额（元）</label><input type="number" step="any" data-f="refund" value="'+esc(it.refund||'')+'" oninput="orderItemRefundInput('+i+')"></div>'
-    +'<div class="fitem full"><label>返利</label><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">'
-    +'<label style="display:flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" style="width:16px;height:16px" onchange="orderItemRebate('+i+',this)"'+(it.rebateOn?' checked':'')+'>勾选计算返利</label>'
-    +'<span data-f="rebatePerBox" style="display:'+(it.rebateOn?'inline-flex':'none')+';gap:6px;align-items:center">每盒返利 <input type="number" step="any" data-f="rebatePer" style="width:90px" value="'+esc(it.rebatePer||'')+'" oninput="orderItemCalc('+i+')"></span>'
-    +'<span style="display:inline-flex;gap:6px;align-items:center">返利金额 <input type="number" step="any" data-f="rebate" style="width:110px" value="'+esc(it.rebate||'')+'" readonly></span>'
-    +(OF.items.length>1?'<button type="button" class="btn sm dgr" onclick="orderDelItem('+i+')">删除</button>':'')
-    +'</div></div></div></div>';
+    +'<div class="fitem"><label>金额</label><input data-f="amount" value="'+esc(it.amount||'')+'"'+(it.gift?' oninput="orderItemAmtInput('+i+')"':' readonly')+'></div>';
+  if(!it.gift){
+    h+='<div class="fitem"><label>税金（元）</label><input type="number" step="any" data-f="tax" value="'+esc(it.tax||'')+'" oninput="orderItemTaxInput('+i+')"></div>'
+      +'<div class="fitem"><label>返款金额（元）</label><input type="number" step="any" data-f="refund" value="'+esc(it.refund||'')+'" oninput="orderItemRefundInput('+i+')"></div>'
+      +'<div class="fitem full"><label>返利</label><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">'
+      +'<label style="display:flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" style="width:16px;height:16px" onchange="orderItemRebate('+i+',this)"'+(it.rebateOn?' checked':'')+'>勾选计算返利</label>'
+      +'<span data-f="rebatePerBox" style="display:'+(it.rebateOn?'inline-flex':'none')+';gap:6px;align-items:center">每盒返利 <input type="number" step="any" data-f="rebatePer" style="width:90px" value="'+esc(it.rebatePer||'')+'" oninput="orderItemCalc('+i+')"></span>'
+      +'<span style="display:inline-flex;gap:6px;align-items:center">返利金额 <input type="number" step="any" data-f="rebate" style="width:110px" value="'+esc(it.rebate||'')+'" readonly></span>'
+      +(OF.items.length>1?'<button type="button" class="btn sm dgr" onclick="orderDelItem('+i+')">删除</button>':'')
+      +'</div></div>';
+  }else{
+    h+='<div class="fitem full"><div style="display:flex;justify-content:flex-end">'
+      +'<button type="button" class="btn sm dgr" onclick="orderDelItem('+i+')">删除赠品</button></div></div>';
+  }
+  h+='</div></div>';
+  return h;
 }
-function orderItemCatSel(i,sel){var it=OF.items[i];if(!it)return;it.prodCat=sel.value;it.pid='';it.batchNo='';orderRenderItems();}
+function orderItemCatSel(i,sel){
+  var it=OF.items[i];if(!it)return;
+  if(it.pid)orderGiftDrop(it.pid);
+  it.prodCat=sel.value;it.pid='';it.batchNo='';
+  orderRenderItems();
+}
 /* 批号下拉选项：来自该产品当前有库存的批次（近效期在前），编辑时保留原批号 */
 function orderBatchOpts(pid,keep){
   var p=findProd(pid),per=prodPerBox(p);
@@ -2471,6 +2547,13 @@ function orderItemCalc(i){
   it.basePrice=parseFloat(itF(i,'basePrice'))||0;
   it.supplyPrice=parseFloat(itF(i,'supplyPrice'))||0;
   it.invoicePrice=parseFloat(itF(i,'invoicePrice'))||0;
+  if(it.gift){
+    if(!it.amountManual)it.amount=0;
+    it.tax=0;it.refund=0;it.rebate=0;
+    itSet(i,'amount',it.amount||0);
+    orderShowStock(i);
+    return;
+  }
   it.amount=r2(it.invoicePrice*it.qty);
   if(!it.taxManual)it.tax=payTaxCalc(it.invoicePrice,it.supplyPrice,it.qty);
   if(!it.refundManual)it.refund=r2((it.invoicePrice-it.supplyPrice)*it.qty-it.tax);
@@ -2480,6 +2563,72 @@ function orderItemCalc(i){
   if(!it.refundManual)itSet(i,'refund',it.refund||'');
   itSet(i,'rebate',it.rebate||'');
   if(!it.taxManual)itSet(i,'tax',it.tax||'');
+  orderGiftSoon(i);
+}
+/* 赠品金额可手动修改 */
+function orderItemAmtInput(i){
+  var it=OF.items[i];if(!it)return;
+  it.amount=parseFloat(itF(i,'amount'))||0;it.amountManual=true;
+}
+/* ====== 产品政策联动：数量达到赠货政策时自动加赠品行（金额 0 元，可手动修改） ====== */
+function policyMatchFor(pid,agent,custName){
+  var p=findProd(pid);if(!p)return null;
+  var name=String(p.name||'').trim(),spec=String(p.spec||'').trim();
+  agent=String(agent||'').trim();custName=String(custName||'').trim();
+  var best=null,rank=-1;
+  (db.prodPolicies||[]).forEach(function(pol){
+    if(String(pol.prodName||'').trim()!==name)return;
+    var ps=String(pol.spec||'').trim();
+    if(ps&&ps!==spec)return;
+    var pc=String(pol.custName||'').trim(),pa=String(pol.agent||'').trim(),r=-1;
+    if(pc){
+      if(pc!==custName&&custName.indexOf(pc)<0&&pc.indexOf(custName)<0)return;
+      r=2;
+    }else if(!pa){r=0;}
+    else if(pa===agent||agent.indexOf(pa)>=0||pa.indexOf(agent)>=0){r=1;}
+    else{return;}
+    if(r>rank){rank=r;best=pol;}
+  });
+  return best;
+}
+function orderGiftIdx(pid){
+  for(var i=0;i<OF.items.length;i++){if(OF.items[i].gift&&OF.items[i].pid===pid)return i;}
+  return -1;
+}
+function orderGiftDrop(pid){
+  for(var i=OF.items.length-1;i>=0;i--){if(OF.items[i].gift&&OF.items[i].pid===pid)OF.items.splice(i,1);}
+}
+var _giftT=null,_giftI=-1;
+function orderGiftSoon(i){
+  _giftI=i;
+  if(_giftT)clearTimeout(_giftT);
+  _giftT=setTimeout(function(){_giftT=null;var k=_giftI;if(k>=0&&OF.items[k]&&!OF.items[k].gift)orderGiftCheck(k);},600);
+}
+function orderGiftCheck(i){
+  var it=OF.items[i];if(!it||!it.pid||it.gift)return;
+  var pol=policyMatchFor(it.pid,formVal('agent'),formVal('custName'));
+  if(!pol||policyType(pol)!=='赠货')return;
+  var b=Number(pol.giftBuy)||0,g=Number(pol.giftGet)||0,qty=Number(it.qty)||0;
+  if(!b||!g)return;
+  var giftQty=qty>=b?Math.floor(qty/b)*g:0;
+  var gi=orderGiftIdx(it.pid);
+  if(gi>=0){
+    var git=OF.items[gi];
+    if(giftQty>0&&Number(git.qty)!==giftQty){git.qty=giftQty;itSet(gi,'qty',giftQty);}
+    return;
+  }
+  if(giftQty<=0)return;
+  OF.giftAsked=OF.giftAsked||{};
+  if(OF.giftAsked[it.pid]===giftQty)return;
+  var p=findProd(it.pid)||{};
+  if(!confirm('「'+(p.name||'')+'」符合赠货政策：买 '+b+' 赠 '+g+'，赠品 '+giftQty+' 件，金额 0 元（可手动修改）。\n自动添加赠品？'))return;
+  OF.giftAsked[it.pid]=giftQty;
+  var gift=orderNewItem();
+  gift.pid=it.pid;gift.prodCat=it.prodCat;gift.batchNo=it.batchNo;gift.qty=giftQty;
+  gift.basePrice=it.basePrice;gift.supplyPrice=it.supplyPrice;gift.invoicePrice=it.invoicePrice;
+  gift.amount=0;gift.gift=true;
+  OF.items.splice(i+1,0,gift);
+  orderRenderItems();
 }
 function orderItemRefundInput(i){
   var it=OF.items[i];if(!it)return;
@@ -2501,7 +2650,14 @@ function orderItemRebate(i,chk){
   orderItemCalc(i);
 }
 function orderAddItem(){OF.items.push(orderNewItem());orderRenderItems();}
-function orderDelItem(i){OF.items.splice(i,1);orderRenderItems();}
+function orderDelItem(i){
+  var it=OF.items[i];if(!it)return;
+  var rm=[i];
+  if(!it.gift)for(var k=OF.items.length-1;k>=0;k--){if(OF.items[k].gift&&OF.items[k].pid===it.pid)rm.push(k);}
+  rm.sort(function(a,b){return b-a;});
+  for(var j=0;j<rm.length;j++)OF.items.splice(rm[j],1);
+  orderRenderItems();
+}
 function delOrder(id){  var o=db.orders.filter(function(x){return x.id===id;})[0];if(!o)return;
   var others=db.orders.filter(function(x){return x.no===o.no&&x.id!==id;}).length;
   var sh=db.shipments.filter(function(s){return s.orderNo===o.no;}).length;
@@ -3228,7 +3384,7 @@ function payShipSecHTML(){
     +'<input data-k="shipSearch" placeholder="搜索单号 / 客户 / 产品" oninput="payOrderPick()" style="width:100%">'
     +'<div id="payOrderList" style="max-height:190px;overflow:auto;border:1px solid #e2e8f0;border-radius:8px;margin-top:6px;padding:4px"></div>'
     +'</div>';
-  h+='<div class="fitem full"><label>产品明细</label><div id="payShipInfo" class="hint">请先勾选发货单号</div></div>';
+  h+='<div class="fitem full"><label>产品明细</label><div id="payShipInfo" class="hint"></div></div>';
   h+='<div class="fitem full"><label>返利</label><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">'
     +'<label style="display:flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" data-k="rebateOn" style="width:16px;height:16px" onchange="payRebateToggle(this)"'+(PF.rebateOn?' checked':'')+'>勾选计算返利</label>'
     +'<span id="payRebatePerBox" style="display:'+(PF.rebateOn?'inline-flex':'none')+';gap:6px;align-items:center">每盒返利 <input type="number" step="any" data-k="rebatePer" style="width:90px" value="'+esc(PF.rebatePer||'')+'" oninput="payShipCalc()"></span>'
@@ -3263,7 +3419,7 @@ function payOrderPick(){
   if(q)list=list.filter(function(x){return (x.no+(x.o.agentName||'')+(x.o.custName||'')+x.labels.join('')).indexOf(q)>=0;});
   if(list.length>60)list=list.slice(0,60);
   var h='';
-  if(!list.length)h='<div class="hint" style="padding:6px">'+((ag||cn)?('当前客户（'+(ag?esc(ag):'')+(ag&&cn?' / ':'')+(cn?esc(cn):'')+'）无匹配订单，请检查客户信息或清空后显示全部'):'无匹配订单')+'</div>';
+  if(!list.length)h='<div class="hint" style="padding:6px">无匹配订单</div>';
   for(var i=0;i<list.length;i++){
     var r0=list[i];
     var ck=PF.shipNos.indexOf(r0.no)>=0?' checked':'';
@@ -3280,7 +3436,7 @@ function payOrderToggle(no){
 }
 function payShipFill(){
   var box=document.getElementById('payShipInfo');if(!box)return;
-  if(!PF.shipNos.length){box.className='hint';box.textContent='请先勾选发货单号';PF.qty=0;return;}
+  if(!PF.shipNos.length){box.className='hint';box.textContent='';PF.qty=0;return;}
   var rows=[],qty=0,sub=0,rf=0,tax=0,first=null;
   for(var i=0;i<PF.shipNos.length;i++){
     /* 同一订单号可能对应多行产品，全部计入 */
@@ -3381,15 +3537,6 @@ function payProdOptsHTML(it,src){
     if(cp)h+='<option value="'+esc(cp.id)+'" selected>'+payProdLabel(cp)+'（不在当前筛选内）</option>';}
   return h;
 }
-function payProdHintHTML(it,src){
-  if(!it.cat)return '选定产品分类后列出对应产品';
-  if(it.cat==='OEM'){
-    if(!src.agent)return '未填写代理商，暂列出全部OEM产品；填写代理商后仅列出该代理商的OEM产品';
-    if(src.fallback)return '未找到代理商「'+esc(src.agent)+'」名下的OEM产品，已退回列出全部OEM产品';
-    return '仅列出代理商「'+esc(src.agent)+'」名下的OEM产品（按产品名称首字排序）';
-  }
-  return '列出全部自销产品（按产品名称首字排序）';
-}
 /* 代理商变化后只重建产品下拉，不重绘整行（避免输入框失焦） */
 function payRefreshItemProds(){
   if(!PF||PF.type!=='prepay'||!PF.items)return;
@@ -3397,10 +3544,7 @@ function payRefreshItemProds(){
     var it=PF.items[i];
     var sel=document.querySelector('.pay-item[data-i="'+i+'"] [data-f="prod"]');
     if(!sel)continue;
-    var src=payProdsFor(it);
-    sel.innerHTML=payProdOptsHTML(it,src);
-    var hint=document.querySelector('.pay-item[data-i="'+i+'"] [data-f="prodHint"]');
-    if(hint)hint.innerHTML=payProdHintHTML(it,src);
+    sel.innerHTML=payProdOptsHTML(it,payProdsFor(it));
   }
 }
 function payItemHTML(i){
@@ -3413,7 +3557,7 @@ function payItemHTML(i){
   catH+='</select>';
   return '<div class="pay-item" data-i="'+i+'"><div class="fgrid">'
     +'<div class="fitem"><label>产品分类</label>'+catH+'</div>'
-    +'<div class="fitem"><label>产品名称</label><select data-f="prod" onchange="payItemSel('+i+',this)">'+opts+'</select><div class="hint" data-f="prodHint">'+payProdHintHTML(it,src)+'</div></div>'
+    +'<div class="fitem"><label>产品名称</label><select data-f="prod" onchange="payItemSel('+i+',this)">'+opts+'</select></div>'
     +'<div class="fitem"><label>规格</label><input data-f="spec" value="'+esc(it.spec||'')+'" readonly></div>'
     +'<div class="fitem"><label>数量（盒）</label><input type="number" step="any" data-f="qty" value="'+esc(it.qty||'')+'" oninput="payItemCalc('+i+')"></div>'
     +'<div class="fitem"><label>底价</label><input data-f="basePrice" value="'+esc(it.basePrice||'')+'" readonly></div>'
@@ -3649,19 +3793,17 @@ function policyProdCatTag(c){return c?'<span class="tag '+(c==='自销'?'c1':'c2
 /* 政策文字描述 */
 function policyText(r){
   if(policyType(r)==='返点')return '返点 '+(Number(r.rebateRate)||0)+'%';
-  var b=Number(r.giftBuy)||0,g=Number(r.giftGet)||0;
-  return '买 '+b+' 赠 '+g+'（赠品单价 '+fmtN(Number(r.giftPrice)||0)+' 元）';
+  return '买 '+(Number(r.giftBuy)||0)+' 赠 '+(Number(r.giftGet)||0);
 }
 /* 返款参考（单个政策循环）：
-   赠货 = [开票价×(买+赠) − (供货价×买 + 赠品单价×赠)] × (1 − 税率)
+   赠货 = 开票价×(买+赠) − 供货价×买
    返点 = 开票价 × 返点比例（单件） */
 function policyRefund(r){
   var inv=Number(r.invoicePrice)||0;
   if(policyType(r)==='返点')return inv*((Number(r.rebateRate)||0)/100);
-  var b=Number(r.giftBuy)||0,g=Number(r.giftGet)||0,gp=Number(r.giftPrice)||0;
+  var b=Number(r.giftBuy)||0,g=Number(r.giftGet)||0;
   if(!(b+g))return 0;
-  var tax=(Number(r.taxRate)||0)/100;
-  return ((inv*(b+g))-((Number(r.supplyPrice)||0)*b+gp*g))*(1-tax);
+  return inv*(b+g)-(Number(r.supplyPrice)||0)*b;
 }
 /* 排序：客户分类（省总>大包商>零散客户）→ 代理商 → 客户名称（代理商通用政策排最前）→ 产品名称 → 规格 */
 function policySort(rows){
@@ -3680,7 +3822,7 @@ function policyCols(){
   return [
     {key:'cat',label:'客户分类',fmt:function(r){return r.cat?custCatTag(r.cat):'—';}},
     {key:'agent',label:'代理商',fmt:function(r){return esc(r.agent||'—');}},
-    {key:'custName',label:'客户名称',fmt:function(r){return r.custName?esc(r.custName):'<span class="tag c3">该代理商全部客户</span>';}},
+    {key:'custName',label:'客户名称',fmt:function(r){return r.custName?esc(r.custName):'<span class="tag c3">全部客户</span>';}},
     {key:'prodCat',label:'产品分类',fmt:function(r){return policyProdCatTag(r.prodCat);}},
     {key:'prodName',label:'产品名称',fmt:function(r){return esc(r.prodName||'—');}},
     {key:'spec',label:'产品规格',fmt:function(r){return esc(r.spec||'—');}},
@@ -3689,32 +3831,45 @@ function policyCols(){
     {key:'invoicePrice',label:'开票价',fmt:function(r){return fmtN(r.invoicePrice);}},
     {key:'pType',label:'政策类型',fmt:function(r){return '<span class="tag '+(policyType(r)==='返点'?'c2':'c1')+'">'+policyType(r)+'</span>';}},
     {key:'policy',label:'政策',fmt:function(r){return esc(policyText(r));}},
-    {key:'refund',label:'返款参考',fmt:function(r){var v=policyRefund(r);return (policyType(r)==='返点'?'每件 ':'每循环 ')+fmtN(Math.round(v*100)/100)+' 元';}}
+    {key:'refund',label:'返款参考',fmt:function(r){return fmtN(Math.round(policyRefund(r)*100)/100);}}
   ];
 }
-/* 产品名称 / 规格候选（按产品分类 + 代理商过滤，同产品档案口径） */
-function policyProdOpts(cat,agent){
+/* 产品名称 / 规格候选：按产品分类过滤；OEM 再按代理商筛（筛不到则退回该分类全部） */
+function policyProds(cat,agent){
   agent=agent?String(agent).trim():'';
+  var all=db.products.filter(function(p){return !cat||String(p.cat||'')===cat;});
+  if(cat==='OEM'&&agent){
+    var m=all.filter(function(p){return String(p.agent||'').trim()===agent;});
+    if(!m.length)m=all.filter(function(p){return String(p.agent||'').trim().indexOf(agent)>=0;});
+    if(m.length)return m;
+  }
+  return all;
+}
+function policyProdOpts(cat,agent,keep){
   var seen={},out=[];
-  db.products.forEach(function(p){
-    if(cat&&String(p.cat||'')!==cat)return;
-    if(agent&&String(p.agent||'').trim()!==agent)return;
-    var v=p.name;if(!v||seen[v])return;seen[v]=1;out.push(v);
-  });
+  policyProds(cat,agent).forEach(function(p){var v=p.name;if(!v||seen[v])return;seen[v]=1;out.push(v);});
   out.sort(pyCmp);
+  if(keep&&out.indexOf(keep)<0)out.unshift(keep);
   return out;
 }
-function policySpecOpts(cat,agent,name){
-  agent=agent?String(agent).trim():'';
+function policySpecOpts(cat,agent,name,keep){
   var seen={},out=[];
-  db.products.forEach(function(p){
-    if(cat&&String(p.cat||'')!==cat)return;
-    if(agent&&String(p.agent||'').trim()!==agent)return;
+  policyProds(cat,agent).forEach(function(p){
     if(name&&p.name!==name)return;
     var v=p.spec;if(!v||seen[v])return;seen[v]=1;out.push(v);
   });
   out.sort(natCmp);
+  if(keep&&out.indexOf(keep)<0)out.unshift(keep);
   return out;
+}
+function policyOptsHTML(list,keep){
+  var h='<option value="">请选择</option>';
+  for(var i=0;i<list.length;i++)h+='<option value="'+esc(list[i])+'"'+(keep===list[i]?' selected':'')+'>'+esc(list[i])+'</option>';
+  return h;
+}
+function policySpecRefresh(){
+  var sp=document.querySelector('#mBody select[data-k="spec"]');
+  if(sp)sp.innerHTML=policyOptsHTML(policySpecOpts(formVal('prodCat'),formVal('agent'),formVal('prodName')),formVal('spec'));
 }
 /* 选定产品后自动带入档案里的底价/供货价/开票价（已填的不覆盖） */
 function policyFillPrice(){
@@ -3740,7 +3895,7 @@ function drawPolicy(){
     {key:function(r){return (r.agent||'')+'\u0000'+(r.custName||'');},
      head:function(grs,k){
        var ps=k.split('\u0000');
-       return '<span class="tag c1">'+esc(ps[0]||'—')+'</span>　'+(ps[1]?esc(ps[1]):'<span class="tag c3">该代理商全部客户</span>')+'　共 '+grs.length+' 条政策';
+       return '<span class="tag c1">'+esc(ps[0]||'—')+'</span>　'+(ps[1]?esc(ps[1]):'<span class="tag c3">全部客户</span>')+'　共 '+grs.length+' 条政策';
      }});
 }
 /* 客户分类 → 代理商 → 客户名称 联动（与其它模块口径一致） */
@@ -3752,61 +3907,63 @@ function policyCatChg(sel){
 function policyAgentChg(el){
   var cat=formVal('cat'),ag=el?String(el.value||'').trim():'';
   var dl=document.getElementById('dl_custName');if(dl)dl.innerHTML=custDLHTML('company',cat,ag);
-  dl=document.getElementById('dl_prodName');if(dl)dl.innerHTML=policyProdOpts(formVal('prodCat'),ag).map(function(v){return '<option value="'+esc(v)+'">';}).join('');
-  dl=document.getElementById('dl_spec');if(dl)dl.innerHTML=policySpecOpts(formVal('prodCat'),ag,formVal('prodName')).map(function(v){return '<option value="'+esc(v)+'">';}).join('');
+  var nm=document.querySelector('#mBody select[data-k="prodName"]');
+  if(nm)nm.innerHTML=policyOptsHTML(policyProdOpts(formVal('prodCat'),ag,formVal('prodName')),formVal('prodName'));
+  policySpecRefresh();
 }
 function policyProdCatChg(sel){
   var cat=sel?sel.value:'';
-  var dl=document.getElementById('dl_prodName');if(dl)dl.innerHTML=policyProdOpts(cat,formVal('agent')).map(function(v){return '<option value="'+esc(v)+'">';}).join('');
-  dl=document.getElementById('dl_spec');if(dl)dl.innerHTML=policySpecOpts(cat,formVal('agent'),formVal('prodName')).map(function(v){return '<option value="'+esc(v)+'">';}).join('');
+  var nm=document.querySelector('#mBody select[data-k="prodName"]');
+  if(nm)nm.innerHTML=policyOptsHTML(policyProdOpts(cat,formVal('agent'),formVal('prodName')),formVal('prodName'));
+  policySpecRefresh();
 }
 function policyProdNameChg(el){
-  var name=el?String(el.value||'').trim():'';
-  var dl=document.getElementById('dl_spec');
-  if(dl)dl.innerHTML=policySpecOpts(formVal('prodCat'),formVal('agent'),name).map(function(v){return '<option value="'+esc(v)+'">';}).join('');
+  var sp=document.querySelector('#mBody select[data-k="spec"]');
+  if(sp){
+    var list=policySpecOpts(formVal('prodCat'),formVal('agent'),formVal('prodName'));
+    sp.innerHTML=policyOptsHTML(list,list.length===1?list[0]:'');
+  }
   policyFillPrice();
 }
-/* 政策类型切换：赠货显示买赠/赠品单价，返点显示返点比例 */
+/* 政策类型切换：赠货显示买赠，返点显示返点比例 */
 function policyTypeChg(sel){
   var t=sel?sel.value:'';
   formToggle('giftBuy',t!=='返点');
   formToggle('giftGet',t!=='返点');
-  formToggle('giftPrice',t!=='返点');
   formToggle('rebateRate',t==='返点');
 }
 function openPolicyForm(id){
   var r=id?db.prodPolicies.filter(function(x){return x.id===id;})[0]:null;
   var curCat=r?(r.cat||''):'',curAg=r?(r.agent||''):'';
+  var fCat=r?(r.prodCat||''):'',fName=r?(r.prodName||''):'',fSpec=r?(r.spec||''):'';
   var fields=[
     {key:'cat',label:'客户分类',type:'select',required:true,onchange:'policyCatChg',options:[{v:'省总',t:'省总'},{v:'大包商',t:'大包商'},{v:'零散客户',t:'零散客户'}]},
-    {key:'agent',label:'代理商',required:true,datalist:function(){return custDLOpts('agent',curCat);},oninput:'policyAgentChg',hint:'可手动输入，也可从该分类已有记录中选择'},
-    {key:'custName',label:'客户名称',datalist:function(){return custDLOpts('company',curCat,curAg);},hint:'留空＝该代理商的全部客户通用政策；仅特定客户有的政策才填写'},
+    {key:'agent',label:'代理商',required:true,datalist:function(){return custDLOpts('agent',curCat);},oninput:'policyAgentChg'},
+    {key:'custName',label:'客户名称',datalist:function(){return custDLOpts('company',curCat,curAg);}},
     {group:'产品信息'},
     {key:'prodCat',label:'产品分类',type:'select',required:true,onchange:'policyProdCatChg',options:[{v:'自销',t:'自销'},{v:'OEM',t:'OEM'}]},
-    {key:'prodName',label:'产品名称',required:true,datalist:function(){return policyProdOpts(r?r.prodCat:'',curAg);},oninput:'policyProdNameChg',hint:'候选为产品档案中该分类/代理商下的产品，也可手动输入'},
-    {key:'spec',label:'产品规格',datalist:function(){return policySpecOpts(r?r.prodCat:'',curAg,r?r.prodName:'');},oninput:'policyFillPrice'},
+    {key:'prodName',label:'产品名称',type:'select',required:true,options:policyProdOpts(fCat,curAg,fName),onchange:'policyProdNameChg'},
+    {key:'spec',label:'产品规格',type:'select',options:policySpecOpts(fCat,curAg,fName,fSpec),onchange:'policyFillPrice'},
     {key:'basePrice',label:'底价',type:'number'},
     {key:'supplyPrice',label:'供货价',type:'number'},
     {key:'invoicePrice',label:'开票价',type:'number'},
     {group:'政策内容'},
     {key:'policyType',label:'政策类型',type:'select',required:true,onchange:'policyTypeChg',options:POLICY_TYPES.map(function(t){return {v:t,t:t};})},
-    {key:'giftBuy',label:'赠货 · 买（件）',type:'number',def:10,hint:'如十赠一：买 10 件'},
-    {key:'giftGet',label:'赠货 · 赠（件）',type:'number',def:1,hint:'如十赠一：赠 1 件'},
-    {key:'giftPrice',label:'赠品单价（元）',type:'number',def:0,hint:'赠品带金额时按此价，默认 0＝赠品不计金额，可手动修改'},
-    {key:'rebateRate',label:'返点比例（%）',type:'number',hint:'按该产品总金额的比例返给客户'},
-    {key:'taxRate',label:'税金比例（%）',type:'number',hint:'赠货返款＝（开票价×(买+赠) − 供货价×买 − 赠品单价×赠）×(1−税金比例)，仅作返款参考'},
+    {key:'giftBuy',label:'赠货 · 买（件）',type:'number',def:10},
+    {key:'giftGet',label:'赠货 · 赠（件）',type:'number',def:1},
+    {key:'rebateRate',label:'返点比例（%）',type:'number'},
     {key:'note',label:'备注',full:true,type:'textarea'}
   ];
   var vals=r?{cat:r.cat,agent:r.agent,custName:r.custName,prodCat:r.prodCat,prodName:r.prodName,spec:r.spec,
     basePrice:r.basePrice,supplyPrice:r.supplyPrice,invoicePrice:r.invoicePrice,
-    policyType:policyType(r),giftBuy:r.giftBuy,giftGet:r.giftGet,giftPrice:r.giftPrice,rebateRate:r.rebateRate,taxRate:r.taxRate,note:r.note}
-    :{cat:curCat||'',policyType:'赠货',giftBuy:10,giftGet:1,giftPrice:0};
+    policyType:policyType(r),giftBuy:r.giftBuy,giftGet:r.giftGet,rebateRate:r.rebateRate,note:r.note}
+    :{cat:curCat||'',policyType:'赠货',giftBuy:10,giftGet:1};
   openForm(id?'编辑产品政策':'新增产品政策',fields,vals,function(v){
     v.prodName=String(v.prodName||'').trim();v.agent=String(v.agent||'').trim();v.custName=String(v.custName||'').trim();
     if(!v.agent){markErr('agent');alert('请填写代理商');return;}
-    if(!v.prodName){markErr('prodName');alert('请填写产品名称');return;}
-    if(v.policyType==='返点'){v.giftBuy=0;v.giftGet=0;v.giftPrice=0;if(!(Number(v.rebateRate)>0)){markErr('rebateRate');alert('返点政策请填写返点比例（%）');return;}}
-    else{v.rebateRate=0;v.policyType='赠货';if(!(Number(v.giftBuy)>0||Number(v.giftGet)>0)){markErr('giftBuy');alert('赠货政策请填写买、赠件数（如买10赠1）');return;}}
+    if(!v.prodName){markErr('prodName');alert('请选择产品名称');return;}
+    if(v.policyType==='返点'){v.giftBuy=0;v.giftGet=0;if(!(Number(v.rebateRate)>0)){markErr('rebateRate');alert('返点政策请填写返点比例（%）');return;}}
+    else{v.rebateRate=0;v.policyType='赠货';if(!(Number(v.giftBuy)>0||Number(v.giftGet)>0)){markErr('giftBuy');alert('赠货政策请填写买、赠件数');return;}}
     if(id){var o=db.prodPolicies.filter(function(x){return x.id===id;})[0];for(var k in v)o[k]=v[k];touch(o);}
     else{v.id=uid();v.created=today();db.prodPolicies.push(touch(v));}
     save();closeModal();render();
@@ -3825,7 +3982,7 @@ var POLICY_EXPORT_COLS=[
   {key:'prodCat',label:'产品分类'},{key:'prodName',label:'产品名称'},{key:'spec',label:'产品规格'},
   {key:'basePrice',label:'底价'},{key:'supplyPrice',label:'供货价'},{key:'invoicePrice',label:'开票价'},
   {key:'policyType',label:'政策类型'},{key:'giftBuy',label:'赠货·买'},{key:'giftGet',label:'赠货·赠'},
-  {key:'giftPrice',label:'赠品单价'},{key:'rebateRate',label:'返点比例(%)'},{key:'taxRate',label:'税金比例(%)'},
+  {key:'rebateRate',label:'返点比例(%)'},
   {key:'policy',label:'政策'},{key:'refund',label:'返款参考(元)'},{key:'note',label:'备注'}
 ];
 function exportPolicy(){
@@ -3837,17 +3994,17 @@ function exportPolicy(){
     out.push({seq:i+1,cat:r.cat||'',agent:r.agent||'',custName:r.custName||'（该代理商全部客户）',
       prodCat:r.prodCat||'',prodName:r.prodName||'',spec:r.spec||'',
       basePrice:Number(r.basePrice)||0,supplyPrice:Number(r.supplyPrice)||0,invoicePrice:Number(r.invoicePrice)||0,
-      policyType:policyType(r),giftBuy:Number(r.giftBuy)||0,giftGet:Number(r.giftGet)||0,giftPrice:Number(r.giftPrice)||0,
-      rebateRate:Number(r.rebateRate)||0,taxRate:Number(r.taxRate)||0,
+      policyType:policyType(r),giftBuy:Number(r.giftBuy)||0,giftGet:Number(r.giftGet)||0,
+      rebateRate:Number(r.rebateRate)||0,
       policy:policyText(r),refund:Math.round(policyRefund(r)*100)/100,note:r.note||''});
   }
   exportXLS('产品政策',POLICY_EXPORT_COLS,out);
 }
 function downPolicyTpl(){
-  var headers=['客户分类','代理商','客户名称','产品分类','产品名称','产品规格','底价','供货价','开票价','政策类型','赠货·买','赠货·赠','赠品单价','返点比例(%)','税金比例(%)','备注'];
+  var headers=['客户分类','代理商','客户名称','产品分类','产品名称','产品规格','底价','供货价','开票价','政策类型','赠货·买','赠货·赠','返点比例(%)','备注'];
   var examples=[
-    ['省总','示例代理商医药有限公司','','自销','示例阿莫西林胶囊','12*2*300',10.2,12.5,13,'赠货',10,1,0,'','13','该代理商全部客户通用：十赠一，赠品不带金额'],
-    ['大包商','示例代理商医药有限公司','示例客户（连锁总部）','OEM','示例感冒灵颗粒','10g*9袋*240',7.5,9,9.6,'返点','','','',3,0,'特定客户政策：按总金额返点 3%']
+    ['省总','示例代理商医药有限公司','','自销','示例阿莫西林胶囊','12*2*300',10.2,12.5,13,'赠货',10,1,'',''],
+    ['大包商','示例代理商医药有限公司','示例客户（连锁总部）','OEM','示例感冒灵颗粒','10g*9袋*240',7.5,9,9.6,'返点','','',3,'']
   ];
   if(window.XLSX){
     var ws=XLSX.utils.aoa_to_sheet([headers].concat(examples));
@@ -3882,13 +4039,13 @@ function importPolicyExcel(input){
       if(headRow<0){alert('未识别到表头，请先点击"模板"下载模板按格式填写');return;}
       var map={'客户分类':'cat','代理商':'agent','客户名称':'custName','产品分类':'prodCat','产品名称':'prodName',
         '产品规格':'spec','底价':'basePrice','供货价':'supplyPrice','开票价':'invoicePrice','政策类型':'policyType',
-        '赠货·买':'giftBuy','赠货·赠':'giftGet','赠品单价':'giftPrice','返点比例(%)':'rebateRate','税金比例(%)':'taxRate','备注':'note'};
+        '赠货·买':'giftBuy','赠货·赠':'giftGet','返点比例(%)':'rebateRate','备注':'note'};
       var head=json[headRow],headMap={};
       for(var j=0;j<head.length;j++){
         var hc=String(head[j]==null?'':head[j]).trim();
         if(map[hc])headMap[j]=map[hc];
       }
-      var numKeys={basePrice:1,supplyPrice:1,invoicePrice:1,giftBuy:1,giftGet:1,giftPrice:1,rebateRate:1,taxRate:1};
+      var numKeys={basePrice:1,supplyPrice:1,invoicePrice:1,giftBuy:1,giftGet:1,rebateRate:1};
       var added=0,skip=0,skipMsg=[];
       for(var k=headRow+1;k<json.length;k++){
         var rr=json[k];if(!rr)continue;
@@ -3904,7 +4061,7 @@ function importPolicyExcel(input){
         if(rec.cat&&CAT_ORDER[rec.cat]===undefined)rec.cat='';
         if(rec.prodCat!=='自销'&&rec.prodCat!=='OEM')rec.prodCat='';
         rec.policyType=rec.policyType==='返点'?'返点':'赠货';
-        if(rec.policyType==='返点'){rec.giftBuy=0;rec.giftGet=0;rec.giftPrice=0;}
+        if(rec.policyType==='返点'){rec.giftBuy=0;rec.giftGet=0;}
         else if(!(rec.giftBuy>0||rec.giftGet>0)){rec.giftBuy=10;rec.giftGet=1;}
         rec.custName=rec.custName||'';
         db.prodPolicies.push(touch(rec));
@@ -3966,7 +4123,7 @@ function openLogForm(id){
   var fields=[
     {key:'date',label:'日期',type:'date',required:true,def:today()},
     {key:'cat',label:'客户分类',type:'select',required:true,onchange:'logCatChg',options:[{v:'省总',t:'省总'},{v:'大包商',t:'大包商'},{v:'零散客户',t:'零散客户'}]},
-    {key:'agent',label:'代理商',datalist:function(){return custDLOpts('agent',curCat);},oninput:'logAgentChg',hint:'候选为该分类下已有代理商，也可手动输入'},
+    {key:'agent',label:'代理商',datalist:function(){return custDLOpts('agent',curCat);},oninput:'logAgentChg'},
     {key:'custName',label:'客户名称',required:true,datalist:function(){return custDLOpts('company',curCat,curAg);}},
     {key:'item',label:'事项',type:'select',required:true,options:itOpts},
     {key:'content',label:'纪要',full:true,type:'textarea',required:true},
@@ -4317,9 +4474,9 @@ function openProdoForm(id){
     {key:'date',label:'订单日期',type:'date',required:true,def:today()},
     {key:'cat',label:'产品分类',type:'select',required:true,options:[{v:'自销',t:'自销'},{v:'OEM',t:'OEM'}],onchange:'prodoCatChange'},
     {key:'custCat',label:'客户分类',type:'select',onchange:'prodoCustCatChg',options:[{v:'省总',t:'省总'},{v:'大包商',t:'大包商'},{v:'零散客户',t:'零散客户'}]},
-    {key:'agent',label:'代理商',required:true,datalist:function(){return custDLOpts('agent',curCat);},oninput:'prodoAgentChg',hint:'候选为该客户分类下已有代理商，也可手动输入'},
+    {key:'agent',label:'代理商',required:true,datalist:function(){return custDLOpts('agent',curCat);},oninput:'prodoAgentChg'},
     {key:'custName',label:'客户名称',required:true,datalist:function(){return custDLOpts('company',curCat,curAg);}},
-    {key:'name',label:'产品名称',required:true,datalist:function(){return prodoNameOpts(PRODO_FCAT);},oninput:'prodoNameChg',hint:'候选只列出所选产品分类下的产品'},
+    {key:'name',label:'产品名称',required:true,datalist:function(){return prodoNameOpts(PRODO_FCAT);},oninput:'prodoNameChg'},
     {key:'spec',label:'规格',required:true,datalist:function(){return prodoSpecOpts(PRODO_FCAT,PRODO_FNAME);}},
     {key:'qty',label:'订单数量',type:'number'},
     {key:'amount',label:'订单金额',type:'number'},
@@ -4556,7 +4713,7 @@ function openDevForm(id){
   var curCat=r?r.cat:'',curAg=r?r.agent:'';
   var fields=[
     {key:'cat',label:'客户分类',type:'select',required:true,onchange:'devCatChg',options:[{v:'省总',t:'省总'},{v:'大包商',t:'大包商'},{v:'零散客户',t:'零散客户'}]},
-    {key:'agent',label:'代理商',datalist:function(){return custDLOpts('agent',curCat);},oninput:'devAgentChg',hint:'候选为该分类下已有代理商，也可手动输入'},
+    {key:'agent',label:'代理商',datalist:function(){return custDLOpts('agent',curCat);},oninput:'devAgentChg'},
     {key:'custName',label:'客户名称',required:true,datalist:function(){return custDLOpts('company',curCat,curAg);}},
     {key:'prodCat',label:'产品分类',type:'select',options:[{v:'自销',t:'自销'},{v:'OEM',t:'OEM'}]},
     {key:'name',label:'产品名称',required:true},
