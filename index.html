@@ -570,7 +570,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20260930h',_verChecking=false;
+var APP_VER='20261006a',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -1178,7 +1178,14 @@ function restoreData(input){
 }
 /* ================= 统计看板 ================= */
 var PAY_TARGET=2310000;
-function monthPayRows(){var cur=curYm();return db.payments.filter(function(p){return ym(p.payDate)===cur;});}
+/* 当月回款月：本月（自然月）有回款记录则取本月；否则回退到最近一个有回款的月份（与回款明细「当月」同源，按回款月份 ym 口径） */
+function curPayYm(){
+  var cur=curYm(),i,m,last='';
+  for(i=0;i<db.payments.length;i++){if(payYm(db.payments[i])===cur)return cur;}
+  for(i=0;i<db.payments.length;i++){m=payYm(db.payments[i]);if(m&&m<cur&&m>last)last=m;}
+  return last||cur;
+}
+function monthPayRows(){var my=curPayYm();return db.payments.filter(function(p){return payYm(p)===my;});}
 /* 月度回款任务 hero 卡 */
 function dashHero(){
   var target=Number(db.payTarget)||PAY_TARGET;
@@ -1188,7 +1195,7 @@ function dashHero(){
   var hit85=pct>=85;
   var gap=Math.max(0,target-got);
   var h='<div class="hero-card sm">';
-  h+='<div class="hero-hd"><div><div class="hero-lb">本月已回款 · '+curYm()+'</div><div class="hero-target">'+fmtN(got)+' <small>元</small></div><div class="hero-tgt">月度任务 '+fmtN(target)+' <small>元</small> · '+(gap>0?'还差 '+fmtN(gap)+' 元':'超额完成 🎉')+'</div></div>';
+  h+='<div class="hero-hd"><div><div class="hero-lb">本月已回款 · '+curPayYm()+(curPayYm()!==curYm()?'<span class="tag warn" style="margin-left:6px">本月暂未录入</span>':'')+'</div><div class="hero-target">'+fmtN(got)+' <small>元</small></div><div class="hero-tgt">月度任务 '+fmtN(target)+' <small>元</small> · '+(gap>0?'还差 '+fmtN(gap)+' 元':'超额完成 🎉')+'</div></div>';
   h+='<div class="hero-right">'+(hit85?'<span class="hero-badge ok">已达 85% ✓</span>':'<span class="hero-badge warn">完成 '+pct+'%</span>')+'</div></div>';
   h+='<div class="hero-progress"><div class="hp-track"><div class="hp-fill" style="width:'+Math.min(100,pct)+'%"></div></div>';
   h+='<div class="hp-meta"><span>完成率 <b>'+pct+'%</b></span></div></div>';
@@ -3168,7 +3175,7 @@ function payViewRows(vs){
     function(r){return r.payDate;},
     function(r){return r.agentName||'';},
     function(r){return r.custName||'';});
-  if(vs==='month')rows=rows.filter(function(p){return payYm(p)===curYm();});
+  if(vs==='month'){var my=curPayYm();rows=rows.filter(function(p){return payYm(p)===my;});}
   var q=(document.getElementById('paySearch')||{}).value||'';
   if(q)rows=rows.filter(function(p){return paySearchText(p).indexOf(q)>=0;});
   return rows;
@@ -3218,7 +3225,8 @@ function drawPay(vs){
   if(vs==='year'){holder.appendChild(payYearCard());return;}
   var rows=payViewRows(vs);
   var card=document.createElement('div');card.className='card pay-card';
-  var title=vs==='month'?('当月回款明细（'+curYm().replace('-','/')+'）'):'全部回款明细';
+  var my=curPayYm();
+  var title=vs==='month'?('当月回款明细（'+my.replace('-','/')+'）'+(my!==curYm()?'<span class="tag warn" style="margin-left:8px">本月暂未录入，显示上月</span>':'')):'全部回款明细';
   card.innerHTML='<div class="card-hd"><h3>'+title+'</h3><div class="sp"><span class="tag ok">回款合计 '+fmtN(sumCol(rows,'amount'))+' 元</span></div></div>'+
     '<div class="card-bd">'+smartTableHTML('pay',payCols(),payOutRows(rows),function(r){return actB(r.id,'openPayForm','delPay');},function(){drawPay(viewState.pay||'month');})+'</div>';
   holder.appendChild(card);
