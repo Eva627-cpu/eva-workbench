@@ -570,7 +570,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261006a',_verChecking=false;
+var APP_VER='20261009a',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -3761,7 +3761,7 @@ function downPayTpl(){
     var ws=XLSX.utils.aoa_to_sheet([headers].concat(examples));
     var wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,'回款明细模板');
-    XLSX.utils.writeFile(wb,'回款明细导入模板_'+today()+'.xlsx');
+    XLSX.writeFile(wb,'回款明细导入模板_'+today()+'.xlsx');
   }else{
     var h='<meta charset="utf-8"><title>回款模板</title><table border="1"><tr>';
     headers.forEach(function(l){h+='<th style="background:var(--accent-g1)">'+l+'</th>';});
@@ -3996,7 +3996,7 @@ function downPolicyTpl(){
     var ws=XLSX.utils.aoa_to_sheet([headers].concat(examples));
     var wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,'产品政策模板');
-    XLSX.utils.writeFile(wb,'产品政策导入模板_'+today()+'.xlsx');
+    XLSX.writeFile(wb,'产品政策导入模板_'+today()+'.xlsx');
   }else{
     var h='<meta charset="utf-8"><title>产品政策模板</title><table border="1"><tr>';
     headers.forEach(function(l){h+='<th style="background:var(--accent-g1)">'+l+'</th>';});
