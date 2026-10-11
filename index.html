@@ -668,7 +668,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261011f',_verChecking=false;
+var APP_VER='20261011g',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -781,19 +781,19 @@ function xlNum(v){return parseFloat(String(v==null?'':v).replace(/[,，\s￥¥$�
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 /* ================= 导航 ================= */
-/* 按业务属性分三组：基础档案（先建档案）→ 销售业务（日常台账）→ 跟进与记录 */
+/* 按业务属性分三组：销售业务（日常台账，最常用）→ 基础档案（建档案）→ 跟进与记录 */
 var MODULES=[
   {key:'dash',name:'首页',i:'🏠'},
-  {g:'基础档案'},
-  {key:'cust',name:'客户档案',i:'👥'},
-  {key:'prod',name:'产品档案',i:'💊'},
-  {key:'doc',name:'资料库',i:'📁'},
   {g:'销售业务'},
   {key:'order',name:'销售订单',i:'🧾'},
   {key:'pay',name:'回款明细',i:'💰'},
   {key:'stock',name:'销售库存',i:'📦'},
   {key:'prodo',name:'产品订单',i:'🏭'},
   {key:'ship',name:'物流明细',i:'🚚'},
+  {g:'基础档案'},
+  {key:'cust',name:'客户档案',i:'👥'},
+  {key:'prod',name:'产品档案',i:'💊'},
+  {key:'doc',name:'资料库',i:'📁'},
   {g:'跟进与记录'},
   {key:'dev',name:'新品开发',i:'🚀'},
   {key:'log',name:'工作记录',i:'📝'},
