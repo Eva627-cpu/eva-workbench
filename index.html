@@ -165,6 +165,24 @@ input.chkbox:checked{background:var(--accent-b);border-color:var(--accent-b)}
 input.chkbox:checked::after{content:'✓';color:#fff;font-size:13px;font-weight:700;line-height:19px;position:absolute;left:0;top:0;right:0;bottom:0;text-align:center}
 tbody td.chk-on{background:#f0fbf2!important}
 tbody tr.z2 td.chk-on{background:#e4f7e9!important}
+/* 订单 ↔ 回款 匹配面板 */
+.mch-sum{display:flex;flex-wrap:wrap;gap:4px 20px;padding:10px 12px;background:#f5f5f7;border-radius:10px;font-size:12.5px;line-height:1.7}
+.mch-sum em{font-style:normal;color:var(--sub)}
+.mch-sum b{color:var(--accent-d)}
+.mch-list{margin-top:10px;max-height:44vh;overflow:auto;border:1px solid #e5e5ea;border-radius:10px}
+.mch-row{display:flex;align-items:center;gap:10px;padding:7px 10px;border-bottom:1px solid #f2f2f7;cursor:pointer;font-size:12.5px}
+.mch-row:last-child{border-bottom:0}
+.mch-row:hover{background:var(--accent-soft)}
+.mch-row .mno{font-family:Consolas,monospace;min-width:92px}
+.mch-row .mg{flex:1;min-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--sub)}
+.mch-row .md{min-width:70px;text-align:right;color:var(--sub)}
+.mch-row .ma{min-width:84px;text-align:right}
+.mch-row .mt{min-width:56px;text-align:right}
+@media(max-width:560px){
+  .mch-row{flex-wrap:wrap;gap:3px 8px}
+  .mch-row .mg{flex:0 0 100%;order:4}
+  .mch-row .mno{min-width:0}
+}
 .fitem input,.fitem select,.fitem textarea{border-radius:10px;border-color:#e5e5ea;background:#f7f7f9}
 .fitem input:focus,.fitem select:focus,.fitem textarea:focus{border-color:var(--accent);background:#fff}
 .fgroup{background:var(--accent-soft);color:var(--accent-d);border-radius:8px}
@@ -615,6 +633,7 @@ function pullCloud(){
         var changed=mergeCloud(cloud);
         if(healSerialDates())changed=true;   /* 自愈后必须回传云端，避免其他设备又拿到序列号 */
         if(_HEALED){changed=true;_HEALED=0;}
+        if(autoMatchPays(true).n)changed=true;   /* 完全能确定的回款↔订单自动联动，没把握的不动 */
         var newT=Math.max(lt,ct);
         if(newT>lt){db._t=newT;changed=true;}
         if(changed){
@@ -649,7 +668,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261011e',_verChecking=false;
+var APP_VER='20261011f',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -823,10 +842,10 @@ function render(){
 function prodLabel(p){return p?p.name+' '+p.spec:'';}
 /* 只读索引缓存：产品 / 库存 / 已发货 / 已回款，避免列表逐行全表扫描；
    数据每次变动（save）或页面每次重绘（render）时自动失效重建 */
-var _IDX_VER=0,_idxBuilt=-1,_prodMap=null,_stockMap=null,_shipMap=null,_paidMap=null,_orderMap=null;
+var _IDX_VER=0,_idxBuilt=-1,_prodMap=null,_stockMap=null,_shipMap=null,_paidMap=null,_orderMap=null,_paidCnt=null,_ordAgg=null,_ordByCust=null;
 function _buildIdx(){
   if(_idxBuilt===_IDX_VER)return;
-  _prodMap={};_stockMap={};_shipMap={};_paidMap={};_orderMap={};
+  _prodMap={};_stockMap={};_shipMap={};_paidMap={};_orderMap={};_paidCnt={};_ordAgg={};_ordByCust={};
   for(var i=0;i<db.products.length;i++)_prodMap[db.products[i].id]=db.products[i];
   for(var b=0;b<db.batches.length;b++){
     var bt=db.batches[b],bp=_prodMap[bt.pid],per=bp?prodPerBox(bp):(Number(bt.perBox)||1);
@@ -838,9 +857,21 @@ function _buildIdx(){
   }
   for(var y=0;y<db.payments.length;y++){
     var pm=db.payments[y],nos=payNos(pm),amt=Number(pm.amount)||0;
-    for(var n=0;n<nos.length;n++)_paidMap[nos[n]]=(_paidMap[nos[n]]||0)+amt;
+    for(var n=0;n<nos.length;n++){_paidMap[nos[n]]=(_paidMap[nos[n]]||0)+amt;_paidCnt[nos[n]]=(_paidCnt[nos[n]]||0)+1;}
   }
   for(var o2=0;o2<db.orders.length;o2++){var od=db.orders[o2];if(!_orderMap[od.no])_orderMap[od.no]=od;}
+  /* 订单按「单号」聚合（一个单号可能多行产品），并按客户建倒排，供回款自动匹配用 */
+  for(var o3=0;o3<db.orders.length;o3++){
+    var od3=db.orders[o3],no3=String(od3.no==null?'':od3.no);if(!no3)continue;
+    var a3=_ordAgg[no3];
+    if(!a3){
+      a3=_ordAgg[no3]={no:no3,cust:String(od3.custName==null?'':od3.custName).trim(),agent:String(od3.agentName==null?'':od3.agentName).trim(),
+        date:od3.shipDate||'',amt:0,n:0,names:[]};
+      if(a3.cust){if(!_ordByCust[a3.cust])_ordByCust[a3.cust]=[];_ordByCust[a3.cust].push(no3);}
+    }
+    a3.amt+=Number(od3.amount)||0;a3.n++;
+    if(od3.prodLabel&&a3.names.indexOf(od3.prodLabel)<0)a3.names.push(od3.prodLabel);
+  }
   _idxBuilt=_IDX_VER;
 }
 /* 件装量解析：规格最后一组数为件装量，如 12*2*300 → 300盒/件 */
@@ -862,11 +893,13 @@ function stockText(pid){var p=findProd(pid);if(!p)return '0盒';var u=stockUnits
 /* 回款关联的发货单号列表（支持一笔回款对应多笔订单，单号间用逗号/空格分隔） */
 function payNos(r){var s=String((r&&(r.shipNo||r.orderNo))||'');return s.split(/[,，、;；\s]+/).filter(function(x){return x;});}
 function orderPaid(no){_buildIdx();return _paidMap[String(no)]||0;}
+function orderPaidCnt(no){_buildIdx();return _paidCnt[String(no)]||0;}
 function orderShipped(no){_buildIdx();return _shipMap[no]||0;}
 function orderNeed(o){var p=findProd(o.pid);return (Number(o.qtyBoxes)||0)*prodPerBox(p)+(Number(o.qtyUnits)||0);}
 /* 订单状态：自动匹配回款明细——有匹配回款即已回款，无匹配即未回款（一笔订单可对应多笔回款，如预付款+尾款） */
 function orderStatus(o){
-  if(orderPaid(o.no)>0)return {t:'已回款',c:'ok'};
+  var amt=orderPaid(o.no),cnt=orderPaidCnt(o.no);
+  if(cnt)return {t:'已回款'+(amt>0?(' '+fmtN(amt)+' 元'):''),c:'ok'};
   return {t:'未回款',c:'warn'};
 }
 function custCatTag(c){var map={'省总':'c1','大包商':'c2','零散客户':'c3'};return '<span class="tag '+(map[c]||'c1')+'">'+esc(c)+'</span>';}
@@ -1315,7 +1348,7 @@ function exportXLS(moduleName,cols,rows){
   h+='</tr>';
   for(var r=0;r<rows.length;r++){
     h+='<tr>';
-    for(var c=0;c<cols.length;c++){var cd=cols[c];h+='<td>'+esc(cd.fmt?cd.fmt(rows[r]):rows[r][cd.key])+'</td>';}
+    for(var c=0;c<cols.length;c++){var cd=cols[c];h+='<td>'+esc(colVal(cd,rows[r]))+'</td>';}   /* colVal 去掉标签，避免 Excel 里出现 <span> 源码 */
     h+='</tr>';
   }
   h+='</table>';
@@ -2514,7 +2547,8 @@ function renderOrder(c){
         '<input type="file" id="orderImportFile" accept=".xlsx,.xls" style="display:none" onchange="importOrderExcel(this)">',
         '<button class="btn" onclick="document.getElementById(\'orderImportFile\').click()">导入Excel</button>',
         '<button class="btn" onclick="exportOrder()">导出Excel</button>',
-        '<button class="btn" onclick="downOrderTpl()">模板</button>'
+        '<button class="btn" onclick="downOrderTpl()">模板</button>',
+        '<button class="btn" onclick="runAutoMatch()">自动匹配</button>'
       ])+
       '<div class="card"><div class="card-bd" id="orderTbl"></div></div>';
     drawOrder();
@@ -2561,6 +2595,7 @@ function drawOrder(){
     var btns='<button class="btn sm" onclick="openOrderForm(\''+r.id+'\')">编辑</button>';
     if(orderShipped(r.no)<orderNeed(r))btns+='<button class="btn sm" onclick="openShipForm(null,\''+r.no+'\')">发货</button>';
     btns+='<button class="btn sm" onclick="openPayForm(null,\''+r.no+'\')">记回款</button>';
+    btns+='<button class="btn sm" onclick="openMatchPanel(\'order\',\''+r.no+'\')">匹配回款</button>';
     btns+='<button class="btn sm dgr" onclick="delOrder(\''+r.id+'\')">删除</button>';
     return btns;
   },drawOrder,{key:function(r){return r.no;}});
@@ -3417,13 +3452,351 @@ function renderPay(c){
         '<input type="file" id="payImportFile" accept=".xlsx,.xls" style="display:none" onchange="importPayExcel(this)">',
         '<button class="btn" onclick="document.getElementById(\'payImportFile\').click()">导入Excel</button>',
         '<button class="btn" onclick="exportPay(\''+vs+'\')">导出Excel</button>',
-        '<button class="btn" onclick="downPayTpl()">模板</button>'
+        '<button class="btn" onclick="downPayTpl()">模板</button>',
+        '<button class="btn" onclick="runAutoMatch()">自动匹配</button>'
       ])+
       '<div class="card" style="margin-bottom:14px;padding:8px 16px;display:flex;justify-content:flex-end">'+tabsHTML('pay',PAY_VIEWS)+'</div>';
     drawPay(vs);
     bindTabs('pay',PAY_VIEWS,function(){renderPay(c);});
     document.getElementById('paySearch').oninput=function(){drawPay(viewState.pay||'month');};
   });
+}
+/* ================= 销售订单 ↔ 回款明细 自动/手动匹配 =================
+   业务规律：现款现货多为「前一天回款、第二天发货」（发货日 = 回款日 + 1），也有隔几天、
+   或者先发货后回款的。因此只自动挂「能完全确定」的，其余留待手动匹配：
+     ① 同客户、同代理商（某端为空则不比对），发货日在 [回款日 −15 天, 回款日 +6 天] 内；
+     ② 窗口内只有一张订单 → 直接匹配；多张时若金额唯一相符 → 匹配；
+        金额都与订单不符但有且仅有一张卡在 ±1 天内、次候选 ≥4 天（现款现货特征明显）→ 匹配但标「待核对」；
+     ③ 金额与订单不一致的仍会挂上，但标为「待核对」，方便人工复核；
+     ④ 手动匹配、手动解除过的回款带 matchLock，自动匹配不再改动它。
+   匹配结果写进回款的 shipNo（与手工填单号同一字段），所以订单侧「已回款」状态、
+   回款侧的「产品名称/规格」「发货状态」都会即时联动。 */
+var MATCH_BACK=15,MATCH_FWD=6;
+/* 日期串 → 天序号（可相减）；非法返回 null */
+function dtNum(s){
+  var m=String(s==null?'':s).match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(!m)return null;
+  return Date.UTC(Number(m[1]),Number(m[2])-1,Number(m[3]))/86400000;
+}
+/* 该回款的候选订单（同客户 + 日期窗口 + 同代理商），按日期接近程度排序；
+   anyDate=true 时不限日期窗口（手动匹配的兜底：列出该客户的全部订单） */
+function payOrderCands(p,relax,anyDate){
+  var cust=String((p&&p.custName)||'').trim(),agent=String((p&&p.agentName)||'').trim(),d=dtNum(p&&p.payDate);
+  if(!cust)return [];
+  if(!anyDate&&d==null)return [];
+  _buildIdx();
+  var list=_ordByCust[cust]||[],out=[];
+  for(var i=0;i<list.length;i++){
+    var a=_ordAgg[list[i]];if(!a)continue;
+    var od=dtNum(a.date);
+    var diff=(od==null||d==null)?null:(od-d);
+    if(!anyDate){if(od==null)continue;if(diff<-MATCH_BACK||diff>MATCH_FWD)continue;}
+    if(!relax&&agent&&a.agent&&a.agent!==agent)continue;
+    out.push({no:a.no,diff:diff,date:a.date,amt:a.amt,agent:a.agent,cust:a.cust,names:a.names});
+  }
+  out.sort(function(x,y){
+    var ax=x.diff==null?99999:Math.abs(x.diff),ay=y.diff==null?99999:Math.abs(y.diff);
+    if(ax!==ay)return ax-ay;
+    return String(x.no)<String(y.no)?-1:1;
+  });
+  return out;
+}
+/* 手动匹配兜底：同代理商、日期相近的订单（不限客户） */
+function agentOrderCands(p){
+  var agent=String((p&&p.agentName)||'').trim(),d=dtNum(p&&p.payDate);
+  if(!agent)return [];
+  _buildIdx();
+  var out=[];
+  for(var no in _ordAgg){
+    var a=_ordAgg[no];
+    if(a.agent!==agent)continue;
+    var od=dtNum(a.date),diff=(od==null||d==null)?null:(od-d);
+    if(d!=null&&(diff<-MATCH_BACK||diff>MATCH_FWD))continue;
+    out.push({no:no,diff:diff,date:a.date,amt:a.amt,agent:a.agent,cust:a.cust,names:a.names});
+  }
+  out.sort(function(x,y){
+    var ax=x.diff==null?99999:Math.abs(x.diff),ay=y.diff==null?99999:Math.abs(y.diff);
+    return ax-ay;
+  });
+  return out;
+}
+/* 未匹配回款池：手动匹配（订单 → 回款）用；cust=='' 表示不限客户 */
+function unpaidPayPool(cust,agent,d){
+  var out=[];
+  for(var i=0;i<db.payments.length;i++){
+    var p=db.payments[i];
+    if(payNos(p).length)continue;
+    if(cust&&String(p.custName||'').trim()!==cust)continue;
+    if(!cust&&agent&&String(p.agentName||'').trim()&&String(p.agentName||'').trim()!==agent)continue;
+    var pd=dtNum(p.payDate),diff=(pd==null||d==null)?null:(d-pd);
+    out.push({p:p,diff:diff});
+  }
+  return out;
+}
+/* 回款金额与订单金额是否相符：true 相符 / false 不符 / null 订单没填金额（无从判断）
+   口径：回款额 = 订单额；或 回款额 + 返利 = 订单额；或 回款额 + 返利 + 返款 = 订单额 */
+function payAmtOk(p,c){
+  var amt=Number(p&&p.amount)||0,a=Number(c&&c.amt)||0;
+  if(!(a>0))return null;
+  if(Math.abs(a-amt)<=0.01)return true;
+  var rb=(Number(p&&p.rebate)||0)+(Number(p&&p.refund)||0);
+  if(rb&&(Math.abs(a-(amt+Number(p.rebate||0)))<=0.01||Math.abs(a-(amt+rb))<=0.01))return true;
+  return false;
+}
+function payAmtTag(ok){
+  return ok===true?'<span class="tag ok">金额相符</span>':(ok===false?'<span class="tag warn">金额不符</span>':'<span class="tag pend">订单未填金额</span>');
+}
+/* 单条回款能否自动匹配：返回 null（没把握）/ {no:null,level:'multi'}（像一笔款付多张单，交人工）/ {no,level}
+   level: exact 完全匹配 / near 现款现货特征 / soft 金额有差异（部分回款） */
+function autoMatchOne(p){
+  if(p.matchLock||payNos(p).length)return null;
+  var cands=payOrderCands(p);if(!cands.length)return null;
+  var amt=Number(p.amount)||0,equal=[],i;
+  for(i=0;i<cands.length;i++)if(payAmtOk(p,cands[i])===true)equal.push(cands[i]);
+  if(equal.length===1)return {no:equal[0].no,level:'exact'};   /* 多张候选里金额唯一相符 */
+  if(equal.length>1)return null;                               /* 多张金额都一样 → 不确定 */
+  if(cands.length===1){
+    var a=cands[0],ok=payAmtOk(p,a);
+    if(ok!==false)return {no:a.no,level:'exact'};              /* 金额相符，或订单没填金额（无从比较）*/
+    if(amt<=a.amt*1.2)return {no:a.no,level:'soft'};           /* 部分回款 / 相差不大 → 挂上待核对 */
+    return {no:null,level:'multi'};                            /* 金额远超单张订单：可能一票多单，交人工 */
+  }
+  var c0=cands[0];
+  if(Math.abs(c0.diff)<=1&&Math.abs(cands[1].diff)>=4){
+    var ok0=payAmtOk(p,c0);
+    if(ok0!==false||amt<=(Number(c0.amt)||0)*1.2)return {no:c0.no,level:'near'};
+  }
+  return null;                                                 /* 其余交人工 */
+}
+/* 落匹配：回款侧写订单号，订单侧状态/产品信息即时联动 */
+function applyMatch(p,no,by,level){
+  p.shipNo=String(no==null?'':no);
+  p.type='ship';
+  p.matchBy=by||'auto';
+  p.matchLevel=level||'exact';
+  p.matchLock=true;
+  return touch(p);
+}
+function unlinkMatch(p){
+  p.shipNo='';p.type='prepay';p.matchBy='';p.matchLevel='';p.matchLock=true;
+  return touch(p);
+}
+/* 批量自动匹配（只处理尚未挂单号的回款） */
+function autoMatchPays(silent){
+  var n=0,soft=0,multi=0;
+  for(var i=0;i<db.payments.length;i++){
+    var p=db.payments[i],r=autoMatchOne(p);
+    if(!r)continue;
+    if(!r.no){multi++;continue;}
+    applyMatch(p,r.no,'auto',r.level);
+    n++;if(r.level!=='exact')soft++;
+  }
+  if(n)save();
+  if(!silent){
+    var msg=n?('自动匹配完成：'+n+' 条回款已关联到对应订单'+(soft?('，其中 '+soft+' 条金额与订单有差异（部分回款），已标为「待核对」'):'')):'没有可自动匹配的回款。';
+    if(multi)msg+='\n\n另有 '+multi+' 条回款金额明显超过单张订单，可能是一笔款对应多张订单，请在回款明细里点「匹配」手动勾选。';
+    msg+='\n\n没把握确定的一律没动：可在回款明细的「订单匹配」列按「待匹配」筛选后逐条点「匹配」。';
+    alert(msg);
+  }
+  return {n:n,soft:soft,multi:multi};
+}
+function runAutoMatch(){autoMatchPays(false);render();}
+/* 回款在列表里的匹配状态 */
+function payMatchInfo(r){
+  var nos=payNos(r);
+  if(nos.length){
+    _buildIdx();
+    var alive=false;
+    for(var i=0;i<nos.length;i++)if(_ordAgg[nos[i]])alive=true;
+    if(!alive)return {t:'待核对',c:'warn',tip:'关联的订单（'+nos.join('、')+'）在订单表里已不存在，请重新匹配或解除'};
+    var t=(r.matchLevel==='soft'||r.matchLevel==='near')?'待核对':'已匹配';
+    var by=(r.matchBy==='auto'?'系统自动匹配':(r.matchBy==='manual'?'手动匹配':'手动填写单号'));
+    var tip='已关联订单 '+nos.join('、')+'（'+by+'）';
+    if(r.matchLevel==='soft'){
+      var ag=_ordAgg[nos[0]];
+      tip='已关联订单 '+nos.join('、')+'，但回款 '+fmtN(r.amount)+' 元与订单 '+((ag&&ag.amt>0)?(fmtN(ag.amt)+' 元'):'（未填金额）')+'不一致，请核对';
+    }else if(r.matchLevel==='near'){
+      tip='按「前一天回款、次日发货」自动关联 '+nos.join('、')+'，请核对';
+    }
+    return {t:t,c:(t==='已匹配'?'ok':'warn'),tip:tip};
+  }
+  var cands=payOrderCands(r);
+  if(cands.length){
+    var s=[];
+    for(var j=0;j<cands.length&&j<3;j++)s.push(cands[j].no);
+    return {t:'待匹配',c:'warn',tip:'有 '+cands.length+' 张候选订单（'+s.join('、')+(cands.length>3?' 等':'')+'），点「匹配」确认'};
+  }
+  return {t:'待匹配',c:'pend',tip:'暂无可确定的订单，点「匹配」手动查找'};
+}
+/* ---- 手动匹配面板（点候选即关联，双向可用） ---- */
+var MP={kind:'pay',id:'',q:'',relax:false};
+function mpPayById(id){for(var i=0;i<db.payments.length;i++)if(db.payments[i].id===id)return db.payments[i];return null;}
+function openMatchPanel(kind,id){
+  MP={kind:kind,id:id,q:'',relax:false};
+  if(kind==='pay'&&!mpPayById(id))return;
+  renderMatchPanel();
+  document.getElementById('wdMask').classList.add('show');
+}
+function mpSetQ(v){MP.q=v;renderMatchPanel();}
+function mpRelaxChk(on){MP.relax=!!on;renderMatchPanel();}
+/* 订单候选池：有搜索词时全库搜（跨客户/跨时间）；否则同客户窗口 → 同客户全部 → 同代理商相近日期 */
+function mpOrderPool(p){
+  var q=String(MP.q||'').trim(),d=dtNum(p.payDate);
+  if(q){
+    _buildIdx();
+    var res=[];
+    for(var no in _ordAgg){
+      var a=_ordAgg[no];
+      if((no+' '+(a.cust||'')+' '+(a.agent||'')+' '+a.names.join(' ')).indexOf(q)<0)continue;
+      var od=dtNum(a.date);
+      res.push({no:no,diff:(od==null||d==null)?null:(od-d),date:a.date,amt:a.amt,agent:a.agent,cust:a.cust,names:a.names});
+    }
+    res.sort(function(x,y){
+      var ax=x.diff==null?99999:Math.abs(x.diff),ay=y.diff==null?99999:Math.abs(y.diff);
+      return ax-ay;
+    });
+    return {list:res.slice(0,60),tip:'全库搜索到的订单 '+Math.min(res.length,60)+' 条。'};
+  }
+  var cs=payOrderCands(p,MP.relax);
+  if(cs.length)return {list:cs,tip:''};
+  cs=payOrderCands(p,MP.relax,true);
+  if(cs.length)return {list:cs,tip:'该客户在回款日前后 15 天内没有订单，下面列出他的全部订单，请人工确认。'};
+  cs=agentOrderCands(p);
+  if(cs.length)return {list:cs,tip:'订单表里没有这个客户的订单，下面列出同代理商、日期相近的订单，请人工确认。'};
+  return {list:[],tip:'没有可选订单。可在搜索框里直接搜订单号、客户或产品（会跨客户、跨时间查找）。'};
+}
+function mpOrderCandHTML(p){
+  var pool=mpOrderPool(p),list=pool.list,h='',custKey=String(p.custName||'').trim();
+  if(pool.tip)h+='<div class="hint" style="padding:8px 10px;border-bottom:1px solid #f2f2f7">'+esc(pool.tip)+'</div>';
+  for(var i=0;i<list.length;i++){
+    var c=list[i],ok=payAmtOk(p,c);
+    var dtxt=c.diff==null?'—':(c.diff===0?'同一天发货':(c.diff>0?('晚 '+c.diff+' 天发货'):('早 '+(-c.diff)+' 天发货')));
+    var who=(String(c.cust||'').trim()===custKey)?'':('<b>'+esc(c.cust||'')+'</b>　');
+    h+='<div class="mch-row" title="已挂 '+orderPaidCnt(c.no)+' 笔回款" onclick="matchPick(\''+esc(c.no)+'\')">'
+      +'<span class="mno">'+esc(c.no)+'</span>'
+      +'<span>'+esc(c.date||'—')+'</span>'
+      +'<span class="ma">'+fmtN(c.amt)+' 元</span>'
+      +'<span class="md">'+dtxt+'</span>'
+      +'<span class="mt">'+payAmtTag(ok)+'</span>'
+      +'<span class="mg">'+who+esc((c.names||[]).join('、'))+'</span>'
+      +'</div>';
+  }
+  return h;
+}
+/* 未匹配回款候选：同客户窗口 → 同客户全部 → 同代理商相近日期（不限客户） */
+function mpPayPool(a){
+  var q=String(MP.q||'').trim(),d=dtNum(a.date);
+  var all=unpaidPayPool('','',d);
+  if(q){
+    var res=[];
+    for(var i=0;i<all.length;i++){
+      var p=all[i].p;
+      if(((p.custName||'')+' '+(p.agentName||'')+' '+(p.payDate||'')+' '+fmtN(p.amount)+' '+(p.name||'')).indexOf(q)<0)continue;
+      res.push(all[i]);
+    }
+    return {list:res.slice(0,60),tip:'搜索到的未匹配回款 '+Math.min(res.length,60)+' 条。'};
+  }
+  var same=[];
+  for(var j=0;j<all.length;j++){
+    var r=all[j].p;
+    if(String(r.custName||'').trim()!==a.cust)continue;
+    if(a.agent&&String(r.agentName||'').trim()&&String(r.agentName||'').trim()!==a.agent)continue;
+    if(all[j].diff!=null&&(all[j].diff<-MATCH_BACK||all[j].diff>MATCH_FWD))continue;
+    same.push(all[j]);
+  }
+  if(same.length)return {list:same,tip:''};
+  var loose=[];
+  for(var k=0;k<all.length;k++){
+    if(String(all[k].p.custName||'').trim()!==a.cust)continue;
+    loose.push(all[k]);
+  }
+  if(loose.length)return {list:loose,tip:'该客户近期没有未匹配回款，下面列出他的全部未匹配回款，请人工确认。'};
+  for(var m=0;m<all.length;m++){
+    if(!a.agent)break;
+    if(String(all[m].p.agentName||'').trim()!==a.agent)continue;
+    if(all[m].diff!=null&&(all[m].diff<-MATCH_BACK||all[m].diff>MATCH_FWD))continue;
+    loose.push(all[m]);
+  }
+  if(loose.length)return {list:loose,tip:'下面列出同代理商、相近日期的未匹配回款，请人工确认。'};
+  return {list:[],tip:'没有找到未匹配回款。可在搜索框里搜客户名、金额或日期。'};
+}
+function mpPayCandHTML(a){
+  var pool=mpPayPool(a),list=pool.list,h='';
+  list.sort(function(x,y){
+    var ax=x.diff==null?99999:Math.abs(x.diff),ay=y.diff==null?99999:Math.abs(y.diff);
+    if(ax!==ay)return ax-ay;
+    return String(x.p.payDate||'')<String(y.p.payDate||'')?-1:1;
+  });
+  if(list.length>80)list=list.slice(0,80);
+  if(pool.tip)h+='<div class="hint" style="padding:8px 10px;border-bottom:1px solid #f2f2f7">'+esc(pool.tip)+'</div>';
+  for(var i=0;i<list.length;i++){
+    var r=list[i].p,ok=payAmtOk(r,a);
+    var dtxt=list[i].diff==null?'—':(list[i].diff===0?'同一天':(list[i].diff>0?('订单晚 '+list[i].diff+' 天发货'):('订单早 '+(-list[i].diff)+' 天发货')));
+    h+='<div class="mch-row" onclick="matchPick(\''+esc(a.no)+'\',\''+r.id+'\')">'
+      +'<span class="mno">'+esc(r.payDate||'—')+'</span>'
+      +'<span class="ma">'+fmtN(r.amount)+' 元</span>'
+      +'<span class="md">'+dtxt+'</span>'
+      +'<span class="mt">'+payAmtTag(ok)+'</span>'
+      +'<span class="mg">'+esc(r.custName||'')+'　'+esc(r.name||'')+'</span>'
+      +'</div>';
+  }
+  return h;
+}
+function renderMatchPanel(){
+  _buildIdx();
+  var h='',title='';
+  if(MP.kind==='pay'){
+    var p=mpPayById(MP.id);
+    if(!p){closeWaveDetail();return;}
+    var nos=payNos(p);
+    title='匹配订单（回款）';
+    h+='<div class="mch-sum">'
+      +'<span><em>回款日期</em> <b>'+esc(p.payDate||'—')+'</b></span>'
+      +'<span><em>客户</em> '+esc(p.custName||'—')+'</span>'
+      +'<span><em>代理商</em> '+esc(p.agentName||'—')+'</span>'
+      +'<span><em>回款金额</em> <b>'+fmtN(p.amount)+' 元</b></span>'
+      +'<span><em>产品</em> '+esc((payItems(p)[0]||{}).name||p.name||'—')+'</span>'
+      +'</div>';
+    if(nos.length)h+='<div class="hint" style="margin-top:8px">已关联订单 <b>'+esc(nos.join('、'))+'</b>（'+(p.matchBy==='auto'?'系统自动匹配':'手动匹配')+'）　<button class="btn sm dgr" onclick="matchUnlink()">解除匹配</button></div>';
+    else h+='<div class="hint" style="margin-top:8px">点下面的订单即可关联（一笔回款可对应多张订单，再进「编辑」可勾选多张）。</div>';
+    h+='<div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
+      +'<input class="search" style="max-width:250px" placeholder="搜索订单号 / 客户 / 产品" value="'+esc(MP.q)+'" oninput="mpSetQ(this.value)">'
+      +'<label style="display:flex;gap:6px;align-items:center;font-weight:400;font-size:12.5px"><input type="checkbox" onchange="mpRelaxChk(this.checked)"'+(MP.relax?' checked':'')+'>不限代理商</label>'
+      +'</div>';
+    h+='<div class="mch-list">'+mpOrderCandHTML(p)+'</div>';
+  }else{
+    var a=_ordAgg[MP.id];
+    if(!a){closeWaveDetail();return;}
+    title='匹配回款（订单 '+a.no+'）';
+    h+='<div class="mch-sum">'
+      +'<span><em>订单号</em> <b>'+esc(a.no)+'</b></span>'
+      +'<span><em>客户</em> '+esc(a.cust||'—')+'</span>'
+      +'<span><em>代理商</em> '+esc(a.agent||'—')+'</span>'
+      +'<span><em>发货日期</em> '+(a.date||'—')+'</span>'
+      +'<span><em>订单金额</em> <b>'+fmtN(a.amt)+' 元</b></span>'
+      +'<span><em>已回款</em> '+fmtN(orderPaid(a.no))+' 元 / '+orderPaidCnt(a.no)+' 笔</span>'
+      +'</div>';
+    h+='<div class="hint" style="margin-top:8px">点下面任意一条未匹配回款，即关联到本订单。</div>';
+    h+='<div style="margin-top:10px"><input class="search" style="max-width:250px" placeholder="搜索回款（客户 / 金额 / 日期）" value="'+esc(MP.q)+'" oninput="mpSetQ(this.value)"></div>';
+    h+='<div class="mch-list">'+mpPayCandHTML(a)+'</div>';
+  }
+  document.getElementById('wdTitle').textContent=title;
+  document.getElementById('wdBody').innerHTML=h;
+}
+/* 关联：pay 模式传订单号；order 模式传订单号 + 回款 id */
+function matchPick(no,payId){
+  var p=(MP.kind==='pay')?mpPayById(MP.id):mpPayById(payId);
+  if(!p)return;
+  var a=_ordAgg[no]||null,ok=a?payAmtOk(p,a):null;
+  applyMatch(p,no,'manual',ok===false?'soft':'exact');
+  save();render();renderMatchPanel();
+  if(!document.getElementById('wdMask').classList.contains('show'))openMatchPanel(MP.kind,MP.id);
+}
+function matchUnlink(){
+  if(MP.kind!=='pay')return;
+  var p=mpPayById(MP.id);if(!p||!payNos(p).length)return;
+  if(!confirm('确定解除这条回款与订单 '+payNos(p).join('、')+' 的关联吗？\n（解除后不会再被自动匹配）'))return;
+  unlinkMatch(p);save();render();renderMatchPanel();
 }
 /* ---- 记录访问器（兼容新旧数据结构） ---- */
 function payType(r){if(r.type==='ship'||r.type==='prepay')return r.type;var ns=payNos(r);for(var i=0;i<ns.length;i++){if(orderShipped(ns[i])>0)return 'ship';}return 'prepay';}
@@ -3465,6 +3838,7 @@ function payCols(){
     chkColDef(),
     {key:'ym',label:'回款年/月'},
     {key:'shipNo',label:'发货单号',fmt:function(r){return r.shipNo?'<span class="mono">'+esc(r.shipNo)+'</span>':'—';}},
+    {key:'match',label:'订单匹配',fmt:function(r){var m=payMatchInfo(r);return '<span class="tag '+m.c+'" title="'+esc(m.tip)+'">'+m.t+'</span>';}},
     {key:'payDate',label:'回款日期'},
     {key:'cat',label:'客户分类',fmt:function(r){return r.cat?custCatTag(r.cat):'—';}},
     {key:'agentName',label:'代理商'},
@@ -3492,6 +3866,7 @@ function payOutRows(rows){
     var names=[];
     for(var n=0;n<its.length;n++)if(its[n].name)names.push(its[n].name);
     out.push({id:r.id,seq:i+1,chk:!!r.chk,ym:payYm(r).replace('-','/'),shipNo:payShipNo(r),payDate:r.payDate||'',
+      matchBy:r.matchBy||'',matchLevel:r.matchLevel||'',
       cat:r.cat||'',agentName:r.agentName||'',custName:r.custName||'',
       name:names.join('、'),spec:ss.join('、'),supplyPrice:sup.join('、'),invoicePrice:inv.join('、'),
       amount:Number(r.amount)||0,rebate:Number(r.rebate)||0,refund:Number(r.refund)||0,
@@ -3509,7 +3884,9 @@ function drawPay(vs){
   var my=curPayYm();
   var title=vs==='month'?('当月回款明细（'+my.replace('-','/')+'）'+(my!==curYm()?'<span class="tag warn" style="margin-left:8px">本月暂未录入，显示上月</span>':'')):'全部回款明细';
   card.innerHTML='<div class="card-hd"><h3>'+title+'</h3><div class="sp"><span class="tag ok">回款合计 '+fmtN(sumCol(rows,'amount'))+' 元</span></div></div>'+
-    '<div class="card-bd">'+smartTableHTML('pay',payCols(),payOutRows(rows),function(r){return actB(r.id,'openPayForm','delPay');},function(){drawPay(viewState.pay||'month');})+'</div>';
+    '<div class="card-bd">'+smartTableHTML('pay',payCols(),payOutRows(rows),function(r){
+      return actB(r.id,'openPayForm','delPay')+'<button class="btn sm" onclick="openMatchPanel(\'pay\',\''+r.id+'\')">匹配</button>';
+    },function(){drawPay(viewState.pay||'month');})+'</div>';
   holder.appendChild(card);
 }
 function payYearCard(){
@@ -4075,8 +4452,11 @@ function importPayExcel(input){
         db.payments.push(out);added++;
       }
       save();
+      var am=autoMatchPays(true);   /* 导入后立即把「完全确定」的回款关联到对应订单 */
       if(input)input.value='';
       var msg=added?('成功导入 '+added+' 条回款记录'):'';
+      if(am.n)msg+=(msg?'\n':'')+'已自动匹配 '+am.n+' 条回款到对应订单'+(am.soft?('（其中 '+am.soft+' 条金额与订单有差异，标为「待核对」）'):'');
+      if(am.multi)msg+=(msg?'\n':'')+'另有 '+am.multi+' 条金额明显超过单张订单，请点「匹配」手动关联';
       if(skip)msg+=(msg?'\n':'')+'跳过 '+skip+' 条：\n'+skipMsg.slice(0,5).join('\n')+(skipMsg.length>5?'\n…': '');
       alert(msg||'未导入数据。\n'+(skipMsg.length?skipMsg.slice(0,5).join('\n'):'请检查表格内容'));
       render();
