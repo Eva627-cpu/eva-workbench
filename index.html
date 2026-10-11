@@ -331,6 +331,43 @@ tfoot td{background:#fff}
 @media(max-width:360px){
   .pov-tbl th,.pov-tbl td{font-size:11px}
 }
+/* ================= 资料库（电子版销售合同 / 产品资料 / 企业首营资料） ================= */
+/* 导航分组标题：桌面端做小标题，手机端折叠成一条细竖线 */
+.nav-grp{padding:13px 20px 4px;font-size:10.5px;font-weight:700;letter-spacing:.08em;color:#9aa6b2;user-select:none}
+/* 桌面端导航项变多后允许纵向滚动，窗口矮时不会被裁掉 */
+@media(min-width:901px){.nav{overflow-y:auto}}
+.up-zone{border:1.5px dashed var(--accent-g1);border-radius:14px;padding:13px 15px;background:linear-gradient(180deg,rgba(227,240,238,.55),rgba(255,255,255,.72));display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+.up-zone .up-tip{flex:1 1 240px;min-width:170px;color:var(--sub);font-size:12.5px;line-height:1.65}
+.up-prog{font-size:12.5px;color:var(--accent-d);padding:4px 2px}
+.doc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-top:12px}
+.doc-item{border:1px solid var(--line);border-radius:12px;background:#fff;padding:8px;display:flex;flex-direction:column;gap:6px;overflow:hidden}
+.doc-item .dt-name{font-size:12.5px;line-height:1.4;word-break:break-all;max-height:2.8em;overflow:hidden}
+.doc-item .dt-meta{font-size:11px;color:var(--sub)}
+.doc-thumb{width:100%;height:106px;object-fit:cover;border-radius:8px;background:linear-gradient(100deg,#f2f4f6 30%,#e9edf1 50%,#f2f4f6 70%);cursor:zoom-in;display:block}
+.doc-fileicon{height:106px;border-radius:8px;background:linear-gradient(160deg,var(--accent-soft),#fff);display:flex;align-items:center;justify-content:center;font-size:34px;cursor:pointer}
+.doc-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto}
+.doc-row{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px dashed var(--line);flex-wrap:wrap}
+.doc-row:last-child{border-bottom:none}
+.doc-row .dr-main{flex:1 1 210px;min-width:150px}
+.doc-row .dr-name{font-size:13px;word-break:break-all}
+.doc-row .dr-meta{font-size:11.5px;color:var(--sub);margin-top:2px}
+.doc-cat{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;background:var(--accent-soft);color:var(--accent-d);margin-right:6px;white-space:nowrap}
+.doc-sub{font-size:12.5px;color:var(--sub);line-height:1.7}
+.doc-empty{color:var(--sub);font-size:12.5px;padding:10px 2px}
+.exp-warn{color:#b91c1c;font-weight:600}
+.exp-soon{color:#b45309;font-weight:600}
+.exp-ok{color:#15803d}
+.exp-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.exp-tbl th,.exp-tbl td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left}
+.exp-tbl th{color:var(--accent-d);font-size:12px;font-weight:600;background:var(--accent-soft)}
+.exp-tbl td.num{white-space:nowrap}
+@media(max-width:900px){
+  .nav-grp{flex:0 0 auto;padding:0;margin:0 3px;border-left:1px solid var(--accent-g1);height:24px;align-self:center;min-width:1px}
+  .nav-grp span{display:none}
+  .doc-grid{grid-template-columns:repeat(auto-fill,minmax(142px,1fr));gap:8px}
+  .doc-thumb,.doc-fileicon{height:88px}
+  .exp-tbl th,.exp-tbl td{padding:7px 4px;font-size:12.5px}
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.bootcdn.net/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';document.head.appendChild(s);"></script>
 </head>
@@ -355,6 +392,8 @@ tfoot td{background:#fff}
 
 <div class="big-photo-mask" id="bigPhoto" onclick="this.classList.remove('show')" data-page-node-id="BVWtbB0gBT9pyVwHOKjSir"><img id="bigPhotoImg" data-page-node-id="GIpcaBYYchSDgHceJN1bTc"></div>
 
+<input type="file" id="docFileInput" multiple style="display:none">
+
 <div class="mask" id="wdMask" onclick="if(event.target===this)closeWaveDetail()" data-page-node-id="B6g91KhGRGBcgYGgcHb1xJ"><div class="modal wd-modal" data-page-node-id="Jfd6ErdXMIsn6Eek9rGVRH">
   <div class="m-hd" data-page-node-id="ik3Zu3suafu7PYum86TR9c"><h3 id="wdTitle" data-page-node-id="eBergCHTGG13iP5bYCeYJZ"></h3><span class="x" onclick="closeWaveDetail()" data-page-node-id="u7Fqo6DWznoAxMCnWzQPFQ">×</span></div>
   <div class="m-bd" id="wdBody" data-page-node-id="9aGqVAFJd8gVFWTGSlQNFY"></div>
@@ -364,7 +403,7 @@ tfoot td{background:#fff}
 <script>
 /* ================= 存储 ================= */
 var DB_KEY='pharmaSalesWorkbench';
-var DB_TABLES=['customers','products','batches','orders','shipments','payments','logs','prodOrders','develop','todos','prodPolicies'];
+var DB_TABLES=['customers','products','batches','orders','shipments','payments','logs','prodOrders','develop','todos','prodPolicies','docs'];
 var db=load();
 function ensureStruct(d){
   for(var i=0;i<DB_TABLES.length;i++)if(!Array.isArray(d[DB_TABLES[i]]))d[DB_TABLES[i]]=[];
@@ -374,7 +413,7 @@ function ensureStruct(d){
 }
 function load(){
   try{var d=JSON.parse(localStorage.getItem(DB_KEY));if(d&&d.orders)return ensureStruct(d);}catch(e){}
-  return ensureStruct({customers:[],products:[],batches:[],orders:[],shipments:[],payments:[],logs:[],prodOrders:[],develop:[],prodPolicies:[],seq:1});
+  return ensureStruct({customers:[],products:[],batches:[],orders:[],shipments:[],payments:[],logs:[],prodOrders:[],develop:[],prodPolicies:[],docs:[],seq:1});
 }
 /* 清0批次直接删除：库存为0的批次不保留（保存时自动清理，并留下删除标记以便另一端同步删除） */
 function purgeZeroBatches(){
@@ -434,9 +473,9 @@ function cloudStatus(txt){
 function localIsEmpty(){
   return db.orders.length===0&&db.customers.length===0&&db.products.length===0
     &&db.batches.length===0&&db.payments.length===0&&db.shipments.length===0
-    &&db.prodOrders.length===0&&db.develop.length===0;
+    &&db.prodOrders.length===0&&db.develop.length===0&&(db.docs||[]).length===0;
 }
-var MERGE_KEYS=['orders','customers','products','batches','payments','shipments','prodOrders','develop','logs','todos','prodPolicies'];
+var MERGE_KEYS=['orders','customers','products','batches','payments','shipments','prodOrders','develop','logs','todos','prodPolicies','docs'];
 /* 空值判定：''/null/undefined/0 都视为"未填"（本工作台价格与数量字段 0 即未填） */
 function isBlank(v){return v===undefined||v===null||v===''||v===0||v==='0'||(typeof v==='number'&&isNaN(v));}
 /* 字段级补空：本机为空而云端有值的字段，采用云端值（避免"A设备填了字段、B设备本地为空"时永远同步不过来） */
@@ -570,7 +609,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261009a',_verChecking=false;
+var APP_VER='20261011a',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -646,23 +685,30 @@ function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2
 function fmtN(n){return (Number(n)||0).toLocaleString('zh-CN',{maximumFractionDigits:2});}
 function p2(n){return n<10?'0'+n:''+n;}
 function today(){var d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());}
+/* n 天后的日期（合同到期提醒示例数据 / 日期推算用） */
+function dateAdd(days){var d=new Date();d.setDate(d.getDate()+(Number(days)||0));return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());}
 function ym(s){return (s||'').slice(0,7);}
 function curYm(){return today().slice(0,7);}
 function normDate(s){s=String(s||'').trim().replace(/[\/\.]/g,'-');var m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);return m?m[1]+'-'+(m[2].length<2?'0'+m[2]:m[2])+'-'+(m[3].length<2?'0'+m[3]:m[3]):s;}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 /* ================= 导航 ================= */
+/* 按业务属性分三组：基础档案（先建档案）→ 销售业务（日常台账）→ 跟进与记录 */
 var MODULES=[
   {key:'dash',name:'首页',i:'🏠'},
-  {key:'order',name:'销售订单',i:'🧾'},
-  {key:'pay',name:'回款明细',i:'💰'},
-  {key:'prodo',name:'产品订单',i:'🏭'},
-  {key:'stock',name:'销售库存',i:'📦'},
-  {key:'dev',name:'新品开发',i:'🚀'},
-  {key:'log',name:'工作记录',i:'📝'},
-  {key:'ship',name:'物流明细',i:'🚚'},
+  {g:'基础档案'},
   {key:'cust',name:'客户档案',i:'👥'},
   {key:'prod',name:'产品档案',i:'💊'},
+  {key:'doc',name:'资料库',i:'📁'},
+  {g:'销售业务'},
+  {key:'order',name:'销售订单',i:'🧾'},
+  {key:'ship',name:'物流明细',i:'🚚'},
+  {key:'pay',name:'回款明细',i:'💰'},
+  {key:'stock',name:'销售库存',i:'📦'},
+  {key:'prodo',name:'产品订单',i:'🏭'},
+  {g:'跟进与记录'},
+  {key:'dev',name:'新品开发',i:'🚀'},
+  {key:'log',name:'工作记录',i:'📝'},
   {key:'set',name:'设置',i:'⚙️'}
 ];
 function getMod(key){for(var i=0;i<MODULES.length;i++)if(MODULES[i].key===key)return MODULES[i];return MODULES[0];}
@@ -670,12 +716,14 @@ var cur='dash', viewState={};
 
 function renderNav(){
   var h='';
-  MODULES.forEach(function(m){
+  for(var i=0;i<MODULES.length;i++){
+    var m=MODULES[i];
+    if(m.g){h+='<div class="nav-grp"><span>'+esc(m.g)+'</span></div>';continue;}
     h+='<a data-k="'+m.key+'" class="'+(cur===m.key?'active':'')+'"><span class="nav-ic">'+m.i+'</span><span>'+m.name+'</span></a>';
-  });
+  }
   document.getElementById('nav').innerHTML=h;
   var as=document.querySelectorAll('#nav a');
-  for(var i=0;i<as.length;i++)as[i].onclick=function(){cur=this.dataset.k;render();};
+  for(var j=0;j<as.length;j++)as[j].onclick=function(){cur=this.dataset.k;render();};
 }
 function setPage(m,cb){
   renderNav();
@@ -697,7 +745,9 @@ function render(){
   else if(cur==='pay')renderPay(box);
   else if(cur==='dev')renderDev(box);
   else if(cur==='log')renderLog(box);
+  else if(cur==='doc')renderDoc(box);
   else if(cur==='set')renderSet(box);
+  docLoadThumbs();   // 图片资料缩略图需取回 base64 再转 data URL 才能显示
 }
 
 /* ================= 联动计算 ================= */
@@ -1511,8 +1561,13 @@ function oemAgentDetail(agRaw,y){
     }
     if(cl.length>20)h+='<div class="wd-tip">…仅显示销量前 20 个客户，共 '+cl.length+' 个</div>';
   }
-  document.getElementById('wdTitle').textContent=agName+'（'+y+' 年 OEM）';
-  document.getElementById('wdBody').innerHTML=h;
+  openWaveModal(agName+'（'+y+' 年 OEM）',h);
+}
+/* 共用大弹窗（年度明细 / 资料管理都用它，只有一个「关闭」按钮）；打开时清掉资料面板的重绘回调 */
+function openWaveModal(title,body){
+  _docPanel.redraw=null;
+  document.getElementById('wdTitle').textContent=title;
+  document.getElementById('wdBody').innerHTML=body;
   document.getElementById('wdMask').classList.add('show');
 }
 /* 点击产品 → 放大查看该产品年度明细（月度销量 / 客户分布 / 金额）；OEM 为代理商维度 */
@@ -1600,11 +1655,13 @@ function waveDetail(cat,idx){
     }
     if(agList.length>10)h+='<div class="wd-tip">…仅显示销量前 10 个代理商，共 '+agList.length+' 个</div>';
   }
-  document.getElementById('wdTitle').textContent=p.name+'（'+y+' 年 '+cat+'）';
-  document.getElementById('wdBody').innerHTML=h;
-  document.getElementById('wdMask').classList.add('show');
+  openWaveModal(p.name+'（'+y+' 年 '+cat+'）',h);
 }
-function closeWaveDetail(){document.getElementById('wdMask').classList.remove('show');}
+/* 关闭「年度明细 / 资料管理」共用弹窗；若是资料面板，关闭时刷新背后的列表（资料份数/到期状态已变） */
+function closeWaveDetail(){
+  document.getElementById('wdMask').classList.remove('show');
+  if(_docPanel.redraw){_docPanel.redraw=null;render();}
+}
 /* 年度月度回款趋势动态表 */
 function payYearSel(el){viewState.payYear=el.value;render();}
 function yearPayTrend(){
@@ -1635,6 +1692,16 @@ function renderDash(c){
     /* 产品一览（薄荷绿卡片） */
     h+='<div class="card"><div class="card-hd"><h3>产品一览</h3></div><div class="card-bd">'+prodOverviewHTML()+'</div></div>';
 
+    /* 合同到期提醒（OEM 销售合同到期前 1 个月预警；没有 OEM 产品时不显示） */
+    var oemCnt=0;
+    for(var oi=0;oi<db.products.length;oi++)if(db.products[oi].cat==='OEM')oemCnt++;
+    if(oemCnt){
+      var ar=contractAlertRows();
+      h+='<div class="card"><div class="card-hd"><h3>合同到期提醒</h3>'
+        +(ar.length?'<span class="sp"><span class="tag warn">'+ar.length+' 个临近到期</span></span>':'')
+        +'</div><div class="card-bd">'+contractAlertHTML()+'</div></div>';
+    }
+
     /* 待办明细（向日葵黄卡片） */
     h+='<div class="card"><div class="card-hd"><h3>今日待办</h3></div><div class="card-bd">'+todoHTML()+'</div></div>';
 
@@ -1658,7 +1725,7 @@ function loadDemo(){
   var c3={id:uid(),cat:'零散客户',company:'成都康仁堂连锁药店',contact:'王店长',phone:'13800003333',addr:'四川省成都市武侯区科华北路',region:'西南',delivery:'快递，备注避开周末',note:'',created:today()};
   db.customers.push(c1,c2,c3);
   var p1={id:uid(),cat:'自销',agent:'华北医药省总经销',custName:'示例客户（连锁总部）',name:'阿莫西林胶囊',brand:'XX制药',spec:'0.25g*24粒',perBox:40,basePrice:8.5,supplyPrice:0,invoicePrice:0,safeStock:120};
-  var p2={id:uid(),cat:'OEM',agent:'湖北楚天大包商',custName:'示例客户（商业公司）',name:'复方感冒灵颗粒',brand:'YY药业',spec:'10g*9袋',perBox:30,basePrice:0,supplyPrice:7.5,invoicePrice:9.0,safeStock:90};
+  var p2={id:uid(),cat:'OEM',agent:'湖北楚天大包商',custName:'示例客户（商业公司）',name:'复方感冒灵颗粒',brand:'YY药业',spec:'10g*9袋',perBox:30,basePrice:0,supplyPrice:7.5,invoicePrice:9.0,safeStock:90,contractEnd:dateAdd(18)};
   db.products.push(p1,p2);
   var todayStr=today();
   db.batches.push({id:uid(),pid:p1.id,batchNo:'20260501',prodDate:'2026-05-12',expire:'2028-05-11',perBox:p1.perBox,boxes:150,units:10,inBoxes:150,inUnits:10,inDate:todayStr,note:'首单入库'});
@@ -1954,7 +2021,7 @@ function drawStock(){
     return actB(r.id,'openInForm','delBatch');
   },drawStock);
 }
-/* 产品表单：自销→底价；OEM→供货价+开票价（选择分类后动态切换） */
+/* 产品表单：自销→底价；OEM→供货价+开票价+销售合同到期日（选择分类后动态切换） */
 function openProdForm(id){
   var r=id?findProd(id):null;
   var curCat=r?(r.custCat||''):'',curAg=r?r.agent:'';
@@ -1969,25 +2036,28 @@ function openProdForm(id){
     {key:'basePrice',label:'底价',type:'number'},
     {key:'supplyPrice',label:'供货价',type:'number'},
     {key:'invoicePrice',label:'开票价',type:'number'},
-    {key:'netPrice',label:'挂网价格',type:'number'}
+    {key:'netPrice',label:'挂网价格',type:'number'},
+    {key:'contractEnd',label:'销售合同到期日',type:'date',hint:'仅 OEM 产品填写；到期前 30 天首页会自动提醒，并可在本产品「资料」里上传合同电子版'}
   ];
-  var vals=r?{cat:(r.cat==='自销'||r.cat==='OEM')?r.cat:'',custCat:r.custCat,agent:r.agent,custName:r.custName,name:r.name,spec:r.spec,brand:r.brand,basePrice:r.basePrice,supplyPrice:r.supplyPrice,invoicePrice:r.invoicePrice,netPrice:r.netPrice}:{};
+  var vals=r?{cat:(r.cat==='自销'||r.cat==='OEM')?r.cat:'',custCat:r.custCat,agent:r.agent,custName:r.custName,name:r.name,spec:r.spec,brand:r.brand,basePrice:r.basePrice,supplyPrice:r.supplyPrice,invoicePrice:r.invoicePrice,netPrice:r.netPrice,contractEnd:r.contractEnd}:{};
   openForm(id?'编辑产品':'新增产品',fields,vals,function(v){
     if(!v.cat){markErr('cat');alert('请选择产品分类');return;}
     // 件装量：取规格最后一组数（如 12*2*300 → 300盒/件），无法识别时沿用原值/默认40
     v.perBox=parsePerBox(v.spec)||((r&&r.perBox)||40);
     if(!v.safeStock)v.safeStock=0;
+    if(v.cat!=='OEM')v.contractEnd='';   // 自销产品不签销售合同，清空到期日避免残留
     if(id){var o=findProd(id);for(var k in v)o[k]=v[k];touch(o);}
     else{v.id=uid();v.created=today();db.products.push(v);}
     save();closeModal();render();
   });
   prodCatChange(document.querySelector('[data-k="cat"]'));
 }
-/* 根据产品分类显示价格字段（允许空白，三项价格均可填写） */
+/* 根据产品分类显示价格字段（允许空白，三项价格均可填写）；合同到期日仅 OEM 显示 */
 function prodCatChange(sel){
   formToggle('basePrice',true);
   formToggle('supplyPrice',true);
   formToggle('invoicePrice',true);
+  formToggle('contractEnd',!!(sel&&sel.value==='OEM'));
 }
 /* 产品表单客户联动：客户分类 → 代理商 → 客户名称 */
 function prodCustCatChg(sel){
@@ -2002,10 +2072,12 @@ function prodAgentChg(el){
 }
 function delProd(id){
   var used=db.batches.filter(function(b){return b.pid===id;}).length;
-  if(!confirm('删除产品将同时删除其 '+used+' 条库存批次记录（不影响已发生订单/发货）。确定？'))return;
-  markDel([id].concat(db.batches.filter(function(x){return x.pid===id;}).map(function(x){return x.id;})));
+  var dIds=(db.docs||[]).filter(function(x){return x.scope==='prod'&&x.refId===id;}).map(function(x){return x.id;});
+  if(!confirm('删除产品将同时删除其 '+used+' 条库存批次记录'+(dIds.length?('、'+dIds.length+' 份已上传资料'):'')+'（不影响已发生订单/发货）。确定？'))return;
+  markDel([id].concat(db.batches.filter(function(x){return x.pid===id;}).map(function(x){return x.id;})).concat(dIds));
   db.products=db.products.filter(function(x){return x.id!==id;});
   db.batches=db.batches.filter(function(x){return x.pid!==id;});
+  db.docs=(db.docs||[]).filter(function(x){return !(x.scope==='prod'&&x.refId===id);});
   save();render();
 }
 /* 入库表单：bid 为批次id则编辑该条库存记录 */
@@ -4218,6 +4290,449 @@ function downLogTpl(){
   }
 }
 
+/* ================= 资料库：电子版资料云端存储（多设备共用同一空间） ================= */
+/* 所有上传的电子版资料（销售合同 / 产品资料 / 企业首营资料）统一存放在一个专用密钥 Gist 里。
+   设备 A 上传 → 文件进云端 Gist、资料记录随台账数据（workbench.json）同步 → 设备 B 打开即可下载/预览。
+   支持两类形态：① 整套压缩包（zip/rar/7z）② 每个文件的具体内容图片（自动压缩但保持文字清晰）。 */
+var DOC_GIST_ID='0f34279c325ede0ebae898f643dc4a1f';
+var DOC_API='https://api.github.com/gists/'+DOC_GIST_ID;
+var DOC_RAW='https://gist.githubusercontent.com/Eva627-cpu/'+DOC_GIST_ID+'/raw/';
+var DOC_MAX_MB=30;      // 单个文件大小上限（GitHub 通道实测稳定支持 25MB+）
+var DOC_IMG_MAX=2200;   // 资料图片最长边（证书/合同文字需清晰可读，不用台账照片的 900px）
+var DOC_KINDS={contract:'销售合同',material:'产品资料',first:'企业首营资料'};
+var DOC_FIRST_CATS=['营业执照','药品生产许可证','GMP证书','质量体系文件','产品注册批件','检验报告','授权委托书','开票资料','其他'];
+var DOC_UP={scope:'',kind:'',refId:''};
+var _docPanel={redraw:null};
+
+function docKindName(k){return DOC_KINDS[k]||k||'资料';}
+function docSizeText(n){
+  n=Number(n)||0;
+  if(n<1024)return n+' B';
+  if(n<1048576)return (n/1024).toFixed(1)+' KB';
+  return (n/1048576).toFixed(2)+' MB';
+}
+/* 上传形态：整体压缩包 / 内容图片 / 其他电子版文件 */
+function docForm(name,type){
+  var ext=String(name||'').split('.').pop().toLowerCase();
+  if(['zip','rar','7z','tar','gz'].indexOf(ext)>=0)return 'zip';
+  if(/^image\//.test(type||'')||['jpg','jpeg','png','gif','webp','heic','bmp'].indexOf(ext)>=0)return 'img';
+  return 'file';
+}
+function docFormName(f){return f==='zip'?'整体压缩包':(f==='img'?'内容图片':'电子版文件');}
+function docIcon(d){
+  if(d.form==='img')return '🖼️';
+  if(d.form==='zip')return '🗜️';
+  var ext=String(d.name||'').split('.').pop().toLowerCase();
+  if(ext==='pdf')return '📕';
+  if(['doc','docx','wps'].indexOf(ext)>=0)return '📘';
+  if(['xls','xlsx'].indexOf(ext)>=0)return '📗';
+  if(['ppt','pptx'].indexOf(ext)>=0)return '📙';
+  return '📄';
+}
+function docRawUrl(f){return DOC_RAW+encodeURIComponent(f);}
+/* 云端文件名：纯 ASCII + 唯一，原文件名只作显示用（中文/特殊字符不会影响云端） */
+function docGistName(name){
+  var ext=String(name||'').split('.').pop().toLowerCase();
+  if(!/^[a-z0-9]{1,8}$/.test(ext))ext='bin';
+  return 'd'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)+'.'+ext;
+}
+/* ---- 查询 ---- */
+function docsOf(scope,refId,kind){
+  var out=[];
+  for(var i=0;i<(db.docs||[]).length;i++){
+    var d=db.docs[i];
+    if(scope&&d.scope!==scope)continue;
+    if(refId!==undefined&&refId!==null&&String(d.refId||'')!==String(refId))continue;
+    if(kind&&d.kind!==kind)continue;
+    out.push(d);
+  }
+  return out;
+}
+function docCount(scope,refId,kind){return docsOf(scope,refId,kind).length;}
+function findDoc(id){for(var i=0;i<(db.docs||[]).length;i++)if(db.docs[i].id===id)return db.docs[i];return null;}
+/* ---- 云端文件读写 ---- */
+function docPatchGist(files,cb){
+  var body=JSON.stringify({files:files}),tries=0;
+  (function go(){
+    tries++;
+    fetch(DOC_API,{method:'PATCH',headers:{'Accept':'application/vnd.github+json','Authorization':'Bearer '+getToken(),'Content-Type':'application/json'},body:body})
+      .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+      .then(function(d){cb(null,d);})
+      .catch(function(e){if(tries<3)setTimeout(go,1500);else cb(e);});
+  })();
+}
+/* base64 字符串对应的真实字节数（用于登记实际上传体积，图片压缩后才准确） */
+function b64Bytes(b64){
+  var s=String(b64||''),n=s.length;
+  if(!n)return 0;
+  var pad=0;
+  if(s.charAt(n-1)==='=')pad++;
+  if(s.charAt(n-2)==='=')pad++;
+  return Math.round(n/4*3-pad);
+}
+/* 图片：等比缩放后转 JPEG（白底，避免透明 PNG 变黑）；其他文件原样转 base64。
+   回调：b64 编码内容、bytes 实际文件字节数、mime 实际存储类型（图片压缩后统一为 image/jpeg） */
+function docEncodeFile(file,form,cb){
+  var rd=new FileReader();
+  rd.onerror=function(){cb(null,0,'');};
+  if(form!=='img'){
+    rd.onload=function(){
+      var s=String(rd.result||''),i=s.indexOf(','),b=i>=0?s.slice(i+1):'';
+      cb(b,b64Bytes(b),file.type||docMimeFromName(file.name));
+    };
+    rd.readAsDataURL(file);return;
+  }
+  rd.onload=function(){
+    var img=new Image();
+    img.onerror=function(){cb(null,0,'');};
+    img.onload=function(){
+      var w=img.width,h=img.height;
+      if(w>DOC_IMG_MAX||h>DOC_IMG_MAX){var r=Math.min(DOC_IMG_MAX/w,DOC_IMG_MAX/h);w=Math.round(w*r);h=Math.round(h*r);}
+      var cv=document.createElement('canvas');cv.width=w;cv.height=h;
+      var g=cv.getContext('2d');
+      g.fillStyle='#fff';g.fillRect(0,0,w,h);g.drawImage(img,0,0,w,h);
+      var out=cv.toDataURL('image/jpeg',0.88);
+      var b=out.slice(out.indexOf(',')+1),mime='image/jpeg';
+      /* 压缩后若反而更大（原本就是小图），退回原文件，避免越压越大 */
+      if(b64Bytes(b)>=file.size){
+        var s=String(rd.result||''),i=s.indexOf(',');
+        b=i>=0?s.slice(i+1):'';mime=file.type||docMimeFromName(file.name);
+      }
+      cb(b,b64Bytes(b),mime);
+    };
+    img.src=rd.result;
+  };
+  rd.readAsDataURL(file);
+}
+/* 按扩展名推断 MIME（下载/预览时给浏览器正确类型） */
+function docMimeFromName(name){
+  var e=String(name||'').split('.').pop().toLowerCase();
+  var m={pdf:'application/pdf',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',
+    zip:'application/zip',rar:'application/vnd.rar','7z':'application/x-7z-compressed',
+    doc:'application/msword',docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    xls:'application/vnd.ms-excel',xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ppt:'application/vnd.ms-powerpoint',pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    txt:'text/plain'};
+  return m[e]||'application/octet-stream';
+}
+/* 云端存的是 base64 文本（Gist 只接受文本），下载/预览时在前端还原成真实文件字节。
+   结果按云端文件名缓存，同一文件只解码一次；另一台设备同样走这条链路，无需本地文件 */
+var _docObjCache={};
+function docBlobUrl(d,cb){
+  var key=d.gistFile||d.id;
+  if(_docObjCache[key]){cb(_docObjCache[key]);return;}
+  fetch(d.rawUrl||docRawUrl(d.gistFile))
+    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text();})
+    .then(function(t){
+      t=t.replace(/\s+$/,'');
+      var bin=atob(t),n=bin.length,u8=new Uint8Array(n),i;
+      for(i=0;i<n;i++)u8[i]=bin.charCodeAt(i);
+      var url=URL.createObjectURL(new Blob([u8],{type:d.stored||d.type||docMimeFromName(d.name)}));
+      _docObjCache[key]=url;
+      cb(url);
+    })
+    .catch(function(){cb(null);});
+}
+/* 选择文件：只负责给隐藏 input 设好类型过滤，真正的上传在 docUpload 里做 */
+function docPick(scope,kind,refId,form){
+  DOC_UP={scope:scope,kind:kind,refId:refId||''};
+  var inp=document.getElementById('docFileInput');
+  if(!inp)return;
+  inp.accept=form==='img'?'image/*':(form==='zip'?'.zip,.rar,.7z,.tar,.gz':'');
+  inp.value='';
+  inp.click();
+}
+/* 页面初始化时绑定隐藏的文件选择框（避免各处 onClick 传参转义问题） */
+function initDocInput(){
+  var inp=document.getElementById('docFileInput');
+  if(inp)inp.onchange=function(){docUpload(inp);};
+}
+/* 上传：逐个文件写入云端（互不影响，单个失败不拖累其他），全部成功后落库并同步到其他设备 */
+function docUpload(input){
+  var files=input.files;
+  if(!files||!files.length){input.value='';return;}
+  if(!getToken()){input.value='';alert('尚未配置同步 Token，无法上传资料。\n\n请到「设置」→「修改 Token」粘贴后重试。');return;}
+  var meta=DOC_UP||{},arr=[],i;
+  for(i=0;i<files.length;i++)arr.push(files[i]);
+  var list=db.docs||(db.docs=[]);
+  var done=0,okc=0,fail=[];
+  var p=findProd(meta.refId);
+  var refLabel=(meta.scope==='prod'&&p)?prodLabel(p):'';
+  var catSel=document.getElementById('docFirstCat');
+  var cat=(meta.scope==='first')?(catSel?catSel.value:''):'';
+  function setProg(t){var el=document.getElementById('docProg');if(el)el.textContent=t;}
+  setProg('正在上传 0/'+arr.length+' …');
+  (function next(){
+    if(done>=arr.length){finish();return;}
+    var f=arr[done];
+    if(f.size>DOC_MAX_MB*1024*1024){fail.push(f.name+'（'+docSizeText(f.size)+'，超过 '+DOC_MAX_MB+'MB 上限）');done++;setProg('正在上传 '+done+'/'+arr.length+' …');next();return;}
+    var form=docForm(f.name,f.type);
+    docEncodeFile(f,form,function(b64,bytes,mime){
+      if(!b64){fail.push(f.name+'（文件读取失败）');done++;setProg('正在上传 '+done+'/'+arr.length+' …');next();return;}
+      var gname=docGistName(f.name),body={};
+      body[gname]={content:b64};
+      docPatchGist(body,function(err){
+        if(err){fail.push(f.name+'（上传失败：'+(err&&err.message||'网络异常')+'）');}
+        else{
+          var rec={id:uid(),scope:meta.scope||'',kind:meta.kind||'',refId:meta.refId||'',refLabel:refLabel,
+                   cat:cat,form:form,name:f.name,gistFile:gname,rawUrl:docRawUrl(gname),
+                   size:bytes||f.size,origSize:f.size,type:f.type||'',stored:mime||'',created:today()};
+          touch(rec);list.push(rec);okc++;
+        }
+        done++;setProg('正在上传 '+done+'/'+arr.length+' …');next();
+      });
+    });
+  })();
+  function finish(){
+    if(okc)save();
+    setProg('');
+    input.value='';
+    if(okc&&_docPanel.redraw)redrawDocPanel();
+    else if(okc)render();
+    if(fail.length)alert('资料上传完成\n\n成功 '+okc+' 个'+(okc?'（已自动同步到其他设备）':'')+'\n失败 '+fail.length+' 个：\n'+fail.join('\n'));
+    else if(okc)alert('资料上传成功：'+okc+' 个文件已存入云端，其他设备可立即下载查看。');
+  }
+}
+/* 打开 / 下载 / 删除：云端是 base64 文本，先还原成真实文件再用 blob 打开或保存 */
+function docCanPreview(d){
+  if(d.form==='img')return true;
+  return /\.pdf$/i.test(String(d.name||''));
+}
+function docPreviewLabel(d){return d.form==='img'?'查看':(docCanPreview(d)?'预览':'打开');}
+function docPreview(d){
+  if(!docCanPreview(d)){docDownload(d);return;}
+  if(d.form==='img'){
+    docBlobUrl(d,function(u){
+      if(u)showBig(u);
+      else alert('资料读取失败，请检查网络后重试。');
+    });
+    return;
+  }
+  /* PDF：先同步开窗避免被浏览器拦截，解码完成后再把 blob 地址填进去 */
+  var w=window.open('','_blank');
+  docBlobUrl(d,function(u){
+    if(u&&w)w.location.href=u;
+    else{if(w)w.close();docDownload(d);}
+  });
+}
+function docDownload(d){
+  var name=d.name||'资料';
+  docBlobUrl(d,function(u){
+    if(!u){alert('资料读取失败，请检查网络后重试。');return;}
+    var a=document.createElement('a');
+    a.href=u;a.download=name;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+  });
+}
+function docPreviewById(id){var d=findDoc(id);if(d)docPreview(d);}
+function docDownloadById(id){var d=findDoc(id);if(d)docDownload(d);}
+/* 图片缩略图：raw 链接给的是 base64 文本，需取回后转成 data URL 才能显示 */
+function docLoadThumbs(){
+  var els=document.querySelectorAll('img.doc-thumb[data-doc]');
+  for(var i=0;i<els.length;i++){
+    (function(el){
+      var d=findDoc(el.getAttribute('data-doc'));
+      if(!d)return;
+      el.removeAttribute('data-doc');
+      fetch(d.rawUrl||docRawUrl(d.gistFile))
+        .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text();})
+        .then(function(t){el.src='data:'+(d.stored||d.type||'image/jpeg')+';base64,'+t.replace(/\s+$/,'');})
+        .catch(function(){el.parentNode.innerHTML='<div class="doc-fileicon" onclick="docPreviewById(\''+d.id+'\')">🖼️</div>';});
+    })(els[i]);
+  }
+}
+function docDel(id){
+  var d=findDoc(id);
+  if(!d)return;
+  if(!confirm('确定删除资料「'+d.name+'」？\n\n记录与云端文件都会被删除，其他设备同步删除后不可恢复。'))return;
+  var finish=function(){
+    markDel([d.id]);
+    db.docs=db.docs.filter(function(x){return x.id!==id;});
+    save();
+    if(_docPanel.redraw)redrawDocPanel();else render();
+  };
+  if(!d.gistFile){finish();return;}   // 极少数无云端文件的记录：只删台账记录
+  var body={};
+  body[d.gistFile]=null;
+  docPatchGist(body,function(err){
+    if(err&&!confirm('云端文件删除失败（'+err.message+'）。\n仍要从台账记录中移除这条资料吗？'))return;
+    finish();
+  });
+}
+/* ---- 展示组件 ---- */
+/* 图片压缩提示：让用户确认"传上去的是压缩版、原图仍在手机里" */
+function docShrinkTip(d){
+  var o=Number(d.origSize)||0,s=Number(d.size)||0;
+  return (o>s*1.05)?'（原 '+docSizeText(o)+' 已压缩）':'';
+}
+function docGridHTML(list,emptyTip){
+  if(!list.length)return '<div class="doc-empty">'+esc(emptyTip||'暂无资料，点击上方按钮上传')+'</div>';
+  var h='<div class="doc-grid">';
+  for(var i=0;i<list.length;i++){
+    var d=list[i];
+    h+='<div class="doc-item">';
+    if(d.form==='img')h+='<img class="doc-thumb" data-doc="'+d.id+'" onclick="docPreviewById(\''+d.id+'\')" alt="">';
+    else h+='<div class="doc-fileicon" onclick="docPreviewById(\''+d.id+'\')">'+docIcon(d)+'</div>';
+    h+='<div class="dt-name" title="'+esc(d.name)+'">'+esc(d.name)+'</div>';
+    h+='<div class="dt-meta">'+docFormName(d.form)+' · '+docSizeText(d.size)+docShrinkTip(d)+' · '+esc(d.created||'')+'</div>';
+    h+='<div class="doc-acts">'+
+       '<button class="btn sm" onclick="docPreviewById(\''+d.id+'\')">'+docPreviewLabel(d)+'</button>'+
+       '<button class="btn sm" onclick="docDownloadById(\''+d.id+'\')">下载</button>'+
+       '<button class="btn sm dgr" onclick="docDel(\''+d.id+'\')">删除</button>'+
+       '</div></div>';
+  }
+  return h+'</div>';
+}
+/* 上传区：压缩包 / 图片 / 其他电子版文件 三个入口（对应"整套压缩包 + 具体内容图片"两种形态）
+   lead 用于在按钮前插入额外控件（如企业首营资料的「资料类别」下拉） */
+function docUpZone(scope,kind,refId,lead){
+  var a='\''+scope+'\',\''+kind+'\',\''+refId+'\'';
+  return '<div class="up-zone">'+(lead||'')
+    +'<span class="up-tip">可上传：<b>整体压缩包</b>（zip/rar/7z）、<b>具体内容图片</b>（自动压缩但保持文字清晰）、其他电子版文件（PDF/Word/Excel）。支持一次选多个，单个不超过 '+DOC_MAX_MB+'MB。</span>'
+    +'<button class="btn pri" onclick="docPick('+a+',\'zip\')">上传压缩包</button>'
+    +'<button class="btn" onclick="docPick('+a+',\'img\')">上传图片</button>'
+    +'<button class="btn" onclick="docPick('+a+',\'file\')">上传其他文件</button>'
+    +'</div>';
+}
+/* 资料面板复用共用的「年度明细」大弹窗（只有一个关闭按钮，适合做管理面板） */
+function openDocPanel(title,body,redraw){
+  openWaveModal(title,body);
+  _docPanel.redraw=redraw||null;
+  docLoadThumbs();
+}
+function redrawDocPanel(){
+  if(!_docPanel.redraw)return;
+  var h=_docPanel.redraw();
+  if(h!=null)document.getElementById('wdBody').innerHTML=h;
+  docLoadThumbs();
+}
+/* 资料清单与占用（设置页查看用，只读） */
+function openDocStats(){
+  var list=(db.docs||[]).slice(),tot=0,i;
+  for(i=0;i<list.length;i++)tot+=Number(list[i].size)||0;
+  var h='<div class="doc-sub" style="margin-bottom:12px">共 <b>'+list.length+'</b> 份，合计 <b>'+docSizeText(tot)+'</b>。删除资料会同时删除云端文件并同步到其他设备。</div>';
+  if(!list.length)h+='<div class="doc-empty">还没有上传任何资料</div>';
+  else{
+    h+='<table class="exp-tbl"><thead><tr><th>所属</th><th>资料</th><th>大小</th><th>上传日期</th><th></th></tr></thead><tbody>';
+    for(i=0;i<list.length;i++){
+      var d=list[i];
+      h+='<tr><td class="num">'+esc(d.refLabel||(d.scope==='first'?'企业首营':''))+'</td>'
+        +'<td>'+esc(d.name)+'<br><span class="doc-sub">'+esc(docKindName(d.kind))+' · '+esc(docFormName(d.form))+'</span></td>'
+        +'<td class="num">'+docSizeText(d.size)+'</td>'
+        +'<td class="num">'+esc(d.created||'')+'</td>'
+        +'<td><button class="btn sm" onclick="docDownloadById(\''+d.id+'\')">下载</button></td></tr>';
+    }
+    h+='</tbody></table>';
+  }
+  openDocPanel('资料清单与占用',h);
+}
+/* ================= 销售合同到期提醒（OEM 合同到期前 1 个月预警） ================= */
+var CONTRACT_WARN_DAYS=30;
+function contractLeftDays(r){
+  if(!r||!r.contractEnd)return null;
+  var a=new Date(String(r.contractEnd).slice(0,10).replace(/-/g,'/'));
+  if(isNaN(a.getTime()))return null;
+  var b=new Date(today().replace(/-/g,'/'));
+  return Math.round((a-b)/86400000);
+}
+function contractState(r){
+  var d=contractLeftDays(r);
+  if(d===null)return {d:null,cls:'',txt:''};
+  if(d<0)return {d:d,cls:'exp-warn',txt:'已过期 '+(-d)+' 天'};
+  if(d<=CONTRACT_WARN_DAYS)return {d:d,cls:'exp-soon',txt:'剩 '+d+' 天'};
+  return {d:d,cls:'exp-ok',txt:'剩 '+d+' 天'};
+}
+function contractAlertRows(){
+  var rows=[];
+  for(var i=0;i<db.products.length;i++){
+    var p=db.products[i];
+    if(p.cat!=='OEM')continue;
+    var st=contractState(p);
+    if(st.d!==null&&st.d<=CONTRACT_WARN_DAYS)rows.push({p:p,st:st});
+  }
+  rows.sort(function(a,b){return a.st.d-b.st.d;});
+  return rows;
+}
+function contractAlertHTML(){
+  var rows=contractAlertRows(),oem=[],i;
+  for(i=0;i<db.products.length;i++)if(db.products[i].cat==='OEM')oem.push(db.products[i]);
+  var noDate=0,noFile=0;
+  for(i=0;i<oem.length;i++){
+    if(!oem[i].contractEnd)noDate++;
+    if(!docCount('prod',oem[i].id,'contract'))noFile++;
+  }
+  var h='';
+  if(!rows.length){
+    h+='<div class="doc-sub">近 30 天内没有到期的 OEM 销售合同'+(oem.length?('（共 '+oem.length+' 个 OEM 产品，暂无预警）'):'')+'。</div>';
+  }else{
+    h+='<table class="exp-tbl"><thead><tr><th>产品</th><th>代理商</th><th>到期日</th><th>状态</th><th></th></tr></thead><tbody>';
+    for(i=0;i<rows.length;i++){
+      var p=rows[i].p,st=rows[i].st;
+      h+='<tr><td>'+esc(p.name)+(p.spec?(' '+esc(p.spec)):'')+'</td>'
+        +'<td>'+esc(p.agent||'—')+'</td>'
+        +'<td class="num">'+esc(p.contractEnd)+'</td>'
+        +'<td class="'+st.cls+'">'+esc(st.txt)+'</td>'
+        +'<td><button class="btn sm" onclick="openProdDocs(\''+p.id+'\')">合同</button></td></tr>';
+    }
+    h+='</tbody></table>';
+  }
+  if(oem.length&&(noDate||noFile))h+='<div class="doc-sub" style="margin-top:10px">待完善：'+oem.length+' 个 OEM 产品中，'+noDate+' 个未填合同到期日、'+noFile+' 个未上传销售合同电子版。</div>';
+  return h;
+}
+/* ================= 产品资料面板 =================
+   OEM 产品：销售合同 + 产品资料 + 合同到期日；自销产品：只有产品资料（按业务口径，自销不签销售合同） */
+function prodDocsBody(id){
+  var p=findProd(id);
+  if(!p)return '<div class="doc-empty">产品不存在（可能已在其他设备删除）</div>';
+  var isOem=(p.cat==='OEM');
+  var h='<div class="doc-sub" style="margin-bottom:12px">产品分类：<b>'+esc(p.cat||'—')+'</b>　'
+    +(isOem?'OEM 产品可上传「销售合同」与「产品资料」，并登记合同到期日（到期前 30 天首页预警）':'自销产品只上传「产品资料」')+'</div>';
+  h+='<div id="docProg" class="up-prog"></div>';
+  if(isOem){
+    h+='<div style="border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:14px">'
+      +'<div style="margin-bottom:10px"><label style="display:block;font-size:12.5px;color:var(--sub);margin-bottom:5px">销售合同到期日</label>'
+      +'<input type="date" value="'+esc(p.contractEnd||'')+'" onchange="saveContractEnd(\''+id+'\',this.value)" style="padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px">'
+      +'<div class="doc-sub" style="margin-top:5px">到期前 30 天会在首页「合同到期提醒」中预警</div></div>'
+      +'<div style="margin-bottom:8px"><b>销售合同</b>　<span class="doc-sub">共 '+docCount('prod',id,'contract')+' 份</span></div>'
+      +docUpZone('prod','contract',id)
+      +docGridHTML(docsOf('prod',id,'contract'),'暂无销售合同，点击上方「上传压缩包 / 上传图片」上传电子版')
+      +'</div>';
+  }
+  h+='<div style="border:1px solid var(--line);border-radius:12px;padding:12px">'
+    +'<div style="margin-bottom:8px"><b>产品资料</b>　<span class="doc-sub">共 '+docCount('prod',id,'material')+' 份</span></div>'
+    +docUpZone('prod','material',id)
+    +docGridHTML(docsOf('prod',id,'material'),'暂无产品资料，点击上方「上传压缩包 / 上传图片」上传电子版')
+    +'</div>';
+  return h;
+}
+function openProdDocs(id){
+  var p=findProd(id);
+  if(!p)return;
+  var title='资料管理 · '+p.name+(p.spec?(' '+p.spec):'');
+  openDocPanel(title,prodDocsBody(id),function(){return prodDocsBody(id);});
+}
+function saveContractEnd(id,v){
+  var p=findProd(id);
+  if(!p)return;
+  p.contractEnd=String(v||'').slice(0,10);
+  touch(p);save();
+  redrawDocPanel();
+}
+/* 产品档案列表里的资料列 / 到期列 / 操作列 */
+function prodDocCell(r,kind){
+  var n=docCount('prod',r.id,kind);
+  if(!n)return '<span class="doc-sub">未上传</span>';
+  return '<span style="cursor:pointer;color:var(--accent-d);font-weight:600" onclick="openProdDocs(\''+r.id+'\')">📎 '+n+' 个</span>';
+}
+function prodExpCell(r){
+  if(r.cat!=='OEM')return '—';
+  if(!r.contractEnd)return '<span class="doc-sub">未填</span>';
+  var st=contractState(r);
+  return esc(r.contractEnd)+'<br><span class="'+st.cls+'" style="font-size:11.5px">'+esc(st.txt)+'</span>';
+}
+function prodActHTML(r){
+  return actB(r.id,'openProdForm','delProd')+'<button class="btn sm" onclick="openProdDocs(\''+r.id+'\')">资料</button>';
+}
 /* ================= 产品档案 ================= */
 function prodCatTag(c){
   if(c==='自销')return '<span class="tag c3">自销</span>';
@@ -4263,7 +4778,10 @@ function prodColsS(){
     {key:'basePrice',label:'底价',fmt:function(r){return prodPrice(r,'basePrice');}},
     {key:'supplyPrice',label:'供货价',fmt:function(r){return prodPrice(r,'supplyPrice');}},
     {key:'invoicePrice',label:'开票价',fmt:function(r){return prodPrice(r,'invoicePrice');}},
-    {key:'netPrice',label:'挂网价格',fmt:function(r){return prodPrice(r,'netPrice');}}
+    {key:'netPrice',label:'挂网价格',fmt:function(r){return prodPrice(r,'netPrice');}},
+    {key:'docContract',label:'销售合同',fmt:function(r){return r.cat==='OEM'?prodDocCell(r,'contract'):'—';}},
+    {key:'docMaterial',label:'产品资料',fmt:function(r){return prodDocCell(r,'material');}},
+    {key:'contractEnd',label:'合同到期',fmt:function(r){return prodExpCell(r);}}
   ];
 }
 /* 产品档案统一排序：分类（自销→OEM）→ 代理商拼音 → 产品名称拼音 → 规格数字小到大 */
@@ -4277,20 +4795,22 @@ function prodArchiveSort(rows){
 }
 function drawProd(){
   var rows=prodArchiveSort(filterProd());
-  document.getElementById('prodTbl').innerHTML=smartTableHTML('prod',prodColsS(),rows,function(r){
-    return actB(r.id,'openProdForm','delProd');
-  },drawProd);
+  document.getElementById('prodTbl').innerHTML=smartTableHTML('prod',prodColsS(),rows,prodActHTML,drawProd);
 }
 function exportProd(){
   var rows=prodArchiveSort(smartFiltered('prod',prodColsS(),filterProd())),out=[];
   for(var i=0;i<rows.length;i++){
     var p=rows[i];
-    out.push({seq:i+1,cat:p.cat||'',name:p.name||'',spec:p.spec||'',custCat:p.custCat||'',agent:p.agent||'',custName:p.custName||'',brand:p.brand||'',basePrice:prodPrice(p,'basePrice'),supplyPrice:prodPrice(p,'supplyPrice'),invoicePrice:prodPrice(p,'invoicePrice'),netPrice:prodPrice(p,'netPrice')});
+    out.push({seq:i+1,cat:p.cat||'',name:p.name||'',spec:p.spec||'',custCat:p.custCat||'',agent:p.agent||'',custName:p.custName||'',brand:p.brand||'',basePrice:prodPrice(p,'basePrice'),supplyPrice:prodPrice(p,'supplyPrice'),invoicePrice:prodPrice(p,'invoicePrice'),netPrice:prodPrice(p,'netPrice'),
+      contractEnd:(p.cat==='OEM'?(p.contractEnd||''):''),
+      contractCnt:(p.cat==='OEM'?docCount('prod',p.id,'contract'):''),
+      materialCnt:docCount('prod',p.id,'material')});
   }
   exportXLS('产品档案',[
     {key:'seq',label:'序号'},{key:'cat',label:'产品分类'},{key:'name',label:'产品名称'},{key:'spec',label:'规格'},
     {key:'custCat',label:'客户分类'},{key:'agent',label:'代理商'},{key:'custName',label:'客户名称'},{key:'brand',label:'商标'},
-    {key:'basePrice',label:'底价'},{key:'supplyPrice',label:'供货价'},{key:'invoicePrice',label:'开票价'},{key:'netPrice',label:'挂网价格'}
+    {key:'basePrice',label:'底价'},{key:'supplyPrice',label:'供货价'},{key:'invoicePrice',label:'开票价'},{key:'netPrice',label:'挂网价格'},
+    {key:'contractEnd',label:'合同到期日'},{key:'contractCnt',label:'销售合同份数'},{key:'materialCnt',label:'产品资料份数'}
   ],out);
 }
 /* 产品导入 Excel（支持模板 .xlsx 与导出的 .xls） */
@@ -4838,6 +5358,86 @@ function downDevTpl(){
     var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='新品开发导入模板_'+today()+'.xls';a.click();
   }
 }
+/* ================= 资料库（企业首营资料 + 全部产品合同/资料总览） ================= */
+function firstCatSelectHTML(){
+  var h='<select id="docFirstCat" style="padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff">';
+  for(var i=0;i<DOC_FIRST_CATS.length;i++)h+='<option value="'+esc(DOC_FIRST_CATS[i])+'">'+esc(DOC_FIRST_CATS[i])+'</option>';
+  return h+'</select>';
+}
+/* 企业首营资料按类别分组展示 */
+function firstDocsHTML(list){
+  if(!list.length)return '<div class="doc-empty">还没有上传企业首营资料。可整套压缩包上传，也可按类别上传具体内容图片。</div>';
+  var known={},h='',i,j;
+  for(i=0;i<DOC_FIRST_CATS.length;i++)known[DOC_FIRST_CATS[i]]=1;
+  for(i=0;i<DOC_FIRST_CATS.length;i++){
+    var cat=DOC_FIRST_CATS[i],sub=[];
+    for(j=0;j<list.length;j++)if((list[j].cat||'其他')===cat)sub.push(list[j]);
+    if(!sub.length)continue;
+    h+='<div style="margin-top:14px"><span class="doc-cat">'+esc(cat)+'</span><span class="doc-sub">'+sub.length+' 份</span></div>'+docGridHTML(sub,'');
+  }
+  var other=[];
+  for(i=0;i<list.length;i++)if(!known[list[i].cat||'其他'])other.push(list[i]);
+  if(other.length)h+='<div style="margin-top:14px"><span class="doc-cat">未分类</span><span class="doc-sub">'+other.length+' 份</span></div>'+docGridHTML(other,'');
+  return h;
+}
+/* 全部产品资料按产品分组（产品名拼音排序） */
+function allProdDocsHTML(q){
+  var list=[],i,j;
+  for(i=0;i<(db.docs||[]).length;i++)if(db.docs[i].scope==='prod')list.push(db.docs[i]);
+  if(q)list=list.filter(function(d){return (String(d.name||'')+String(d.refLabel||'')).indexOf(q)>=0;});
+  if(!list.length)return '<div class="doc-empty">'+(q?'没有匹配的资料':'还没有上传任何销售合同或产品资料。到「产品档案」点某行的「资料」按钮即可上传。')+'</div>';
+  var order=[],map={};
+  for(i=0;i<list.length;i++){
+    var d=list[i],k=String(d.refId||'');
+    if(!map[k]){map[k]={key:k,label:d.refLabel||'（产品已删除）',items:[]};order.push(map[k]);}
+    map[k].items.push(d);
+  }
+  order.sort(function(a,b){return pyCmp(a.label,b.label);});
+  var h='';
+  for(i=0;i<order.length;i++){
+    var g=order[i],nc=0,nm=0;
+    for(j=0;j<g.items.length;j++){if(g.items[j].kind==='contract')nc++;else nm++;}
+    h+='<div style="margin-top:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+      +'<b style="font-size:13px">'+esc(g.label)+'</b>'
+      +(nc?'<span class="doc-cat">销售合同 '+nc+'</span>':'')
+      +(nm?'<span class="doc-cat">产品资料 '+nm+'</span>':'')
+      +(g.key?'<button class="btn sm" onclick="openProdDocs(\''+g.key+'\')">管理</button>':'')
+      +'</div>'+docGridHTML(g.items,'');
+  }
+  return h;
+}
+function drawDocProdList(){
+  var box=document.getElementById('docProdList');
+  if(!box)return;
+  var q=((document.getElementById('docSearch')||{}).value||'');
+  box.innerHTML=allProdDocsHTML(q);
+}
+function renderDoc(c){
+  setPage(getMod('doc'),function(root){
+    var first=docsOf('first','','first');
+    var nc=docsOf('prod',undefined,'contract').length,nm=docsOf('prod',undefined,'material').length;
+    root.innerHTML=
+      toolBar([
+        '<input class="search" id="docSearch" placeholder="搜索文件名 / 产品名称">',
+        '<span style="margin-left:auto"></span>',
+        '<span class="doc-sub">企业首营 '+first.length+' 份　·　销售合同 '+nc+' 份　·　产品资料 '+nm+' 份</span>'
+      ])+
+      '<div class="card"><div class="card-hd"><h3>企业首营资料</h3></div><div class="card-bd">'
+      +'<div class="doc-sub" style="margin-bottom:10px">公司对外提供的首营资质电子版：可上传<b>整体压缩包</b>一次给全套，也可按类别上传<b>具体内容图片</b>。上传后自动存入云端，其他设备打开即可下载。</div>'
+      +docUpZone('first','first','','<span class="doc-sub" style="flex:0 0 auto">资料类别</span>'+firstCatSelectHTML())
+      +'<div id="docProg" class="up-prog"></div>'
+      +firstDocsHTML(first)
+      +'</div></div>'
+      +'<div class="card"><div class="card-hd"><h3>产品合同与资料总览</h3></div><div class="card-bd">'
+      +'<div class="doc-sub" style="margin-bottom:4px">OEM 产品的销售合同与产品资料、自销产品的产品资料全部集中在此；点「管理」可上传或调整。</div>'
+      +'<div id="docProdList"></div>'
+      +'</div></div>';
+    drawDocProdList();
+    var si=document.getElementById('docSearch');
+    if(si)si.oninput=drawDocProdList;
+  });
+}
+
 /* ================= 设置 ================= */
 function renderSet(c){
   setPage(getMod('set'),function(root){
@@ -4856,6 +5456,10 @@ function renderSet(c){
       '<button class="btn" onclick="document.getElementById(\'restoreFile\').click()">恢复数据（导入JSON）</button>'+
       '<input type="file" id="restoreFile" accept=".json,application/json" style="display:none" onchange="restoreData(this)">'+
       '</div></div>'+
+      '<div class="card"><div class="card-hd"><h3>资料存储（电子版合同 / 产品资料 / 首营资料）</h3></div><div class="card-bd">'
+      +'<p style="color:var(--sub);margin-bottom:12px">已上传资料 <b>'+((db.docs||[]).length)+'</b> 份。文件存放在与台账同一账号下的云端资料空间，任何设备打开工作台都能直接下载或预览，无需手动拷贝；单个文件上限 '+DOC_MAX_MB+'MB。</p>'
+      +'<button class="btn" onclick="openDocStats()">查看资料清单与占用</button>'
+      +'</div></div>'+
       '<div class="card"><div class="card-hd"><h3>数据管理</h3></div><div class="card-bd">'+
       '<p style="color:var(--sub);margin-bottom:12px">首次使用可载入示例数据了解各板块功能；清空数据会同时覆盖云端，操作前请先备份。</p>'+
       '<button class="btn" onclick="loadDemo()">载入示例数据</button> '+
@@ -4865,9 +5469,9 @@ function renderSet(c){
       '<button class="btn dgr" onclick="clearSalesStockData()">清空销售与库存数据（重新记账）</button>'+
       '</div></div>'+
       '<div class="card"><div class="card-hd"><h3>关于</h3></div><div class="card-bd">'+
-      '<p><b>Eva工作台</b> v2.0　医药销售业务数据管理系统</p>'+
-      '<p style="color:var(--sub);margin-top:6px">模块：客户档案 · 产品档案 · 产品订单 · 销售库存 · 销售订单 · 物流明细 · 回款明细 · 新品开发 · 工作记录</p>'+
-      '<p style="color:var(--sub);margin-top:6px">所有台账支持 Excel 导出留痕，用于对账与公司内部核查。</p>'+
+      '<p><b>Eva工作台</b> v2.1　医药销售业务数据管理系统</p>'+
+      '<p style="color:var(--sub);margin-top:6px">模块：客户档案 · 产品档案 · 资料库 · 销售订单 · 物流明细 · 回款明细 · 销售库存 · 产品订单 · 新品开发 · 工作记录</p>'+
+      '<p style="color:var(--sub);margin-top:6px">所有台账支持 Excel 导出留痕，用于对账与公司内部核查；OEM 销售合同到期前 30 天自动预警。</p>'+
       '</div></div>';
   });
 }
@@ -4900,6 +5504,7 @@ function clearSalesStockData(){
 }
 
 /* ================= 初始化 ================= */
+initDocInput();
 render();
 initCloud();
 </script>
