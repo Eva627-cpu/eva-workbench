@@ -6,25 +6,29 @@
 <title>Eva工作台</title>
 <style>
 :root{
-  --blue:var(--accent);--blue-d:var(--accent-d);
   --bg:#f5f5f7;--card:#fff;--line:#e5e5ea;--txt:#1d1d1f;--sub:#6e6e73;
-  --red:#e5878c;--green:#6fbf94;--orange:#eda768;
-  --accent:#6f9f9a;--accent-d:#57827d;--accent-soft:#e3f0ee;--accent-hv:#C5E4DF;--accent-g1:#a8d8d0;--accent-g2:#7fb8b0;
-  --shadow:0 2px 10px rgba(60,80,110,.06),0 10px 30px rgba(60,80,110,.07);
+  --red:#ff3b30;
+  --accent:#007aff;--accent-d:#00448f;--accent-b:#0058b8;--accent-b2:#003d82;--accent-soft:#ebf4ff;--accent-hv:#d6eaff;--accent-g1:#a6d0ff;--accent-g2:#7abaff;
+  --oem-1:#ffcf8c;--oem-2:#ff9500;
+  --shadow:0 1px 3px rgba(0,0,0,.04),0 10px 30px rgba(0,0,0,.06);
   --r:16px;
 }
-/* Apple 系统色 · 每模块一个系统色（iOS/macOS 原生色板），切换模块时整体色调跟随 */
-body[data-mod="dash"]{--accent:#4B93E8;--accent-d:#2C6BB8;--accent-soft:#EDF4FE;--accent-hv:#D8E8FC;--accent-g1:#C3DCFA;--accent-g2:#9CC4F0}
-body[data-mod="cust"]{--accent:#7A78D8;--accent-d:#5553AB;--accent-soft:#F0F0FC;--accent-hv:#DDDDF6;--accent-g1:#CBCAF1;--accent-g2:#A9A7E5}
-body[data-mod="prod"]{--accent:#F1708F;--accent-d:#C24A66;--accent-soft:#FDF0F3;--accent-hv:#FBDBE3;--accent-g1:#F9C6D3;--accent-g2:#F39CB2}
-body[data-mod="prodo"]{--accent:#B477DA;--accent-d:#8A50AC;--accent-soft:#F7F1FC;--accent-hv:#EBDBF6;--accent-g1:#E0C6F0;--accent-g2:#C99BE4}
-body[data-mod="stock"]{--accent:#63C67F;--accent-d:#3E8F58;--accent-soft:#EDF9F0;--accent-hv:#D5F0DC;--accent-g1:#BEE7C9;--accent-g2:#93D5A8}
-body[data-mod="order"]{--accent:#F0A44E;--accent-d:#B87329;--accent-soft:#FEF5EA;--accent-hv:#FCE8CF;--accent-g1:#FADCB5;--accent-g2:#F5C384}
-body[data-mod="ship"]{--accent:#66B8E4;--accent-d:#3C86AE;--accent-soft:#EEF7FD;--accent-hv:#D8ECF9;--accent-g1:#C2E2F5;--accent-g2:#99CCEA}
-body[data-mod="pay"]{--accent:#5FBDCC;--accent-d:#35899A;--accent-soft:#EDF8FA;--accent-hv:#D5EDF1;--accent-g1:#BEE3E9;--accent-g2:#93CED8}
-body[data-mod="dev"]{--accent:#B49B7C;--accent-d:#856F52;--accent-soft:#F7F3EC;--accent-hv:#E9E1D3;--accent-g1:#DCCFBB;--accent-g2:#C8B69B}
-body[data-mod="log"]{--accent:#A0A0A6;--accent-d:#6E6E73;--accent-soft:#F5F5F7;--accent-hv:#E5E5E8;--accent-g1:#D6D6DA;--accent-g2:#BEBEC4}
-body[data-mod="set"]{--accent:#4FC7BF;--accent-d:#2A948D;--accent-soft:#EBF9F8;--accent-hv:#CDF0EE;--accent-g1:#B0E8E4;--accent-g2:#86DAD4}
+/* Apple 系统色（iOS/macOS 官方色板）：每个模块一个系统色，切换模块时整体色调跟随；
+   派生色配方全站统一：soft/hv/g1/g2 = 系统色与白 92%/84%/65%/48% 混合（浅底与图形）；
+   d = 与黑 44% 混合（浅底上的文字，深色字对比度达标）；
+   b/b2 = 与黑 34%/52% 混合（白字实心按钮/导航/选中态，白字对比度全模块 ≥4.6） */
+body[data-mod="dash"]{--accent:#007AFF;--accent-d:#00448f;--accent-b:#0051a8;--accent-b2:#003b7a;--accent-soft:#ebf4ff;--accent-hv:#d6eaff;--accent-g1:#a6d0ff;--accent-g2:#7abaff}   /* Blue · 蓝 */
+body[data-mod="cust"]{--accent:#5856D6;--accent-d:#313078;--accent-b:#3a398d;--accent-b2:#2a2967;--accent-soft:#f2f1fc;--accent-hv:#e4e4f8;--accent-g1:#c5c4f1;--accent-g2:#a8a7ea}   /* Indigo · 靛蓝 */
+body[data-mod="prod"]{--accent:#FF2D55;--accent-d:#8f1930;--accent-b:#a81e38;--accent-b2:#7a1629;--accent-soft:#ffeef1;--accent-hv:#ffdde4;--accent-g1:#ffb6c4;--accent-g2:#ff92a7}   /* Pink · 粉 */
+body[data-mod="prodo"]{--accent:#AF52DE;--accent-d:#622e7c;--accent-b:#733693;--accent-b2:#54276b;--accent-soft:#f9f1fc;--accent-hv:#f2e3fa;--accent-g1:#e3c2f3;--accent-g2:#d5a5ee}   /* Purple · 紫 */
+body[data-mod="stock"]{--accent:#34C759;--accent-d:#1d6f32;--accent-b:#22833b;--accent-b2:#19602b;--accent-soft:#effbf2;--accent-hv:#dff6e4;--accent-g1:#b8ebc5;--accent-g2:#95e2a9}   /* Green · 绿 */
+body[data-mod="order"]{--accent:#FF9500;--accent-d:#8f5300;--accent-b:#a86200;--accent-b2:#7a4800;--accent-soft:#fff7eb;--accent-hv:#ffeed6;--accent-g1:#ffdaa6;--accent-g2:#ffc87a}   /* Orange · 橙 */
+body[data-mod="ship"]{--accent:#32ADE6;--accent-d:#1c6181;--accent-b:#217298;--accent-b2:#18536e;--accent-soft:#eff8fd;--accent-hv:#def2fb;--accent-g1:#b7e2f6;--accent-g2:#94d4f2}   /* Cyan · 青 */
+body[data-mod="pay"]{--accent:#00C7BE;--accent-d:#006f6a;--accent-b:#00837d;--accent-b2:#00605b;--accent-soft:#ebfbfa;--accent-hv:#d6f6f5;--accent-g1:#a6ebe8;--accent-g2:#7ae2dd}   /* Mint · 薄荷 */
+body[data-mod="dev"]{--accent:#A2845E;--accent-d:#5b4a35;--accent-b:#6b573e;--accent-b2:#4e3f2d;--accent-soft:#f8f5f2;--accent-hv:#f0ebe5;--accent-g1:#ded4c7;--accent-g2:#cfbfab}   /* Brown · 棕 */
+body[data-mod="log"]{--accent:#8E8E93;--accent-d:#505052;--accent-b:#5e5e61;--accent-b2:#444447;--accent-soft:#f6f6f6;--accent-hv:#ededee;--accent-g1:#d7d7d9;--accent-g2:#c4c4c7}   /* Gray · 灰 */
+body[data-mod="doc"]{--accent:#30B0C7;--accent-d:#1b636f;--accent-b:#207483;--accent-b2:#175460;--accent-soft:#eef9fb;--accent-hv:#def2f6;--accent-g1:#b7e3eb;--accent-g2:#93d6e2}   /* Teal · 蓝绿 */
+body[data-mod="set"]{--accent:#6E6E73;--accent-d:#3e3e40;--accent-b:#49494c;--accent-b2:#353537;--accent-soft:#f3f3f4;--accent-hv:#e8e8e9;--accent-g1:#ccccce;--accent-g2:#b4b4b6}   /* Gray · 深灰 */
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:var(--bg);color:var(--txt);font-size:14px}
 .app{display:flex;min-height:100vh}
@@ -51,8 +55,8 @@ td{padding:9px 10px;border-bottom:1px solid var(--accent-soft);vertical-align:mi
 .tabs{display:flex;gap:6px;flex-wrap:wrap}
 .tabs span{padding:5px 13px;border-radius:16px;background:var(--accent-soft);color:var(--accent-d);font-size:12.5px;cursor:pointer}
 .tag{display:inline-block;padding:2px 9px;border-radius:10px;font-size:12px}
-.tag.c1{background:var(--accent-soft);color:var(--accent-d)}.tag.c2{background:#fef3c7;color:#b45309}.tag.c3{background:#dcfce7;color:#15803d}
-.tag.warn{background:#fee2e2;color:#b91c1c}.tag.ok{background:#dcfce7;color:#15803d}.tag.pend{background:#fef3c7;color:#b45309}
+.tag.c1{background:var(--accent-soft);color:var(--accent-d)}.tag.c2{background:#fff4e5;color:#c2500a}.tag.c3{background:#e6f9ec;color:#1d7a34}
+.tag.warn{background:#ffe9e7;color:#d70015}.tag.ok{background:#e6f9ec;color:#1d7a34}.tag.pend{background:#fff4e5;color:#c2500a}
 .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media(max-width:1100px){.chart-grid{grid-template-columns:1fr}}
 .bar-row{display:flex;align-items:center;gap:9px;margin-bottom:9px;font-size:12.5px}
@@ -60,7 +64,7 @@ td{padding:9px 10px;border-bottom:1px solid var(--accent-soft);vertical-align:mi
 .bar-row .bt{flex:1;background:var(--accent-soft);border-radius:4px;height:18px;position:relative}
 .bar-row .bf{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent-g1),var(--accent))}
 .bar-row .bv{width:110px;flex-shrink:0}
-.mask{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;align-items:flex-start;justify-content:center;z-index:100;overflow:auto;padding:30px 16px}
+.mask{position:fixed;inset:0;background:rgba(0,0,0,.40);display:none;align-items:flex-start;justify-content:center;z-index:100;overflow:auto;padding:30px 16px}
 .mask.show{display:flex}
 .modal{background:#fff;border-radius:10px;width:680px;max-width:100%;box-shadow:0 20px 50px rgba(0,0,0,.25)}
 .modal .m-hd{padding:15px 20px;background:linear-gradient(90deg,var(--accent-soft) 0%,rgba(255,255,255,.5) 100%);border-bottom:1px solid var(--accent-g1);display:flex;align-items:center;border-radius:inherit;border-bottom-left-radius:0;border-bottom-right-radius:0}
@@ -73,14 +77,14 @@ td{padding:9px 10px;border-bottom:1px solid var(--accent-soft);vertical-align:mi
 .fitem label{display:block;font-size:12.5px;color:var(--sub);margin-bottom:5px}
 .fitem label b{color:var(--red)}
 .fitem input,.fitem select,.fitem textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:13.5px;font-family:inherit;background:#fff}
-.fitem input:focus,.fitem select:focus,.fitem textarea:focus{outline:none;border-color:var(--blue)}
-.fitem input[readonly]{background:#f8fafc;color:var(--sub)}
+.fitem input:focus,.fitem select:focus,.fitem textarea:focus{outline:none;border-color:var(--accent)}
+.fitem input[readonly]{background:#f7f7f9;color:var(--sub)}
 input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .fitem textarea{height:74px;resize:vertical}
-.fitem .hint{font-size:11.5px;color:var(--blue);margin-top:4px}
+.fitem .hint{font-size:11.5px;color:var(--accent-d);margin-top:4px}
 .fitem .errhint{font-size:11.5px;color:var(--red);margin-top:4px;display:none}
-.photo-box{border:1px dashed var(--line);border-radius:6px;padding:8px;text-align:center;cursor:pointer;color:var(--sub);font-size:12.5px;min-height:56px;display:flex;align-items:center;justify-content:center;gap:8px;background:#fafbfc}
+.photo-box{border:1px dashed var(--line);border-radius:6px;padding:8px;text-align:center;cursor:pointer;color:var(--sub);font-size:12.5px;min-height:56px;display:flex;align-items:center;justify-content:center;gap:8px;background:#f7f7f9}
 .photo-box img{max-height:52px;max-width:100%;border-radius:4px}
 .err{border-color:var(--red)!important}
 .search{padding:7px 11px;border:1px solid var(--line);border-radius:6px;font-size:13px;width:190px}
@@ -92,12 +96,12 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .sec-title{font-size:13px;font-weight:600;color:var(--sub);margin:4px 0 10px}
 .fgroup{grid-column:1/-1;margin-top:4px;padding:7px 10px;background:var(--accent-soft);border-radius:6px;font-size:12.5px;font-weight:600;color:var(--accent-d)}
 .flt{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin-left:2px;border-radius:4px;cursor:pointer;font-size:11px;color:var(--sub);vertical-align:middle;user-select:none}
-.flt-pop{position:fixed;z-index:300;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(15,23,42,.14);padding:8px;min-width:170px}
+.flt-pop{position:fixed;z-index:300;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:8px;min-width:170px}
 .flt-pop .flt-opt{padding:7px 11px;border-radius:6px;cursor:pointer;font-size:13px}
-.flt-pop .flt-opt:hover{background:#f1f5f9}
+.flt-pop .flt-opt:hover{background:#f2f2f7}
 .flt-pop .flt-opt.on{background:var(--accent-soft);color:var(--accent-d);font-weight:600}
 .flt-pop .flt-input{width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;margin-bottom:7px}
-.flt-pop .flt-input:focus{outline:none;border-color:var(--blue)}
+.flt-pop .flt-input:focus{outline:none;border-color:var(--accent)}
 .flt-pop .row{display:flex;gap:6px;align-items:center;justify-content:space-between}
 /* 列表横向滚动：滚动条常显（macOS 默认隐藏导致"滚轮不能用"的观感）；电脑端单元格单行不换行，宽表横向滚动 */
 .tbl-wrap{max-width:100%}
@@ -118,13 +122,13 @@ tbody tr.grp-last td{border-bottom:1px solid var(--accent-g1)}
 @media(min-width:901px){.tbl-scroll td{white-space:nowrap}}
 /* ================= 苹果风增强：马卡龙渐变 / 毛玻璃 / 圆角 / 移动端 ================= */
 html,body{max-width:100%;overflow-x:hidden}
-body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","SF Pro Text","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;background:linear-gradient(180deg,var(--accent-soft) 0%,#fafafc 48%,#f6f6f8 100%);background-attachment:fixed;-webkit-font-smoothing:antialiased}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","SF Pro Text","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;background:linear-gradient(180deg,var(--accent-soft) 0%,#fbfbfd 48%,#f7f7f9 100%);background-attachment:fixed;-webkit-font-smoothing:antialiased}
 .main{min-width:0}
 .sidebar{background:linear-gradient(180deg,var(--accent-soft) 0%,rgba(255,255,255,.82) 58%,rgba(255,255,255,.72) 100%)}
 .sidebar .logo small{color:#8e8e93}
 .nav a{gap:10px;border-radius:12px;margin:2px 9px;padding:10px 13px;color:#3c3c43;transition:all .18s}
 .nav a:hover{background:rgba(0,0,0,.05);color:#1d1d1f}
-.nav a.active{background:linear-gradient(135deg,var(--accent) 0%,var(--accent-d) 100%);color:#fff;box-shadow:0 3px 10px rgba(0,0,0,.10)}
+.nav a.active{background:linear-gradient(135deg,var(--accent-b) 0%,var(--accent-b2) 100%);color:#fff;box-shadow:0 3px 10px rgba(0,0,0,.10)}
 .nav .nav-ic{font-size:17px;width:22px;text-align:center;flex-shrink:0}
 .topbar{position:sticky;top:0;z-index:50;background:linear-gradient(90deg,var(--accent-soft) 0%,rgba(255,255,255,.86) 72%);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--accent-g1);padding:13px 24px}
 .topbar h2{font-size:17px;letter-spacing:.3px}
@@ -133,15 +137,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","SF Pro Text","Pin
 .card .card-hd{background:linear-gradient(90deg,var(--accent-g1) 0%,var(--accent-soft) 46%,rgba(255,255,255,.4) 100%);border-bottom:1px solid var(--accent-g1);border-radius:var(--r) var(--r) 0 0;padding:13px 18px}
 .card .card-hd h3{font-size:14.5px;color:var(--accent-d)}
 .card .card-bd{padding:16px 18px}
-.btn{border-radius:999px;border:1px solid #e3e9f1;box-shadow:0 1px 2px rgba(60,80,110,.05);transition:all .18s}
-.btn:hover{border-color:var(--accent);color:var(--accent)}
-.btn.pri{background:linear-gradient(135deg,var(--accent) 0%,var(--accent-d) 100%);border-color:transparent;color:#fff;box-shadow:0 2px 8px rgba(60,80,110,.12)}
-.btn.pri:hover{background:linear-gradient(135deg,var(--accent) 0%,var(--accent-d) 100%);color:#fff;box-shadow:0 4px 12px rgba(60,80,110,.16);filter:brightness(.97)}
+.btn{border-radius:999px;border:1px solid #e5e5ea;box-shadow:0 1px 2px rgba(0,0,0,.04);transition:all .18s}
+.btn:hover{border-color:var(--accent-d);color:var(--accent-d)}
+.btn.pri{background:linear-gradient(135deg,var(--accent-b) 0%,var(--accent-b2) 100%);border-color:transparent;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.btn.pri:hover{background:linear-gradient(135deg,var(--accent-b) 0%,var(--accent-b2) 100%);color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.10);filter:brightness(1.08)}
 .btn.sm{border-radius:9px}
 .btn.dgr:hover{border-color:var(--red);color:var(--red)}
 .tabs span{border-radius:999px;border:1px solid var(--accent-g1);transition:all .18s}
-.tabs span:hover{border-color:var(--accent);color:var(--accent)}
-.tabs span.on{background:linear-gradient(135deg,var(--accent) 0%,var(--accent-d) 100%);color:#fff;box-shadow:0 2px 8px rgba(60,80,110,.10)}
+.tabs span:hover{border-color:var(--accent-d);color:var(--accent-d)}
+.tabs span.on{background:linear-gradient(135deg,var(--accent-b) 0%,var(--accent-b2) 100%);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.07)}
 .bar-row .bt{border-radius:6px;background:var(--accent-soft)}
 .bar-row .bf{display:block;border-radius:6px;background:linear-gradient(90deg,var(--accent-g1),var(--accent))}
 th{background:var(--accent-g1);color:var(--accent-d)}
@@ -153,17 +157,17 @@ tbody tr td{background:#fff}
 tbody tr.z2 td{background:var(--accent-soft)}
 tbody tr.z2:hover td{background:var(--accent-hv)}
 tfoot td{background:#fff}
-.fitem input,.fitem select,.fitem textarea{border-radius:10px;border-color:#e4eaf2;background:#fbfcfe}
+.fitem input,.fitem select,.fitem textarea{border-radius:10px;border-color:#e5e5ea;background:#f7f7f9}
 .fitem input:focus,.fitem select:focus,.fitem textarea:focus{border-color:var(--accent);background:#fff}
 .fgroup{background:var(--accent-soft);color:var(--accent-d);border-radius:8px}
-.flt.on{background:var(--accent);color:#fff}
-.flt:hover{background:var(--accent-soft);color:var(--accent)}
-.flt-pop{border-radius:14px;box-shadow:0 12px 36px rgba(30,45,70,.12)}
+.flt.on{background:var(--accent-b);color:#fff}
+.flt:hover{background:var(--accent-soft);color:var(--accent-d)}
+.flt-pop{border-radius:14px;box-shadow:0 12px 36px rgba(0,0,0,.10)}
 .flt-pop .flt-opt.on{background:var(--accent-soft);color:var(--accent-d)}
 .mask{background:rgba(0,0,0,.26);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
-.modal{border-radius:20px;box-shadow:0 24px 60px rgba(30,45,70,.28)}
+.modal{border-radius:20px;box-shadow:0 24px 60px rgba(0,0,0,.22)}
 /* 首页 hero 回款任务卡 */
-.hero-card{position:relative;border-radius:22px;padding:22px 24px;margin-bottom:16px;color:var(--accent-d);overflow:hidden;background:linear-gradient(135deg,var(--accent-g1) 0%,var(--accent-g2) 100%);box-shadow:0 6px 18px rgba(60,80,110,.09)}
+.hero-card{position:relative;border-radius:22px;padding:22px 24px;margin-bottom:16px;color:var(--accent-d);overflow:hidden;background:linear-gradient(135deg,var(--accent-g1) 0%,var(--accent-g2) 100%);box-shadow:0 6px 18px rgba(0,0,0,.06)}
 .hero-card::after{content:"";position:absolute;right:-60px;top:-70px;width:230px;height:230px;border-radius:50%;background:rgba(255,255,255,.34)}
 .hero-card::before{content:"";position:absolute;right:70px;bottom:-90px;width:170px;height:170px;border-radius:50%;background:rgba(255,255,255,.26)}
 .hero-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;position:relative;z-index:1}
@@ -194,7 +198,7 @@ tfoot td{background:#fff}
 /* 产品一览（首页卡片） */
 .pov-tag{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;vertical-align:1px}
 .pov-tag.zx{background:var(--accent-soft);color:var(--accent-d)}
-.pov-tag.oem{background:#fff3e8;color:#c2570a}
+.pov-tag.oem{background:#fff1e3;color:#c2500a}
 .pov-agent{font-size:11px;color:var(--sub);margin-left:6px}
 /* 产品一览紧凑表格（挂网价格为自动取产品档案的只读展示） */
 .pov-tbl th,.pov-tbl td{padding:5px 8px;font-size:13px}
@@ -211,7 +215,7 @@ tfoot td{background:#fff}
 .yw-ag{display:flex;align-items:baseline;gap:8px;margin:12px 0 3px;padding-left:6px;font-size:13px;font-weight:700;color:var(--txt)}
 .yw-ag i{width:14px;height:4px;border-radius:2px;display:inline-block;flex:none;align-self:center}
 .yw-ag .sub{font-size:11.5px;font-weight:400;color:var(--sub)}
-.yw-ag .sub b{color:var(--pri)}
+.yw-ag .sub b{color:var(--accent-d)}
 .yw-ag.yw-hit{cursor:pointer;border-radius:8px;padding:4px 8px 4px 6px;margin-left:-2px}
 .yw-ag.yw-hit:hover{background:var(--accent-soft)}
 @media(max-width:640px){.yw-name{width:130px}.yw-val{width:78px}}
@@ -220,15 +224,15 @@ tfoot td{background:#fff}
 .todo-add input{flex:1;border-radius:999px;padding:9px 16px;border:1px solid var(--accent-g1);background:var(--accent-soft);font-size:14px;min-width:0}
 .todo-add input:focus{outline:none;border-color:var(--accent);background:#fff}
 .todo-list{display:flex;flex-direction:column;gap:6px}
-.todo-item{display:flex;align-items:center;gap:11px;padding:11px 14px;border-radius:13px;background:linear-gradient(90deg,var(--accent-soft) 0%,#f8fafc 60%);border:1px solid #eef2f7;transition:all .25s}
+.todo-item{display:flex;align-items:center;gap:11px;padding:11px 14px;border-radius:13px;background:linear-gradient(90deg,var(--accent-soft) 0%,#f7f7f9 60%);border:1px solid #ececf0;transition:all .25s}
 .todo-box{width:24px;height:24px;border-radius:8px;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:800;cursor:pointer;background:#fff;flex-shrink:0;transition:all .2s}
 .todo-box:hover{background:var(--accent-soft)}
-.todo-item.done{opacity:.55;background:#f1f4f8;order:10}
-.todo-item.done .todo-box{background:var(--accent);border-color:var(--accent)}
+.todo-item.done{opacity:.55;background:#f2f2f7;order:10}
+.todo-item.done .todo-box{background:var(--accent-b);border-color:var(--accent-b)}
 .todo-item.done .todo-txt{text-decoration:line-through;color:var(--sub)}
 .todo-txt{flex:1;font-size:13.5px;word-break:break-all}
 .todo-del{font-size:12px;color:var(--sub);cursor:pointer;padding:2px 9px;border-radius:999px}
-.todo-del:hover{color:var(--red);background:#fdeaea}
+.todo-del:hover{color:var(--red);background:#ffe9e7}
 /* 动态表 */
 .dyn-tool{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
 .dyn-tool label{font-size:12.5px;color:var(--sub)}
@@ -239,14 +243,14 @@ tfoot td{background:#fff}
 .wd-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 14px;margin-bottom:6px}
 .wd-grid .k{font-size:12px;color:var(--sub);margin-bottom:2px}
 .wd-grid .v{font-size:15px;font-weight:700;color:var(--txt)}
-.wd-grid .v b{color:var(--pri);font-size:17px}
-.wd-sec{margin:16px 0 8px;font-size:13.5px;font-weight:700;color:var(--txt);border-left:3px solid var(--pri);padding-left:9px}
+.wd-grid .v b{color:var(--accent-d);font-size:17px}
+.wd-sec{margin:16px 0 8px;font-size:13.5px;font-weight:700;color:var(--txt);border-left:3px solid var(--accent);padding-left:9px}
 .wd-sec .sub{font-size:11.5px;font-weight:400;color:var(--sub);margin-left:8px}
 .wd-tip{font-size:11.5px;color:var(--sub);margin-top:4px}
 /* 代理商分组客户分布 */
 .wd-ag-hd{display:flex;align-items:baseline;gap:8px;margin:12px 0 6px;font-size:13px;font-weight:700}
 .wd-ag-hd .an{color:var(--txt);font-size:13.5px}
-.wd-ag-hd .as{font-size:11.5px;font-weight:400;color:var(--pri)}
+.wd-ag-hd .as{font-size:11.5px;font-weight:400;color:var(--accent-d)}
 .wd-ag-hd .as b{font-size:13px}
 .wd-sub{padding-left:18px;margin-bottom:6px}
 .wd-sub .bl{width:140px;font-size:12px;color:var(--sub)}
@@ -256,13 +260,13 @@ tfoot td{background:#fff}
 /* ================= 移动端适配（iPhone / iPad） ================= */
 @media(max-width:900px){
   .app{display:block}
-  .sidebar{position:fixed;left:0;right:0;bottom:0;top:auto;width:100%;height:auto;flex-direction:row;background:linear-gradient(0deg,var(--accent-soft) 0%,rgba(255,255,255,.92) 100%);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid rgba(231,236,243,.9);z-index:100;box-shadow:0 -6px 24px rgba(60,80,110,.09)}
+  .sidebar{position:fixed;left:0;right:0;bottom:0;top:auto;width:100%;height:auto;flex-direction:row;background:linear-gradient(0deg,var(--accent-soft) 0%,rgba(255,255,255,.92) 100%);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid rgba(231,236,243,.9);z-index:100;box-shadow:0 -6px 24px rgba(0,0,0,.06)}
   .sidebar .logo,.sidebar .foot{display:none}
   .nav{display:flex;flex-direction:row;overflow-x:auto;gap:2px;padding:7px 8px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
   .nav::-webkit-scrollbar{display:none}
-  .nav a{flex-direction:column;gap:3px;min-width:64px;padding:8px 6px;border-radius:13px;margin:0;font-size:10px;text-align:center;color:#7a8699;background:transparent}
+  .nav a{flex-direction:column;gap:3px;min-width:64px;padding:8px 6px;border-radius:13px;margin:0;font-size:10px;text-align:center;color:#8e8e93;background:transparent}
   .nav a .nav-ic{font-size:20px;width:auto}
-  .nav a.active{color:#fff;box-shadow:0 4px 12px rgba(60,80,110,.18)}
+  .nav a.active{color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.08)}
   .main{padding-bottom:78px;min-width:0}
   .topbar{padding:11px 14px}
   .content{padding:12px 12px 20px}
@@ -281,9 +285,9 @@ tfoot td{background:#fff}
 }
 /* 回款表单 */
 .pay-info{border-collapse:collapse;width:100%;font-size:13px}
-.pay-info th,.pay-info td{border:1px solid #e5e7eb;padding:6px 8px;text-align:center}
+.pay-info th,.pay-info td{border:1px solid #e5e5ea;padding:6px 8px;text-align:center}
 .pay-info th{background:var(--accent-soft);color:var(--accent-d);font-weight:600}
-.pay-item{border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-bottom:10px}
+.pay-item{border:1px solid #e5e5ea;border-radius:8px;padding:12px;margin-bottom:10px}
 .pay-item .fgrid{margin-top:6px}
 .pay-item.gift{border-color:var(--accent-g1);background:var(--accent-soft)}
 .pay-item.gift .fitem label{color:var(--accent-d)}
@@ -300,7 +304,7 @@ tfoot td{background:#fff}
   .pov-tag{display:inline-block;margin-bottom:3px}
   .pov-agent{display:inline;font-size:10.5px;margin-left:4px;vertical-align:1px}
   .pov-name{display:block}
-  .nav a.active{background:linear-gradient(135deg,var(--accent) 0%,var(--accent-d) 100%);color:#fff}
+  .nav a.active{background:linear-gradient(135deg,var(--accent-b) 0%,var(--accent-b2) 100%);color:#fff}
 }
 @media(max-width:520px){
   .content{padding:10px 10px 26px}
@@ -333,7 +337,7 @@ tfoot td{background:#fff}
 }
 /* ================= 资料库（电子版销售合同 / 产品资料 / 企业首营资料） ================= */
 /* 导航分组标题：桌面端做小标题，手机端折叠成一条细竖线 */
-.nav-grp{padding:13px 20px 4px;font-size:10.5px;font-weight:700;letter-spacing:.08em;color:#9aa6b2;user-select:none}
+.nav-grp{padding:13px 20px 4px;font-size:10.5px;font-weight:700;letter-spacing:.08em;color:#8e8e93;user-select:none}
 /* 桌面端导航项变多后允许纵向滚动，窗口矮时不会被裁掉 */
 @media(min-width:901px){.nav{overflow-y:auto}}
 .up-zone{border:1.5px dashed var(--accent-g1);border-radius:14px;padding:13px 15px;background:linear-gradient(180deg,rgba(227,240,238,.55),rgba(255,255,255,.72));display:flex;flex-wrap:wrap;gap:9px;align-items:center}
@@ -343,7 +347,7 @@ tfoot td{background:#fff}
 .doc-item{border:1px solid var(--line);border-radius:12px;background:#fff;padding:8px;display:flex;flex-direction:column;gap:6px;overflow:hidden}
 .doc-item .dt-name{font-size:12.5px;line-height:1.4;word-break:break-all;max-height:2.8em;overflow:hidden}
 .doc-item .dt-meta{font-size:11px;color:var(--sub)}
-.doc-thumb{width:100%;height:106px;object-fit:cover;border-radius:8px;background:linear-gradient(100deg,#f2f4f6 30%,#e9edf1 50%,#f2f4f6 70%);cursor:zoom-in;display:block}
+.doc-thumb{width:100%;height:106px;object-fit:cover;border-radius:8px;background:linear-gradient(100deg,#f2f2f7 30%,#e5e5ea 50%,#f2f2f7 70%);cursor:zoom-in;display:block}
 .doc-fileicon{height:106px;border-radius:8px;background:linear-gradient(160deg,var(--accent-soft),#fff);display:flex;align-items:center;justify-content:center;font-size:34px;cursor:pointer}
 .doc-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto}
 .doc-row{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px dashed var(--line);flex-wrap:wrap}
@@ -354,9 +358,9 @@ tfoot td{background:#fff}
 .doc-cat{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;background:var(--accent-soft);color:var(--accent-d);margin-right:6px;white-space:nowrap}
 .doc-sub{font-size:12.5px;color:var(--sub);line-height:1.7}
 .doc-empty{color:var(--sub);font-size:12.5px;padding:10px 2px}
-.exp-warn{color:#b91c1c;font-weight:600}
-.exp-soon{color:#b45309;font-weight:600}
-.exp-ok{color:#15803d}
+.exp-warn{color:#d70015;font-weight:600}
+.exp-soon{color:#c2500a;font-weight:600}
+.exp-ok{color:#1d7a34}
 .exp-tbl{width:100%;border-collapse:collapse;font-size:13px}
 .exp-tbl th,.exp-tbl td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left}
 .exp-tbl th{color:var(--accent-d);font-size:12px;font-weight:600;background:var(--accent-soft)}
@@ -609,7 +613,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261011a',_verChecking=false;
+var APP_VER='20261011c',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -624,7 +628,7 @@ function checkVer(){
       if(mask&&mask.classList.contains('show')){
         if(!document.getElementById('verToast')){
           var d=document.createElement('div');d.id='verToast';d.onclick=function(){location.reload();};
-          d.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:86px;background:var(--accent-d);color:#fff;padding:9px 16px;border-radius:999px;font-size:13px;box-shadow:0 6px 18px rgba(0,0,0,.2);z-index:9999;cursor:pointer;white-space:nowrap';
+          d.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:86px;background:var(--accent-b);color:#fff;padding:9px 16px;border-radius:999px;font-size:13px;box-shadow:0 6px 18px rgba(0,0,0,.2);z-index:9999;cursor:pointer;white-space:nowrap';
           d.textContent='工作台已更新，点此刷新';
           document.body.appendChild(d);
         }
@@ -1414,7 +1418,7 @@ function prodYearSel(el){viewState.salesYear=el.value;render();}
 /* 年度销量条形图行缓存：点击条形查看明细时取用 */
 var WAVE_CACHE={};
 /* 代理商分组配色（OEM 图按代理商分组） */
-var AG_COLORS=['#f97316','#2563eb','#10b981','#a855f7','#ef4444','#0ea5e9','#d946ef','#84cc16','#f59e0b','#14b8a6'];
+var AG_COLORS=['#007AFF','#FF9500','#34C759','#AF52DE','#FF3B30','#32ADE6','#FF2D55','#5856D6','#A2845E','#00C7BE'];
 /* 发货量按「产品|年份」汇总一次缓存，年度销量图两张卡共用（避免逐产品逐发货单双重扫描） */
 var _ywYear='',_ywYears=[],_ywMap=null,_ywVer=-1;
 function yearShipMap(y){
@@ -1483,7 +1487,7 @@ function yearProdWave(cat){
       for(var ri=0;ri<groups[gi].rows.length;ri++)body+=ywBar(groups[gi].rows[ri],col,(gi*0.15+ri*0.05).toFixed(2));
     }
   }else{
-    for(var r1=0;r1<rows.length;r1++)body+=ywBar(rows[r1],'linear-gradient(90deg,var(--accent-g1),var(--accent-d))',(r1*0.06).toFixed(2));
+    for(var r1=0;r1<rows.length;r1++)body+=ywBar(rows[r1],'linear-gradient(90deg,var(--accent-g1),var(--accent))',(r1*0.06).toFixed(2));
   }
   return h+body;
 }
@@ -1495,7 +1499,7 @@ function oemAgentDetail(agRaw,y){
   for(var i=0;i<cache.rows.length;i++)if((cache.rows[i].agent||'')===(agRaw||''))rows.push(cache.rows[i]);
   if(!rows.length)return;
   var agName=agRaw||'（未关联代理商）';
-  var g1='linear-gradient(90deg,#fdba74,#f97316)';
+  var g1='linear-gradient(90deg,var(--oem-1),var(--oem-2))';
   var pids={},per={},pmap={};
   for(var k=0;k<rows.length;k++){pids[rows[k].p.id]=1;per[rows[k].p.id]=prodPerBox(rows[k].p);pmap[rows[k].p.id]=rows[k].p;}
   /* 订单行映射：no|pid → 订单（取客户） */
@@ -1620,7 +1624,7 @@ function waveDetail(cat,idx){
   }
   agList.sort(function(x,y2){return y2.jian-x.jian;});
   /* 弹窗内容 */
-  var g1=cat==='自销'?'linear-gradient(90deg,var(--accent-g1),var(--accent-d))':'linear-gradient(90deg,#fdba74,#f97316)';
+  var g1=cat==='自销'?'linear-gradient(90deg,var(--accent-g1),var(--accent))':'linear-gradient(90deg,var(--oem-1),var(--oem-2))';
   var h='<div class="wd-grid">'
     +'<div><div class="k">产品规格</div><div class="v">'+esc(p.spec||'—')+'</div></div>'
     +'<div><div class="k">产品分类 / 代理商</div><div class="v" style="font-size:13px">'+esc(cat)+(p.agent?' · '+esc(p.agent):'')+'</div></div>'
@@ -3444,7 +3448,7 @@ function payShipSecHTML(){
   var h='<div class="fgroup">发货明细</div>';
   h+='<div class="fitem full"><label>发货单号 <b>*</b>（可勾选多张单，一笔回款对应多笔订单）</label>'
     +'<input data-k="shipSearch" placeholder="搜索单号 / 客户 / 产品" oninput="payOrderPick()" style="width:100%">'
-    +'<div id="payOrderList" style="max-height:190px;overflow:auto;border:1px solid #e2e8f0;border-radius:8px;margin-top:6px;padding:4px"></div>'
+    +'<div id="payOrderList" style="max-height:190px;overflow:auto;border:1px solid #e5e5ea;border-radius:8px;margin-top:6px;padding:4px"></div>'
     +'</div>';
   h+='<div class="fitem full"><label>产品明细</label><div id="payShipInfo" class="hint"></div></div>';
   h+='<div class="fitem full"><label>返利</label><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">'
@@ -3485,7 +3489,7 @@ function payOrderPick(){
   for(var i=0;i<list.length;i++){
     var r0=list[i];
     var ck=PF.shipNos.indexOf(r0.no)>=0?' checked':'';
-    h+='<label style="display:flex;gap:8px;align-items:center;padding:3px 6px;font-weight:400;cursor:pointer;border-bottom:1px solid #f1f5f9">'
+    h+='<label style="display:flex;gap:8px;align-items:center;padding:3px 6px;font-weight:400;cursor:pointer;border-bottom:1px solid #f2f2f7">'
       +'<input type="checkbox" style="width:15px;height:15px" onchange="payOrderToggle(\''+esc(r0.no)+'\')"'+ck+'>'
       +'<span class="mono">'+esc(r0.no)+'</span>　'+esc(r0.o.custName||'')+'　'+esc(r0.labels.join('、'))+'</label>';
   }
