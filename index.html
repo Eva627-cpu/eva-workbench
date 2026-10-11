@@ -460,12 +460,12 @@ var GIST_ID='ecdef7144b996b73a00b570a5387da2c';
 var GIST_FILE='workbench.json';
 var DEFAULT_TOKEN=''; // 不内置 token（防公开页面泄漏被 GitHub 吊销）；首次在设置页输入，存本机 localStorage
 var GIST_URL='https://api.github.com/gists/'+GIST_ID;
-var CLOUD_ON=false,cloudReady=false,cloudPulling=false;
+var CLOUD_ON=false,cloudReady=false,cloudPulling=false,cloudPulled=false;
 var _dirty=false,_uploading=false;
 function getToken(){try{return localStorage.getItem('gh_token')||DEFAULT_TOKEN;}catch(e){return DEFAULT_TOKEN;}}
 function initCloud(){
   CLOUD_ON=true;cloudReady=true;
-  if(!getToken()){cloudStatus('未配置同步 Token，请到设置页粘贴');return;}
+  if(!getToken()){cloudPulled=true;cloudStatus('未配置同步 Token，请到设置页粘贴');return;}
   pullCloud();
 }
 function cloudStatus(txt){
@@ -570,6 +570,7 @@ function pullCloud(){
       if(_dirty)flushPush();
       return;
     }
+    cloudPulled=true; // 已成功读到云端：此后才允许「载入示例数据」等会写云端的操作
     var content=d&&d.files&&d.files[GIST_FILE]&&d.files[GIST_FILE].content;
     if(content){
       var cloud;
@@ -613,7 +614,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261011c',_verChecking=false;
+var APP_VER='20261011d',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -1691,6 +1692,7 @@ function renderDash(c){
   var m=MODULES[0];
   setPage(m,function(root){
     var h='';
+    h+=demoBannerHTML();
     h+=dashHero();
 
     /* 产品一览（薄荷绿卡片） */
@@ -1722,37 +1724,113 @@ function renderDash(c){
     root.innerHTML=h;
   });
 }
+/* 载入示例数据（仅供了解功能）——三重防误伤：
+   ① 云端已配置但还没读完时禁止载入（否则会把示例数据当"新数据"合并进真实云端）；
+   ② 无论是否已有数据都必须二次确认（示例数据会同步到所有设备）；
+   ③ 每条示例记录带 demo:1 标记，可用「清除示例数据」一键删干净（含云端同步删除）。 */
 function loadDemo(){
-  if(db.customers.length||db.products.length){if(!confirm('已有数据，确定要追加示例数据吗？'))return;}
-  var c1={id:uid(),cat:'省总',company:'华北医药省总经销有限公司',contact:'张经理',phone:'13800001111',addr:'河北省石家庄市裕华区建华大街88号',region:'华北',delivery:'整车发运，随货同行单随车',note:'',created:today()};
-  var c2={id:uid(),cat:'大包商',company:'湖北楚天大包商',contact:'李老板',phone:'13800002222',addr:'湖北省武汉市江汉区发展大道',region:'华中',delivery:'发德邦物流',note:'',created:today()};
-  var c3={id:uid(),cat:'零散客户',company:'成都康仁堂连锁药店',contact:'王店长',phone:'13800003333',addr:'四川省成都市武侯区科华北路',region:'西南',delivery:'快递，备注避开周末',note:'',created:today()};
+  if(CLOUD_ON&&getToken()&&!cloudPulled){alert('正在从云端读取数据，请稍候几秒后再试。\n\n（避免示例数据与自己的真实数据混在一起）');return;}
+  if(!confirm('即将载入「示例数据」用于了解各板块功能。\n\n请注意：示例数据会同步到云端，所有设备都会看到。\n载入后可随时在「设置」页用「清除示例数据」一键删除。\n\n确定载入吗？'))return;
+  /* 已有真实数据时一律不许载入：示例数据只用于空账套试功能，避免和自己的真实客户/产品混在一起 */
+  var hasReal=(db.customers||[]).some(function(x){return !isDemoCust(x)&&!x.demo;})
+    ||(db.products||[]).some(function(x){return !isDemoProd(x)&&!x.demo;})
+    ||(db.orders||[]).some(function(x){return !x.demo;});
+  if(hasReal){alert('当前账套已有你自己的真实数据，不能载入示例数据。\n\n（示例数据只用于空账套了解功能，以免和真实数据混在一起。\n如果确实想试，请先到「设置」备份并清空数据。）');return;}
+  var c1={id:uid(),cat:'省总',company:'华北医药省总经销有限公司',contact:'张经理',phone:'13800001111',addr:'河北省石家庄市裕华区建华大街88号',region:'华北',delivery:'整车发运，随货同行单随车',note:'',created:today(),demo:1};
+  var c2={id:uid(),cat:'大包商',company:'湖北楚天大包商',contact:'李老板',phone:'13800002222',addr:'湖北省武汉市江汉区发展大道',region:'华中',delivery:'发德邦物流',note:'',created:today(),demo:1};
+  var c3={id:uid(),cat:'零散客户',company:'成都康仁堂连锁药店',contact:'王店长',phone:'13800003333',addr:'四川省成都市武侯区科华北路',region:'西南',delivery:'快递，备注避开周末',note:'',created:today(),demo:1};
   db.customers.push(c1,c2,c3);
-  var p1={id:uid(),cat:'自销',agent:'华北医药省总经销',custName:'示例客户（连锁总部）',name:'阿莫西林胶囊',brand:'XX制药',spec:'0.25g*24粒',perBox:40,basePrice:8.5,supplyPrice:0,invoicePrice:0,safeStock:120};
-  var p2={id:uid(),cat:'OEM',agent:'湖北楚天大包商',custName:'示例客户（商业公司）',name:'复方感冒灵颗粒',brand:'YY药业',spec:'10g*9袋',perBox:30,basePrice:0,supplyPrice:7.5,invoicePrice:9.0,safeStock:90,contractEnd:dateAdd(18)};
+  var p1={id:uid(),cat:'自销',agent:'华北医药省总经销',custName:'示例客户（连锁总部）',name:'阿莫西林胶囊',brand:'XX制药',spec:'0.25g*24粒',perBox:40,basePrice:8.5,supplyPrice:0,invoicePrice:0,safeStock:120,demo:1};
+  var p2={id:uid(),cat:'OEM',agent:'湖北楚天大包商',custName:'示例客户（商业公司）',name:'复方感冒灵颗粒',brand:'YY药业',spec:'10g*9袋',perBox:30,basePrice:0,supplyPrice:7.5,invoicePrice:9.0,safeStock:90,contractEnd:dateAdd(18),demo:1};
   db.products.push(p1,p2);
   var todayStr=today();
-  db.batches.push({id:uid(),pid:p1.id,batchNo:'20260501',prodDate:'2026-05-12',expire:'2028-05-11',perBox:p1.perBox,boxes:150,units:10,inBoxes:150,inUnits:10,inDate:todayStr,note:'首单入库'});
-  db.batches.push({id:uid(),pid:p1.id,batchNo:'20260302',prodDate:'2026-03-03',expire:'2026-10-02',perBox:p1.perBox,boxes:30,units:0,inBoxes:30,inUnits:0,inDate:todayStr,note:'近效期批次'});
-  db.batches.push({id:uid(),pid:p2.id,batchNo:'20260401',prodDate:'2026-04-01',expire:'2027-09-30',perBox:p2.perBox,boxes:60,units:5,inBoxes:60,inUnits:5,inDate:todayStr,note:''});
-  db.prodOrders.push({id:uid(),no:newProdoNo(),date:todayStr,cat:'自销',agent:'',custName:'',name:'阿莫西林胶囊',spec:'0.25g*24粒',qty:100,amount:0,prepaid:0,status:'已投产',process:'制粒',shipDate:''});
-  db.prodOrders.push({id:uid(),no:newProdoNo(),date:todayStr,cat:'OEM',agent:'湖北楚天大包商',custName:'示例客户（商业公司）',name:'复方感冒灵颗粒',spec:'10g*9袋',qty:50,amount:12000,prepaid:3000,status:'未投产',process:'',shipDate:''});
-  var o1={id:uid(),no:newOrderNo(),agentId:c1.id,agentName:c1.company,custName:c1.company,shipDate:todayStr,pid:p1.id,prodLabel:prodLabel(p1),qtyBoxes:50,qtyUnits:20,basePrice:8.5,supplyPrice:10.2,amount:50*40*10.2+20*10.2,rebate:800,tax:0,refund:0,payMethod:'现款',note:''};
+  db.batches.push({id:uid(),pid:p1.id,batchNo:'20260501',prodDate:'2026-05-12',expire:'2028-05-11',perBox:p1.perBox,boxes:150,units:10,inBoxes:150,inUnits:10,inDate:todayStr,note:'首单入库',demo:1});
+  db.batches.push({id:uid(),pid:p1.id,batchNo:'20260302',prodDate:'2026-03-03',expire:'2026-10-02',perBox:p1.perBox,boxes:30,units:0,inBoxes:30,inUnits:0,inDate:todayStr,note:'近效期批次',demo:1});
+  db.batches.push({id:uid(),pid:p2.id,batchNo:'20260401',prodDate:'2026-04-01',expire:'2027-09-30',perBox:p2.perBox,boxes:60,units:5,inBoxes:60,inUnits:5,inDate:todayStr,note:'',demo:1});
+  db.prodOrders.push({id:uid(),no:newProdoNo(),date:todayStr,cat:'自销',agent:'',custName:'',name:'阿莫西林胶囊',spec:'0.25g*24粒',qty:100,amount:0,prepaid:0,status:'已投产',process:'制粒',shipDate:'',demo:1});
+  db.prodOrders.push({id:uid(),no:newProdoNo(),date:todayStr,cat:'OEM',agent:'湖北楚天大包商',custName:'示例客户（商业公司）',name:'复方感冒灵颗粒',spec:'10g*9袋',qty:50,amount:12000,prepaid:3000,status:'未投产',process:'',shipDate:'',demo:1});
+  var o1={id:uid(),no:newOrderNo(),agentId:c1.id,agentName:c1.company,custName:c1.company,shipDate:todayStr,pid:p1.id,prodLabel:prodLabel(p1),qtyBoxes:50,qtyUnits:20,basePrice:8.5,supplyPrice:10.2,amount:50*40*10.2+20*10.2,rebate:800,tax:0,refund:0,payMethod:'现款',note:'',demo:1};
   db.orders.push(o1);
-  var o2={id:uid(),no:newOrderNo(),agentId:c2.id,agentName:c2.company,custName:'湖北瑞康医药有限公司',shipDate:todayStr,pid:p2.id,prodLabel:prodLabel(p2),qtyBoxes:40,qtyUnits:0,basePrice:6,supplyPrice:7.5,amount:40*30*7.5,rebate:300,tax:0,refund:0,payMethod:'账期',note:'下游客户为瑞康'};
+  var o2={id:uid(),no:newOrderNo(),agentId:c2.id,agentName:c2.company,custName:'湖北瑞康医药有限公司',shipDate:todayStr,pid:p2.id,prodLabel:prodLabel(p2),qtyBoxes:40,qtyUnits:0,basePrice:6,supplyPrice:7.5,amount:40*30*7.5,rebate:300,tax:0,refund:0,payMethod:'账期',note:'下游客户为瑞康',demo:1};
   db.orders.push(o2);
   // 示例发货 500 盒：按效期先出，优先发出近效期批次（批号20260302），剩余库存继续触发近效期预警
   var dl=deductStock(p1.id,12*40+20);
   applyDeduct(dl.log);
-  db.shipments.push({id:uid(),orderNo:o1.no,shipDate:todayStr,pid:p1.id,prodLabel:prodLabel(p1),qtyBoxes:12,qtyUnits:20,totalUnits:12*40+20,logistics:'顺丰速运',tracking:'SF1234567890',photo:'',deductLog:dl.log});
-  db.payments.push({id:uid(),type:'ship',ym:todayStr.slice(0,7),shipNo:o1.no,payDate:todayStr,cat:'省总',agentName:c1.company,custName:c1.company,amount:5000,rebate:0,tax:0,refund:0,invoice:'是',note:'',name:'',spec:''});
-  db.logs.push({id:uid(),date:todayStr,customer:c1.company,type:'电话',content:'沟通本季度首批订单发货安排，客户确认月底前送达。',created:todayStr});
-  db.develop.push({id:uid(),date:todayStr,customer:c3.company,name:'益生菌颗粒新品',cat:'OTC新品',quote:18,stage:'在谈',nextVisit:todayStr,progress:'客户有意向，已报价，待对方反馈样品。',note:''});
-  db.payTarget=2310000;
-  db.todos.push({id:uid(),text:'催收华北医药省总 5,000 元回款，跟进转账凭证',date:todayStr,done:false,doneDate:''});
-  db.todos.push({id:uid(),text:'安排阿莫西林胶囊近效期批次出库（批号 20260302）',date:todayStr,done:false,doneDate:''});
-  db.todos.push({id:uid(),text:'向湖北楚天大包商发送复方感冒灵颗粒发货单',date:todayStr,done:false,doneDate:''});
-  save();alert('已载入示例数据，可到各板块查看效果。');render();
+  db.shipments.push({id:uid(),orderNo:o1.no,shipDate:todayStr,pid:p1.id,prodLabel:prodLabel(p1),qtyBoxes:12,qtyUnits:20,totalUnits:12*40+20,logistics:'顺丰速运',tracking:'SF1234567890',photo:'',deductLog:dl.log,demo:1});
+  db.payments.push({id:uid(),type:'ship',ym:todayStr.slice(0,7),shipNo:o1.no,payDate:todayStr,cat:'省总',agentName:c1.company,custName:c1.company,amount:5000,rebate:0,tax:0,refund:0,invoice:'是',note:'',name:'',spec:'',demo:1});
+  db.logs.push({id:uid(),date:todayStr,customer:c1.company,type:'电话',content:'沟通本季度首批订单发货安排，客户确认月底前送达。',created:todayStr,demo:1});
+  db.develop.push({id:uid(),date:todayStr,customer:c3.company,name:'益生菌颗粒新品',cat:'OTC新品',quote:18,stage:'在谈',nextVisit:todayStr,progress:'客户有意向，已报价，待对方反馈样品。',note:'',demo:1});
+  db.demoPayTarget=1;db.payTarget=2310000;
+  db.todos.push({id:uid(),text:'催收华北医药省总 5,000 元回款，跟进转账凭证',date:todayStr,done:false,doneDate:'',demo:1});
+  db.todos.push({id:uid(),text:'安排阿莫西林胶囊近效期批次出库（批号 20260302）',date:todayStr,done:false,doneDate:'',demo:1});
+  db.todos.push({id:uid(),text:'向湖北楚天大包商发送复方感冒灵颗粒发货单',date:todayStr,done:false,doneDate:'',demo:1});
+  save();alert('已载入示例数据，可到各板块查看效果。\n\n不需要时到「设置」页点「清除示例数据」即可一键删净（含云端）。');render();
+}
+/* 是否为示例数据（按 demo:1 标记，或按旧版示例数据的特征识别，兼容历史遗留） */
+var DEMO_PHONE={'13800001111':1,'13800002222':1,'13800003333':1};
+var DEMO_COMPANY={'华北医药省总经销有限公司':1,'湖北楚天大包商':1,'成都康仁堂连锁药店':1};
+var DEMO_TODO={'催收华北医药省总 5,000 元回款，跟进转账凭证':1,'安排阿莫西林胶囊近效期批次出库（批号 20260302）':1,'向湖北楚天大包商发送复方感冒灵颗粒发货单':1};
+function isDemoCust(r){return !!(r&&(r.demo||(DEMO_PHONE[r.phone]&&DEMO_COMPANY[r.company])));}
+function isDemoProd(r){return !!(r&&(r.demo||(String(r.custName||'').indexOf('示例客户')===0&&(r.brand==='XX制药'||r.brand==='YY药业'))));}
+function isDemoTodo(r){return !!(r&&(r.demo||DEMO_TODO[r.text]));}
+function demoCount(){
+  var n=0,c=0;
+  ['customers','products','batches','orders','shipments','payments','prodOrders','develop','logs','todos'].forEach(function(k){
+    (db[k]||[]).forEach(function(r){if(r&&r.demo)n++;});
+  });
+  (db.customers||[]).forEach(function(r){if(isDemoCust(r)&&!r.demo)c++;});
+  (db.products||[]).forEach(function(r){if(isDemoProd(r)&&!r.demo)c++;});
+  (db.todos||[]).forEach(function(r){if(isDemoTodo(r)&&!r.demo)c++;});
+  return n+c;
+}
+/* 清除示例数据：删除全部示例记录并打删除标记（所有设备同步删除），真实数据不受影响 */
+function clearDemoData(){
+  var total=demoCount();
+  if(!total){alert('当前没有发现示例数据。');return;}
+  if(!confirm('将清除 '+total+' 条示例数据（客户/产品/库存/订单/发货/回款/待办等）。\n\n你自己的真实数据不会受影响；清除结果会同步到所有设备，且不可恢复。\n\n确定清除吗？'))return;
+  var demoProdIds={},ids=[];
+  (db.products||[]).forEach(function(p){if(isDemoProd(p))demoProdIds[p.id]=1;});
+  function keep(arr,pred){
+    var out=[];
+    (arr||[]).forEach(function(r){
+      if(r&&pred(r)){ids.push(r.id);}else{out.push(r);}
+    });
+    return out;
+  }
+  db.customers=keep(db.customers,isDemoCust);
+  db.products=keep(db.products,isDemoProd);
+  db.todos   =keep(db.todos,isDemoTodo);
+  db.batches =keep(db.batches,function(r){return r&&((r.demo)||demoProdIds[r.pid]);});
+  db.orders  =keep(db.orders,function(r){return r&&((r.demo)||demoProdIds[r.pid]);});
+  db.shipments=keep(db.shipments,function(r){return r&&((r.demo)||demoProdIds[r.pid]);});
+  db.docs    =keep(db.docs,function(r){return r&&((r.demo)||demoProdIds[r.refId]);});
+  /* 其余表按 demo 标记清理 */
+  ['payments','prodOrders','develop','logs'].forEach(function(k){
+    db[k]=keep(db[k],function(r){return !!(r&&r.demo);});
+  });
+  markDel(ids);
+  if(db.demoPayTarget){delete db.demoPayTarget;if(Number(db.payTarget)===2310000){db.payTarget=0;db.payTargetT=Date.now();}}
+  save();render();
+  alert('已清除 '+ids.length+' 条示例数据，并同步删除到所有设备。');
+}
+/* 示例数据提示条：只要还留着示例数据就显著提示，并提供一键删除（避免与真实数据混淆） */
+/* 导入模板自带的示例行（如「示例代理商医药有限公司」「示例客户（连锁总部）」）：
+   导入时自动跳过，避免出现"我没录过这条"的幽灵记录。只看关键字段，备注/纪要里的"示例"二字不受影响。 */
+var TPL_EX_KEYS={'agent':1,'agentName':1,'custName':1,'company':1,'contact':1,'name':1,'prodName':1,'customer':1,'item':1};
+function isTplExample(rec){
+  if(!rec)return false;
+  for(var k in TPL_EX_KEYS){
+    var v=rec[k];
+    if(typeof v==='string'&&v.indexOf('示例')>=0)return true;
+  }
+  return false;
+}
+function demoBannerHTML(){
+  var n=demoCount();
+  if(!n)return '';
+  return '<div style="background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:10px;padding:10px 12px;margin-bottom:13px;font-size:12.5px;line-height:1.7">'
+    +'检测到 <b>'+n+'</b> 条「示例数据」（客户「华北医药省总经销有限公司 / 湖北楚天大包商 / 成都康仁堂连锁药店」、产品「阿莫西林胶囊 / 复方感冒灵颗粒」等，是用于了解功能的演示内容，不是你录入的）。'
+    +'<div style="margin-top:8px"><button class="btn sm" onclick="clearDemoData()">一键清除示例数据</button></div></div>';
 }
 function newOrderNo(){
   db.seq=(db.seq||1)+1;
@@ -1912,7 +1990,7 @@ function importCustExcel(input){
         var hc=String(head[j]==null?'':head[j]).trim();
         if(map[hc])headMap[j]=map[hc];
       }
-      var added=0,skip=0;
+      var added=0,skip=0,skipMsg=[];
       for(var k=headRow+1;k<json.length;k++){
         var rr=json[k];if(!rr)continue;
         var rec={id:uid(),created:today()},any=false;
@@ -1921,6 +1999,7 @@ function importCustExcel(input){
           if(rec[headMap[c]])any=true;
         }
         if(!any)continue;
+        if(isTplExample(rec)){skip++;if(typeof skipMsg!=='undefined')skipMsg.push('模板示例行（'+String(rec.name||rec.custName||rec.company||rec.prodName||rec.agent||rec.agentName||'')+'…）已自动跳过');continue;}
         if(rec.cat&&rec.cat!=='省总'&&rec.cat!=='大包商'&&rec.cat!=='零散客户'){skip++;continue;}
         if(!rec.company){skip++;continue;}
         rec.cat=rec.cat||'零散客户';
@@ -1928,7 +2007,7 @@ function importCustExcel(input){
       }
       save();
       if(input)input.value='';
-      alert(added?('成功导入 '+added+' 条客户'+(skip?('，跳过 '+skip+' 条无效行'):'')):('未导入数据，请检查格式'+(skip?('（跳过 '+skip+' 条无效行）'):'')));
+      alert(added?('成功导入 '+added+' 条客户'+(skip?('，跳过 '+skip+' 条：\n'+skipMsg.join('\n')):'')):('未导入数据，请检查格式'+(skip?('（跳过 '+skip+' 条：\n'+skipMsg.join('\n')):'')));
       render();
     }catch(e){console.log('导入失败',e);alert('导入失败：'+e.message);}
   };
@@ -2235,6 +2314,7 @@ function importStockExcel(input){
           if(v)any=true;
         }
         if(!any)continue;
+        if(isTplExample(rec)){skip++;if(typeof skipMsg!=='undefined')skipMsg.push('模板示例行（'+String(rec.name||rec.custName||rec.company||rec.prodName||rec.agent||rec.agentName||'')+'…）已自动跳过');continue;}
         if(rec.cat!=='自销'&&rec.cat!=='OEM'){skip++;skipMsg.push('第'+(k+1)+'行：产品分类需为 自销 或 OEM');continue;}
         if(!rec.name){skip++;skipMsg.push('第'+(k+1)+'行：产品名称缺失');continue;}
         if(!rec.batchNo){skip++;skipMsg.push('第'+(k+1)+'行：批号缺失');continue;}
@@ -2794,6 +2874,7 @@ function importOrderExcel(input){
           if(v)any=true;
         }
         if(!any)continue;
+        if(isTplExample(rec)){skip++;if(typeof skipMsg!=='undefined')skipMsg.push('模板示例行（'+String(rec.name||rec.custName||rec.company||rec.prodName||rec.agent||rec.agentName||'')+'…）已自动跳过');continue;}
         for(var n=0;n<NUM.length;n++){var kk=NUM[n];rec[kk]=parseFloat(rec[kk])||0;}
         if(!rec.agentName){skip++;skipMsg.push('第'+(k+1)+'行：代理商缺失');continue;}
         if(!rec.name){skip++;skipMsg.push('第'+(k+1)+'行：产品名称缺失');continue;}
@@ -3127,6 +3208,7 @@ function importShipExcel(input){
           rec[headMap[c]]=v;if(v)any=true;
         }
         if(!any)continue;
+        if(isTplExample(rec)){skip++;if(typeof skipMsg!=='undefined')skipMsg.push('模板示例行（'+String(rec.name||rec.custName||rec.company||rec.prodName||rec.agent||rec.agentName||'')+'…）已自动跳过');continue;}
         if(!rec.orderNo){skip++;skipMsg.push('第'+(k+1)+'行：发货单号缺失');continue;}
         var o=db.orders.filter(function(x){return x.no===rec.orderNo;})[0];
         if(!o){skip++;skipMsg.push('第'+(k+1)+'行：销售订单中不存在发货单号「'+rec.orderNo+'」，物流记录需关联销售订单');continue;}
@@ -3796,6 +3878,7 @@ function importPayExcel(input){
         var rec={},any=false;
         for(var c in headMap){var v=String(rr[c]==null?'':rr[c]).trim();rec[headMap[c]]=v;if(v)any=true;}
         if(!any)continue;
+        if(isTplExample(rec)){skip++;if(typeof skipMsg!=='undefined')skipMsg.push('模板示例行（'+String(rec.name||rec.custName||rec.company||rec.prodName||rec.agent||rec.agentName||'')+'…）已自动跳过');continue;}
         for(var n=0;n<NUM.length;n++){var kk=NUM[n];rec[kk]=parseFloat(rec[kk])||0;}
         if(!rec.payDate){skip++;skipMsg.push('第'+(k+1)+'行：回款日期缺失');continue;}
         if(!(rec.amount>0)){skip++;skipMsg.push('第'+(k+1)+'行：回款金额缺失');continue;}
@@ -4119,6 +4202,7 @@ function importPolicyExcel(input){
           if(v)any=true;
         }
         if(!any)continue;
+        if(isTplExample(rec)){skip++;if(typeof skipMsg!=='undefined')skipMsg.push('模板示例行（'+String(rec.name||rec.custName||rec.company||rec.prodName||rec.agent||rec.agentName||'')+'…）已自动跳过');continue;}
         if(!rec.agent||!rec.prodName){skip++;skipMsg.push('第'+(k+1)+'行：代理商或产品名称缺失');continue;}
         if(rec.cat&&CAT_ORDER[rec.cat]===undefined)rec.cat='';
         if(rec.prodCat!=='自销'&&rec.prodCat!=='OEM')rec.prodCat='';
@@ -4259,6 +4343,7 @@ function importLogExcel(input){
           rec[headMap[c]]=v;if(v)any=true;
         }
         if(!any)continue;
+        if(isTplExample(rec)){skip++;if(typeof skipMsg!=='undefined')skipMsg.push('模板示例行（'+String(rec.name||rec.custName||rec.company||rec.prodName||rec.agent||rec.agentName||'')+'…）已自动跳过');continue;}
         if(!rec.date||!/^\d{4}-\d{2}-\d{2}$/.test(rec.date=normDate(rec.date))){skip++;skipMsg.push('第'+(k+1)+'行：日期缺失或格式不对');continue;}
         if(!rec.custName){skip++;skipMsg.push('第'+(k+1)+'行：客户名称缺失');continue;}
         if(!rec.content){skip++;skipMsg.push('第'+(k+1)+'行：纪要缺失');continue;}
@@ -4850,6 +4935,7 @@ function importProdExcel(input){
           if(v)any=true;
         }
         if(!any)continue;
+        if(isTplExample(rec)){skip++;if(typeof skipMsg!=='undefined')skipMsg.push('模板示例行（'+String(rec.name||rec.custName||rec.company||rec.prodName||rec.agent||rec.agentName||'')+'…）已自动跳过');continue;}
         for(var n=0;n<NUM.length;n++){var kk=NUM[n];rec[kk]=parseFloat(rec[kk])||0;}
         rec.cat=(rec.cat==='oem'||rec.cat==='Oem')?'OEM':rec.cat;
         if(!rec.name){skip++;skipMsg.push('第'+(k+1)+'行：产品名称缺失');continue;}
@@ -5111,6 +5197,7 @@ function importProdoExcel(input){
           if(rec[headMap[c]])any=true;
         }
         if(!any)continue;
+        if(isTplExample(rec)){skip++;if(typeof skipMsg!=='undefined')skipMsg.push('模板示例行（'+String(rec.name||rec.custName||rec.company||rec.prodName||rec.agent||rec.agentName||'')+'…）已自动跳过');continue;}
         rec.cat=(rec.cat==='oem'||rec.cat==='Oem')?'OEM':rec.cat;
         rec.qty=parseFloat(rec.qty)||0;
         rec.amount=parseFloat(rec.amount)||0;
@@ -5322,6 +5409,7 @@ function importDevExcel(input){
           rec[headMap[c]]=v;if(v)any=true;
         }
         if(!any)continue;
+        if(isTplExample(rec)){skip++;if(typeof skipMsg!=='undefined')skipMsg.push('模板示例行（'+String(rec.name||rec.custName||rec.company||rec.prodName||rec.agent||rec.agentName||'')+'…）已自动跳过');continue;}
         if(rec.cat!=='省总'&&rec.cat!=='大包商'&&rec.cat!=='零散客户'){skip++;skipMsg.push('第'+(k+1)+'行：客户分类需为 省总/大包商/零散客户');continue;}
         if(!rec.custName){skip++;skipMsg.push('第'+(k+1)+'行：客户名称缺失');continue;}
         if(!rec.name){skip++;skipMsg.push('第'+(k+1)+'行：产品名称缺失');continue;}
@@ -5464,10 +5552,12 @@ function renderSet(c){
       +'<p style="color:var(--sub);margin-bottom:12px">已上传资料 <b>'+((db.docs||[]).length)+'</b> 份。文件存放在与台账同一账号下的云端资料空间，任何设备打开工作台都能直接下载或预览，无需手动拷贝；单个文件上限 '+DOC_MAX_MB+'MB。</p>'
       +'<button class="btn" onclick="openDocStats()">查看资料清单与占用</button>'
       +'</div></div>'+
-      '<div class="card"><div class="card-hd"><h3>数据管理</h3></div><div class="card-bd">'+
-      '<p style="color:var(--sub);margin-bottom:12px">首次使用可载入示例数据了解各板块功能；清空数据会同时覆盖云端，操作前请先备份。</p>'+
-      '<button class="btn" onclick="loadDemo()">载入示例数据</button> '+
-      '<button class="btn dgr" onclick="clearAllData()">清空全部数据</button>'+
+      '<div class="card"><div class="card-hd"><h3>数据管理</h3></div><div class="card-bd">'
+      +demoBannerHTML()
+      +'<p style="color:var(--sub);margin-bottom:12px">首次使用可载入示例数据了解各板块功能（示例数据会同步到所有设备，可随时用上方按钮删除）；清空数据会同时覆盖云端，操作前请先备份。</p>'
+      +'<button class="btn" onclick="loadDemo()">载入示例数据</button> '
+      +'<button class="btn dgr" onclick="clearDemoData()">清除示例数据</button> '
+      +'<button class="btn dgr" onclick="clearAllData()">清空全部数据</button>'+
       '<div style="border-top:1px solid var(--line);margin:14px 0"></div>'+
       '<p style="color:var(--sub);margin-bottom:12px">仅清空销售与库存台账（销售订单、物流发货、回款明细、库存批次），保留客户档案、产品档案、生产订单、新品开发、工作记录、待办。适合数据导入有误、重新从头记账时使用。</p>'+
       '<button class="btn dgr" onclick="clearSalesStockData()">清空销售与库存数据（重新记账）</button>'+
