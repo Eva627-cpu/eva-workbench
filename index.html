@@ -64,6 +64,14 @@ td{padding:9px 10px;border-bottom:1px solid var(--accent-soft);vertical-align:mi
 .bar-row .bt{flex:1;background:var(--accent-soft);border-radius:4px;height:18px;position:relative}
 .bar-row .bf{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent-g1),var(--accent))}
 .bar-row .bv{width:110px;flex-shrink:0}
+/* 阶段性返点进度板（产品政策页顶部）：窄屏时数值换到条形图下方整行显示 */
+.pstage-row{flex-wrap:wrap;cursor:pointer}
+.pstage-row .bl{width:190px}
+.pstage-row .bv{width:300px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+@media(max-width:700px){
+  .pstage-row .bl{width:104px;font-size:11.5px}
+  .pstage-row .bv{width:100%;padding-left:0}
+}
 .mask{position:fixed;inset:0;background:rgba(0,0,0,.40);display:none;align-items:flex-start;justify-content:center;z-index:100;overflow:auto;padding:30px 16px}
 .mask.show{display:flex}
 .modal{background:#fff;border-radius:10px;width:680px;max-width:100%;box-shadow:0 20px 50px rgba(0,0,0,.25)}
@@ -662,7 +670,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261012a',_verChecking=false;
+var APP_VER='20261012b',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -736,7 +744,8 @@ function flushNow(){
 window.addEventListener('pagehide',function(){if(_dirty||_uploading)flushNow();});
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 function fmtN(n){return (Number(n)||0).toLocaleString('zh-CN',{maximumFractionDigits:2});}
-function p2(n){return n<10?'0'+n:''+n;}
+/* 两位补零：先转数字，避免把已经补过零的字符串（'03'）再补一次变成 '003' */
+function p2(n){var v=parseInt(n,10);if(isNaN(v))v=0;return v<10?'0'+v:''+v;}
 function today(){var d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());}
 /* n 天后的日期（合同到期提醒示例数据 / 日期推算用） */
 function dateAdd(days){var d=new Date();d.setDate(d.getDate()+(Number(days)||0));return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());}
@@ -1338,6 +1347,13 @@ function formEl(k){return document.querySelector('[data-k="'+k+'"]');}
 function formVal(k){var el=formEl(k);return el?el.value:'';}
 function formToggle(key,show){var el=formEl(key);if(el&&el.parentNode&&el.parentNode.classList&&el.parentNode.classList.contains('fitem'))el.parentNode.style.display=show?'':'none';}
 function formHidden(k){var el=formEl(k);return !!(el&&el.parentNode&&el.parentNode.classList&&el.parentNode.classList.contains('fitem')&&el.parentNode.style.display==='none');}
+/* 分组标题的显隐：按分组文字精确匹配（分组里的字段本身仍用 formToggle 控制） */
+function formGroupToggle(name,show){
+  var gs=document.querySelectorAll('#mBody .fgroup');
+  for(var i=0;i<gs.length;i++){
+    if(String(gs[i].textContent||'').trim()===name){gs[i].style.display=show?'':'none';return;}
+  }
+}
 
 /* ================= Excel 导出 ================= */
 function exportXLS(moduleName,cols,rows){
@@ -4500,23 +4516,91 @@ function downPayTpl(){
    · 赠货（买N赠M）：发货时 N 件带金额、M 件赠品金额为 0（赠品单价可手动改）；
      开票价按 N+M 件全额开票，供货价中 M 件为 0，多余部分扣税金后返款给客户。
    · 返点：按该产品（开票）总金额的一定比例返给客户。 */
-var POLICY_TYPES=['赠货','返点'];
-function policyType(r){return r.policyType==='返点'?'返点':'赠货';}
+var POLICY_TYPES=['赠货','返点','阶段性返点'];
+function policyType(r){
+  var t=r?r.policyType:'';
+  return (t==='返点'||t==='阶段性返点')?t:'赠货';
+}
+function policyStage(r){return policyType(r)==='阶段性返点';}
 function policyProdCatTag(c){return c?'<span class="tag '+(c==='自销'?'c1':'c2')+'">'+esc(c)+'</span>':'—';}
 /* 政策文字描述 */
 function policyText(r){
-  if(policyType(r)==='返点')return '返点 '+(Number(r.rebateRate)||0)+'%';
+  var t=policyType(r);
+  if(t==='返点')return '返点 '+(Number(r.rebateRate)||0)+'%';
+  if(t==='阶段性返点')return (r.startDate||'—')+' ~ '+(r.endDate||'—')+' · 完成 '+(Number(r.doneRate)||0)+'% / 未完成 '+(Number(r.undoneRate)||0)+'%';
   return '买 '+(Number(r.giftBuy)||0)+' 赠 '+(Number(r.giftGet)||0);
 }
 /* 返款参考（单个政策循环）：
    赠货 = 开票价×(买+赠) − 供货价×买
-   返点 = 开票价 × 返点比例（单件） */
+   返点 = 开票价 × 返点比例（单件）
+   阶段性返点 = 区间净回款 × 适用比例（见 policyStageStat） */
 function policyRefund(r){
   var inv=Number(r.invoicePrice)||0;
-  if(policyType(r)==='返点')return inv*((Number(r.rebateRate)||0)/100);
+  var t=policyType(r);
+  if(t==='阶段性返点')return policyStageStat(r).pay;
+  if(t==='返点')return inv*((Number(r.rebateRate)||0)/100);
   var b=Number(r.giftBuy)||0,g=Number(r.giftGet)||0;
   if(!(b+g))return 0;
   return inv*(b+g)-(Number(r.supplyPrice)||0)*b;
+}
+/* ================= 阶段性返点：区间回款自动结算 =================
+   结算口径：统计区间内该客户（无客户名时按代理商）的回款，
+   毛回款 = Σ回款金额；净回款 = 毛回款 − Σ返利 − Σ返款（返利、返款要从总回款里扣掉）；
+   完成判定 = 净回款 ≥ 目标金额 且 返点要求达标；
+   返点金额 = 净回款 × （完成 → 完成比例；未完成 → 未完成比例）。 */
+function policyStageHit(r,p){
+  var cn=String(r.custName||'').trim(),pcn=String(p.custName||'').trim();
+  var ag=String(r.agent||'').trim(),pag=String(p.agentName||'').trim();
+  if(cn&&pcn)return cn===pcn;      /* 两端都有客户名 → 按客户名比 */
+  if(ag&&pag)return ag===pag;      /* 客户名缺失 → 退到代理商比 */
+  return false;
+}
+function policyStageRows(r){
+  var s=r.startDate||'',e=r.endDate||'';
+  var only=(r.scopeProd==='仅本产品'),pn=String(r.prodName||'').trim();
+  var out=[];
+  for(var i=0;i<db.payments.length;i++){
+    var p=db.payments[i],d=p.payDate||'';
+    if(!d)continue;
+    if(s&&d<s)continue;
+    if(e&&d>e)continue;
+    if(!policyStageHit(r,p))continue;
+    if(only&&pn){
+      var its=payItems(p),hit=false;
+      for(var j=0;j<its.length;j++){if(String(its[j].name||'').trim()===pn){hit=true;break;}}
+      if(!hit)continue;
+    }
+    out.push(p);
+  }
+  out.sort(function(a,b){return (a.payDate||'')<(b.payDate||'')?-1:((a.payDate||'')>(b.payDate||'')?1:0);});
+  return out;
+}
+function policyStageStat(r){
+  var rows=policyStageRows(r),gross=0,reb=0,ref=0;
+  for(var i=0;i<rows.length;i++){
+    gross+=Number(rows[i].amount)||0;
+    reb+=Number(rows[i].rebate)||0;
+    ref+=Number(rows[i].refund)||0;
+  }
+  var net=r2(gross-reb-ref);
+  var target=Number(r.targetAmount)||0;
+  var pct=target>0?Math.round(net/target*1000)/10:0;
+  var hasReq=!!String(r.reqText||'').trim();
+  var reqState=r.reqPass||'未确认';
+  var reqOk=hasReq?(reqState==='达标'):(reqState!=='未达标');
+  var amtOk=target>0?(net>=target):true;
+  var done=amtOk&&reqOk;
+  var t=today(),st;
+  if(r.startDate&&t<r.startDate)st='未开始';
+  else if(r.endDate&&t>r.endDate)st=done?'已完成':'未完成';
+  else st=done?'已完成':'进行中';
+  var rate=done?(Number(r.doneRate)||0):(Number(r.undoneRate)||0);
+  return {rows:rows,gross:r2(gross),rebate:r2(reb),refund:r2(ref),net:net,target:target,pct:pct,
+    reqState:reqState,reqOk:reqOk,amtOk:amtOk,done:done,status:st,rate:rate,pay:r2(net*rate/100)};
+}
+function policyStageTag(st){
+  var c=(st==='已完成')?'ok':((st==='未完成')?'warn':((st==='进行中')?'c2':'pend'));
+  return '<span class="tag '+c+'">'+esc(st)+'</span>';
 }
 /* 排序：客户分类（省总>大包商>零散客户）→ 代理商 → 客户名称（代理商通用政策排最前）→ 产品名称 → 规格 */
 function policySort(rows){
@@ -4542,32 +4626,54 @@ function policyCols(){
     {key:'basePrice',label:'底价',fmt:function(r){return fmtN(r.basePrice);}},
     {key:'supplyPrice',label:'供货价',fmt:function(r){return fmtN(r.supplyPrice);}},
     {key:'invoicePrice',label:'开票价',fmt:function(r){return fmtN(r.invoicePrice);}},
-    {key:'pType',label:'政策类型',fmt:function(r){return '<span class="tag '+(policyType(r)==='返点'?'c2':'c1')+'">'+policyType(r)+'</span>';}},
+    {key:'pType',label:'政策类型',fmt:function(r){
+      var t=policyType(r);
+      return '<span class="tag '+(t==='阶段性返点'?'c3':(t==='返点'?'c2':'c1'))+'">'+esc(t)+'</span>';
+    }},
     {key:'policy',label:'政策',fmt:function(r){return esc(policyText(r));}},
+    {key:'period',label:'结算区间',fmt:function(r){return policyStage(r)?(esc((r.startDate||'—')+' ~ '+(r.endDate||'—'))):'—';}},
+    {key:'actual',label:'区间回款（净）',fmt:function(r){
+      if(!policyStage(r))return '—';
+      var s=policyStageStat(r);
+      return '<span title="毛回款 '+esc(fmtN(s.gross))+' 元，扣返利 '+esc(fmtN(s.rebate))+'、扣返款 '+esc(fmtN(s.refund))+' 元">'+esc(fmtN(s.net))+' 元</span>';
+    }},
+    {key:'stat',label:'达成情况',fmt:function(r){
+      if(!policyStage(r))return '—';
+      var s=policyStageStat(r);
+      return '<span title="目标 '+esc(fmtN(s.target))+' 元 · 要求状态 '+esc(s.reqState)+'">'+s.pct+'%</span> '+policyStageTag(s.status);
+    }},
     {key:'refund',label:'返款参考',fmt:function(r){return fmtN(Math.round(policyRefund(r)*100)/100);}}
   ];
 }
-/* 产品名称 / 规格候选：按产品分类过滤；OEM 再按代理商筛（筛不到则退回该分类全部） */
-function policyProds(cat,agent){
+/* 产品名称 / 规格候选：按产品分类过滤
+   —— 自销 → 调出自销产品；OEM → 该客户名下的 OEM 产品，其次该代理商的，都没有才退回该分类全部（并提示） */
+function policyProdScope(cat,agent,cust){
   agent=agent?String(agent).trim():'';
+  cust=cust?String(cust).trim():'';
   var all=db.products.filter(function(p){return !cat||String(p.cat||'')===cat;});
-  if(cat==='OEM'&&agent){
-    var m=all.filter(function(p){return String(p.agent||'').trim()===agent;});
-    if(!m.length)m=all.filter(function(p){return String(p.agent||'').trim().indexOf(agent)>=0;});
-    if(m.length)return m;
+  if(cat!=='OEM'||(!agent&&!cust))return {list:all,msg:''};
+  if(cust){
+    var mc=all.filter(function(p){return String(p.custName||'').trim()===cust;});
+    if(mc.length)return {list:mc,msg:''};
   }
-  return all;
+  if(agent){
+    var ma=all.filter(function(p){return String(p.agent||'').trim()===agent;});
+    if(!ma.length)ma=all.filter(function(p){return String(p.agent||'').trim().indexOf(agent)>=0;});
+    if(ma.length)return {list:ma,msg:''};
+  }
+  return {list:all,msg:(cust||agent)?'该客户 / 代理商名下暂无 OEM 产品，已临时列出全部 OEM 产品（可到产品档案补填归属）':''};
 }
-function policyProdOpts(cat,agent,keep){
+function policyProds(cat,agent,cust){return policyProdScope(cat,agent,cust).list;}
+function policyProdOpts(cat,agent,cust,keep){
   var seen={},out=[];
-  policyProds(cat,agent).forEach(function(p){var v=p.name;if(!v||seen[v])return;seen[v]=1;out.push(v);});
+  policyProds(cat,agent,cust).forEach(function(p){var v=p.name;if(!v||seen[v])return;seen[v]=1;out.push(v);});
   out.sort(pyCmp);
   if(keep&&out.indexOf(keep)<0)out.unshift(keep);
   return out;
 }
-function policySpecOpts(cat,agent,name,keep){
+function policySpecOpts(cat,agent,cust,name,keep){
   var seen={},out=[];
-  policyProds(cat,agent).forEach(function(p){
+  policyProds(cat,agent,cust).forEach(function(p){
     if(name&&p.name!==name)return;
     var v=p.spec;if(!v||seen[v])return;seen[v]=1;out.push(v);
   });
@@ -4582,7 +4688,26 @@ function policyOptsHTML(list,keep){
 }
 function policySpecRefresh(){
   var sp=document.querySelector('#mBody select[data-k="spec"]');
-  if(sp)sp.innerHTML=policyOptsHTML(policySpecOpts(formVal('prodCat'),formVal('agent'),formVal('prodName')),formVal('spec'));
+  if(sp)sp.innerHTML=policyOptsHTML(policySpecOpts(formVal('prodCat'),formVal('agent'),formVal('custName'),formVal('prodName')),formVal('spec'));
+}
+/* 产品名称候选刷新：自销 → 全部自销产品；OEM → 该客户（其次该代理商）的 OEM 产品；
+   范围内没有产品时给出提示，而不是默默列出全部分类 */
+function policyNameRefresh(){
+  var nm=document.querySelector('#mBody select[data-k="prodName"]');
+  if(!nm)return;
+  var sc=policyProdScope(formVal('prodCat'),formVal('agent'),formVal('custName'));
+  var list=policyProdOpts(formVal('prodCat'),formVal('agent'),formVal('custName'),formVal('prodName'));
+  nm.innerHTML=policyOptsHTML(list,formVal('prodName'))+(list.length?'':'<option value="" disabled>（暂无对应产品，请先到产品档案维护）</option>');
+  /* 兜底提示：就放在「产品名称」下面，改了分类 / 客户即时出现 */
+  var note=document.getElementById('polProdNote');
+  if(!note){
+    note=document.createElement('div');note.id='polProdNote';
+    nm.parentNode.parentNode.insertBefore(note,nm.parentNode.nextSibling);
+  }
+  note.className='hint';
+  note.style.display=sc.msg?'':'none';
+  note.textContent=sc.msg||'';
+  policySpecRefresh();
 }
 /* 选定产品后自动带入档案里的底价/供货价/开票价（已填的不覆盖） */
 function policyFillPrice(){
@@ -4599,13 +4724,41 @@ function policyFillPrice(){
     if(el&&!String(el.value||'').trim()&&Number(m[k])>0)el.value=m[k];
   });
 }
+/* 阶段性返点结算进度板：区间净回款 / 目标 一条一行，点一行看结算明细 */
+function policyStageBoardHTML(){
+  var list=[],i;
+  for(i=0;i<db.prodPolicies.length;i++)if(policyStage(db.prodPolicies[i]))list.push(db.prodPolicies[i]);
+  if(!list.length)return '';
+  policySort(list);
+  var done=0,pay=0,h='';
+  for(i=0;i<list.length;i++){
+    var r=list[i],s=policyStageStat(r);
+    if(s.status==='已完成')done++;
+    pay+=s.pay;
+    var w=Math.min(100,Math.max(0,Math.round(s.pct)));
+    var nm=(r.custName||r.agent||'—')+' · '+r.prodName;
+    h+='<div class="bar-row pstage-row" title="'+esc('统计区间 '+(r.startDate||'—')+' ~ '+(r.endDate||'—')+'（点开结算明细）')+'" onclick="openPolicySettle(\''+r.id+'\')">'
+      +'<span class="bl" title="'+esc(nm)+'">'+esc(nm)+'</span>'
+      +'<span class="bt"><span class="bf" style="width:'+w+'%;'+(s.done?'background:linear-gradient(90deg,#34c759,#1d7a34)':'')+'"></span></span>'
+      +'<span class="bv">净回款 '+fmtN(s.net)+' / 目标 '+fmtN(s.target)+' 元（'+s.pct+'%）'+policyStageTag(s.status)+'</span>'
+      +'</div>';
+  }
+  return '<div style="padding:2px 0 12px;border-bottom:1px solid var(--line);margin-bottom:12px">'
+    +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'
+    +'<span style="font-size:13.5px;font-weight:700;color:var(--txt)">阶段性返点 · 结算进度</span>'
+    +'<span class="tag c3">已完成 '+done+' / 共 '+list.length+' 条</span>'
+    +'<span class="tag c2">预计返点合计 '+fmtN(r2(pay))+' 元</span></div>'
+    +h
+    +'<div class="hint">区间回款按回款日期统计；返利、返款已从总回款中扣除后再合计。</div></div>';
+}
 function drawPolicy(){
   var holder=document.getElementById('policyTbl');if(!holder)return;
   var rows=policySort(db.prodPolicies.slice());
   var cnt=document.getElementById('policyCnt');
   if(cnt)cnt.textContent='共 '+db.prodPolicies.length+' 条政策';
-  holder.innerHTML=smartTableHTML('policy',policyCols(),rows,function(r){return actB(r.id,'openPolicyForm','delPolicy');},drawPolicy,
-    {key:function(r){return (r.agent||'')+'\u0000'+(r.custName||'');}});
+  holder.innerHTML=policyStageBoardHTML()+smartTableHTML('policy',policyCols(),rows,function(r){
+    return actB(r.id,'openPolicyForm','delPolicy')+(policyStage(r)?'<button class="btn sm" onclick="openPolicySettle(\''+r.id+'\')">结算</button>':'');
+  },drawPolicy,{key:function(r){return (r.agent||'')+'\u0000'+(r.custName||'');}});
 }
 /* 客户分类 → 代理商 → 客户名称 联动（与其它模块口径一致） */
 function policyCatChg(sel){
@@ -4616,43 +4769,70 @@ function policyCatChg(sel){
 function policyAgentChg(el){
   var cat=formVal('cat'),ag=el?String(el.value||'').trim():'';
   var dl=document.getElementById('dl_custName');if(dl)dl.innerHTML=custDLHTML('company',cat,ag);
-  var nm=document.querySelector('#mBody select[data-k="prodName"]');
-  if(nm)nm.innerHTML=policyOptsHTML(policyProdOpts(formVal('prodCat'),ag,formVal('prodName')),formVal('prodName'));
-  policySpecRefresh();
+  policyNameRefresh();
 }
-function policyProdCatChg(sel){
-  var cat=sel?sel.value:'';
-  var nm=document.querySelector('#mBody select[data-k="prodName"]');
-  if(nm)nm.innerHTML=policyOptsHTML(policyProdOpts(cat,formVal('agent'),formVal('prodName')),formVal('prodName'));
-  policySpecRefresh();
-}
+/* 客户名称变化（OEM 产品按客户归属筛） */
+function policyCustChg(){policyNameRefresh();}
+function policyProdCatChg(sel){policyNameRefresh();}
 function policyProdNameChg(el){
   var sp=document.querySelector('#mBody select[data-k="spec"]');
   if(sp){
-    var list=policySpecOpts(formVal('prodCat'),formVal('agent'),formVal('prodName'));
+    var list=policySpecOpts(formVal('prodCat'),formVal('agent'),formVal('custName'),formVal('prodName'));
     sp.innerHTML=policyOptsHTML(list,list.length===1?list[0]:'');
   }
   policyFillPrice();
+  if(document.getElementById('polStageBox'))policyStagePreview();
 }
-/* 政策类型切换：赠货显示买赠，返点显示返点比例 */
+/* 政策类型切换：赠货 → 买赠；返点 → 返点比例；阶段性返点 → 区间结算字段 */
 function policyTypeChg(sel){
-  var t=sel?sel.value:'';
-  formToggle('giftBuy',t!=='返点');
-  formToggle('giftGet',t!=='返点');
+  var t=sel?sel.value:formVal('policyType');
+  var stage=(t==='阶段性返点');
+  formToggle('giftBuy',t==='赠货');
+  formToggle('giftGet',t==='赠货');
   formToggle('rebateRate',t==='返点');
+  ['startDate','endDate','targetAmount','scopeProd','reqText','reqPass','doneRate','undoneRate'].forEach(function(k){formToggle(k,stage);});
+  formGroupToggle('阶段性返点（区间结算）',stage);
+  policyStagePreview();
+}
+/* 区间结算实时预览：改区间 / 目标 / 比例 立即看到区间回款与结算结果 */
+function policyStagePreview(){
+  var box=document.getElementById('polStageBox');if(!box)return;
+  if(formVal('policyType')!=='阶段性返点'){box.innerHTML='';return;}
+  var r={custName:formVal('custName'),agent:formVal('agent'),prodName:formVal('prodName'),
+    startDate:formVal('startDate'),endDate:formVal('endDate'),targetAmount:formVal('targetAmount'),
+    scopeProd:formVal('scopeProd')||'客户全部产品',reqText:formVal('reqText'),reqPass:formVal('reqPass')||'未确认',
+    doneRate:formVal('doneRate'),undoneRate:formVal('undoneRate')};
+  var s=policyStageStat(r);
+  box.innerHTML='<div style="margin-top:6px;padding-top:10px;border-top:1px dashed var(--line)">'
+    +'<div class="wd-sec">区间回款自动结算（实时）</div>'
+    +'<div class="mch-sum">'
+    +'<span><em>统计区间</em> <b>'+esc((r.startDate||'—')+' ~ '+(r.endDate||'—'))+'</b></span>'
+    +'<span><em>统计范围</em> '+esc(r.scopeProd)+'</span>'
+    +'<span><em>区间回款（毛）</em> '+fmtN(s.gross)+' 元</span>'
+    +'<span><em>扣返利</em> −'+fmtN(s.rebate)+' 元</span>'
+    +'<span><em>扣返款</em> −'+fmtN(s.refund)+' 元</span>'
+    +'<span><em>净回款</em> <b>'+fmtN(s.net)+' 元</b>（'+s.rows.length+' 笔）</span>'
+    +'<span><em>回款目标</em> '+fmtN(s.target)+' 元</span>'
+    +'<span><em>达成率</em> '+s.pct+'%</span>'
+    +'<span><em>返点要求</em> '+esc(s.reqState)+'</span>'
+    +'<span><em>结算状态</em> '+policyStageTag(s.status)+'</span>'
+    +'<span><em>适用比例</em> '+s.rate+'%</span>'
+    +'<span><em>结算返点</em> <b>'+fmtN(s.pay)+' 元</b></span>'
+    +'</div></div>';
 }
 function openPolicyForm(id){
   var r=id?db.prodPolicies.filter(function(x){return x.id===id;})[0]:null;
-  var curCat=r?(r.cat||''):'',curAg=r?(r.agent||''):'';
+  var curCat=r?(r.cat||''):'',curAg=r?(r.agent||''):'',curCust=r?(r.custName||''):'';
   var fCat=r?(r.prodCat||''):'',fName=r?(r.prodName||''):'',fSpec=r?(r.spec||''):'';
   var fields=[
     {key:'cat',label:'客户分类',type:'select',required:true,onchange:'policyCatChg',options:[{v:'省总',t:'省总'},{v:'大包商',t:'大包商'},{v:'零散客户',t:'零散客户'}]},
     {key:'agent',label:'代理商',required:true,datalist:function(){return custDLOpts('agent',curCat);},oninput:'policyAgentChg'},
-    {key:'custName',label:'客户名称',datalist:function(){return custDLOpts('company',curCat,curAg);}},
+    {key:'custName',label:'客户名称',datalist:function(){return custDLOpts('company',curCat,curAg);},oninput:'policyCustChg'},
     {group:'产品信息'},
-    {key:'prodCat',label:'产品分类',type:'select',required:true,onchange:'policyProdCatChg',options:[{v:'自销',t:'自销'},{v:'OEM',t:'OEM'}]},
-    {key:'prodName',label:'产品名称',type:'select',required:true,options:policyProdOpts(fCat,curAg,fName),onchange:'policyProdNameChg'},
-    {key:'spec',label:'产品规格',type:'select',options:policySpecOpts(fCat,curAg,fName,fSpec),onchange:'policyFillPrice'},
+    {key:'prodCat',label:'产品分类',type:'select',required:true,onchange:'policyProdCatChg',options:[{v:'自销',t:'自销'},{v:'OEM',t:'OEM'}],
+      hint:'选「自销」自动列出全部自销产品；选「OEM」只列出上面的客户（未填客户名时按代理商）名下 OEM 产品'},
+    {key:'prodName',label:'产品名称',type:'select',required:true,options:policyProdOpts(fCat,curAg,curCust,fName),onchange:'policyProdNameChg'},
+    {key:'spec',label:'产品规格',type:'select',options:policySpecOpts(fCat,curAg,curCust,fName,fSpec),onchange:'policyFillPrice'},
     {key:'basePrice',label:'底价',type:'number'},
     {key:'supplyPrice',label:'供货价',type:'number'},
     {key:'invoicePrice',label:'开票价',type:'number'},
@@ -4661,23 +4841,127 @@ function openPolicyForm(id){
     {key:'giftBuy',label:'赠货 · 买（件）',type:'number',def:10},
     {key:'giftGet',label:'赠货 · 赠（件）',type:'number',def:1},
     {key:'rebateRate',label:'返点比例（%）',type:'number'},
+    {group:'阶段性返点（区间结算）'},
+    {key:'startDate',label:'区间开始',type:'date',required:true,onchange:'policyStagePreview'},
+    {key:'endDate',label:'区间结束',type:'date',required:true,onchange:'policyStagePreview'},
+    {key:'targetAmount',label:'完成要求 · 区间回款目标（元）',type:'number',required:true,minZero:true,oninput:'policyStagePreview',hint:'区间内回款完成这个金额算「完成」'},
+    {key:'scopeProd',label:'统计范围',type:'select',onchange:'policyStagePreview',options:[{v:'客户全部产品',t:'客户全部产品'},{v:'仅本产品',t:'仅本产品'}]},
+    {key:'reqText',label:'返点要求',type:'textarea',full:true,ph:'如：客户按供货价办款、挂网价不低于公司规定挂网价',hint:'没有额外要求的可留空'},
+    {key:'reqPass',label:'返点要求是否达标',type:'select',onchange:'policyStagePreview',options:[{v:'未确认',t:'未确认'},{v:'达标',t:'达标'},{v:'未达标',t:'未达标'}]},
+    {key:'doneRate',label:'完成后返点比例（%）',type:'number',required:true,minZero:true,oninput:'policyStagePreview',hint:'净回款 × 该比例 = 结算返点'},
+    {key:'undoneRate',label:'未完成返点比例（%）',type:'number',oninput:'policyStagePreview',hint:'未达标时按此比例结算；不返填 0'},
     {key:'note',label:'备注',full:true,type:'textarea'}
   ];
   var vals=r?{cat:r.cat,agent:r.agent,custName:r.custName,prodCat:r.prodCat,prodName:r.prodName,spec:r.spec,
     basePrice:r.basePrice,supplyPrice:r.supplyPrice,invoicePrice:r.invoicePrice,
-    policyType:policyType(r),giftBuy:r.giftBuy,giftGet:r.giftGet,rebateRate:r.rebateRate,note:r.note}
-    :{cat:curCat||'',policyType:'赠货',giftBuy:10,giftGet:1};
+    policyType:policyType(r),giftBuy:r.giftBuy,giftGet:r.giftGet,rebateRate:r.rebateRate,
+    startDate:r.startDate,endDate:r.endDate,targetAmount:r.targetAmount,scopeProd:r.scopeProd||'客户全部产品',
+    reqText:r.reqText,reqPass:r.reqPass||'未确认',doneRate:r.doneRate,undoneRate:r.undoneRate,note:r.note}
+    :{cat:curCat||'',policyType:'赠货',giftBuy:10,giftGet:1,scopeProd:'客户全部产品',reqPass:'未确认'};
   openForm(id?'编辑产品政策':'新增产品政策',fields,vals,function(v){
     v.prodName=String(v.prodName||'').trim();v.agent=String(v.agent||'').trim();v.custName=String(v.custName||'').trim();
     if(!v.agent){markErr('agent');alert('请填写代理商');return;}
     if(!v.prodName){markErr('prodName');alert('请选择产品名称');return;}
-    if(v.policyType==='返点'){v.giftBuy=0;v.giftGet=0;if(!(Number(v.rebateRate)>0)){markErr('rebateRate');alert('返点政策请填写返点比例（%）');return;}}
-    else{v.rebateRate=0;v.policyType='赠货';if(!(Number(v.giftBuy)>0||Number(v.giftGet)>0)){markErr('giftBuy');alert('赠货政策请填写买、赠件数');return;}}
+    if(!v.scopeProd)v.scopeProd='客户全部产品';
+    if(!v.reqPass)v.reqPass='未确认';
+    v.targetAmount=Number(v.targetAmount)||0;
+    v.doneRate=Number(v.doneRate)||0;
+    v.undoneRate=Number(v.undoneRate)||0;
+    if(v.policyType==='阶段性返点'){
+      v.giftBuy=0;v.giftGet=0;v.rebateRate=0;
+      if(!v.startDate||!v.endDate){markErr(!v.startDate?'startDate':'endDate');alert('阶段性返点请填写结算区间（开始 / 结束日期）');return;}
+      if(v.endDate<v.startDate){markErr('endDate');alert('区间结束日期不能早于开始日期');return;}
+      if(!(v.targetAmount>0)){markErr('targetAmount');alert('请填写完成要求（区间回款目标金额）');return;}
+      if(!(v.doneRate>0)){markErr('doneRate');alert('请填写完成后返点比例（%）');return;}
+    }else{
+      v.startDate='';v.endDate='';v.targetAmount=0;v.scopeProd='';v.reqText='';v.reqPass='';v.doneRate=0;v.undoneRate=0;
+      if(v.policyType==='返点'){
+        v.giftBuy=0;v.giftGet=0;
+        if(!(v.rebateRate>0)){markErr('rebateRate');alert('返点政策请填写返点比例（%）');return;}
+      }else{
+        v.rebateRate=0;v.policyType='赠货';
+        if(!(v.giftBuy>0||v.giftGet>0)){markErr('giftBuy');alert('赠货政策请填写买、赠件数');return;}
+      }
+    }
     if(id){var o=db.prodPolicies.filter(function(x){return x.id===id;})[0];for(var k in v)o[k]=v[k];touch(o);}
     else{v.id=uid();v.created=today();db.prodPolicies.push(touch(v));}
     save();closeModal();render();
   });
+  /* 区间结算实时预览盒子（openForm 之后追加，切换政策类型 / 改区间时刷新） */
+  var mb=document.getElementById('mBody');
+  if(mb){
+    var box=document.createElement('div');box.id='polStageBox';
+    mb.appendChild(box);
+    policyNameRefresh();
+  }
   policyTypeChg(formEl('policyType'));
+}
+/* ================= 阶段性返点结算明细面板 ================= */
+var PS={id:''};
+function openPolicySettle(id){
+  var r=null;
+  for(var i=0;i<db.prodPolicies.length;i++)if(db.prodPolicies[i].id===id)r=db.prodPolicies[i];
+  if(!r)return;
+  PS.id=id;renderPolicySettle();
+  document.getElementById('wdMask').classList.add('show');
+}
+function psPolicy(){for(var i=0;i<db.prodPolicies.length;i++)if(db.prodPolicies[i].id===PS.id)return db.prodPolicies[i];return null;}
+function renderPolicySettle(){
+  var r=psPolicy();if(!r){closeWaveDetail();return;}
+  var s=policyStageStat(r),h='';
+  h+='<div class="mch-sum">'
+    +'<span><em>客户</em> <b>'+esc(r.custName||r.agent||'—')+'</b></span>'
+    +'<span><em>代理商</em> '+esc(r.agent||'—')+'</span>'
+    +'<span><em>产品</em> '+esc(r.prodName||'—')+(r.spec?'（'+esc(r.spec)+'）':'')+'</span>'
+    +'<span><em>结算区间</em> <b>'+esc((r.startDate||'—')+' ~ '+(r.endDate||'—'))+'</b></span>'
+    +'<span><em>统计范围</em> '+esc(r.scopeProd||'客户全部产品')+'</span>'
+    +'<span><em>返点要求</em> '+esc(r.reqText||'无')+'</span>'
+    +'</div>';
+  h+='<div class="wd-sec">区间回款结算<span class="sub">返利、返款已从总回款中扣除</span></div>';
+  h+='<div class="mch-sum">'
+    +'<span><em>区间回款（毛）</em> '+fmtN(s.gross)+' 元</span>'
+    +'<span><em>扣返利</em> −'+fmtN(s.rebate)+' 元</span>'
+    +'<span><em>扣返款</em> −'+fmtN(s.refund)+' 元</span>'
+    +'<span><em>净回款</em> <b>'+fmtN(s.net)+' 元</b>（'+s.rows.length+' 笔）</span>'
+    +'<span><em>回款目标</em> '+fmtN(s.target)+' 元</span>'
+    +'<span><em>达成率</em> '+(s.target>0?s.pct+'%':'—')+'</span>'
+    +'<span><em>金额要求</em> '+(s.amtOk?'<span class="tag ok">已达成</span>':'<span class="tag warn">未达成</span>')+'</span>'
+    +'<span><em>返点要求</em> '+esc(s.reqState)+'</span>'
+    +'<span><em>结算状态</em> '+policyStageTag(s.status)+'</span>'
+    +'<span><em>适用比例</em> '+s.rate+'%（'+(s.done?'完成':'未完成')+'）</span>'
+    +'<span><em>结算返点</em> <b>'+fmtN(s.pay)+' 元</b></span>'
+    +'</div>';
+  h+='<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
+    +'<span style="font-size:12.5px;color:var(--sub)">返点要求标记：</span>'
+    +'<button class="btn sm" onclick="setPolicyReq(\'达标\')"'+(s.reqState==='达标'?' style="border-color:var(--accent);color:var(--accent-d)"':'')+'>达标</button>'
+    +'<button class="btn sm" onclick="setPolicyReq(\'未达标\')"'+(s.reqState==='未达标'?' style="border-color:#d70015;color:#d70015"':'')+'>未达标</button>'
+    +'<button class="btn sm" onclick="setPolicyReq(\'未确认\')"'+(s.reqState==='未确认'?' style="border-color:var(--accent);color:var(--accent-d)"':'')+'>未确认</button>'
+    +'<button class="btn sm" onclick="openPolicyForm(\''+r.id+'\')">编辑政策</button>'
+    +'</div>';
+  h+='<div class="wd-sec">区间内回款明细<span class="sub">共 '+s.rows.length+' 笔</span></div>';
+  if(!s.rows.length)h+='<div class="empty">该区间内没有符合条件的回款</div>';
+  else{
+    h+='<div class="tbl-wrap"><table class="wd-tbl" style="width:100%;font-size:12.5px"><thead><tr>'
+      +'<th>回款日期</th><th>发货单号</th><th>产品名称</th><th>回款金额</th><th>返利</th><th>返款</th><th>净额</th></tr></thead><tbody>';
+    for(var i=0;i<s.rows.length;i++){
+      var p=s.rows[i],its=payItems(p),ns=[];
+      for(var j=0;j<its.length;j++)if(its[j].name)ns.push(its[j].name);
+      var net=(Number(p.amount)||0)-(Number(p.rebate)||0)-(Number(p.refund)||0);
+      h+='<tr><td>'+esc(p.payDate||'—')+'</td><td class="mono">'+esc(payShipNo(p)||'—')+'</td><td>'+esc(ns.join('、')||p.name||'—')+'</td>'
+        +'<td>'+fmtN(p.amount)+'</td><td>'+(Number(p.rebate)?'−'+fmtN(p.rebate):'—')+'</td>'
+        +'<td>'+(Number(p.refund)?'−'+fmtN(p.refund):'—')+'</td><td><b>'+fmtN(net)+'</b></td></tr>';
+    }
+    h+='</tbody><tfoot><tr><td colspan="3"><b>合计</b></td><td><b>'+fmtN(s.gross)+'</b></td><td><b>−'+fmtN(s.rebate)+'</b></td><td><b>−'+fmtN(s.refund)+'</b></td><td><b>'+fmtN(s.net)+'</b></td></tr></tfoot></table></div>';
+  }
+  if(r.note)h+='<div class="hint" style="margin-top:10px">备注：'+esc(r.note)+'</div>';
+  document.getElementById('wdTitle').textContent='阶段性返点结算 · '+(r.prodName||'');
+  document.getElementById('wdBody').innerHTML=h;
+}
+function setPolicyReq(v){
+  var r=psPolicy();if(!r)return;
+  r.reqPass=v;touch(r);
+  save();render();
+  renderPolicySettle();
 }
 function delPolicy(id){
   if(!confirm('确定删除该产品政策？'))return;
@@ -4692,6 +4976,11 @@ var POLICY_EXPORT_COLS=[
   {key:'basePrice',label:'底价'},{key:'supplyPrice',label:'供货价'},{key:'invoicePrice',label:'开票价'},
   {key:'policyType',label:'政策类型'},{key:'giftBuy',label:'赠货·买'},{key:'giftGet',label:'赠货·赠'},
   {key:'rebateRate',label:'返点比例(%)'},
+  {key:'startDate',label:'区间开始'},{key:'endDate',label:'区间结束'},{key:'targetAmount',label:'回款目标(元)'},
+  {key:'scopeProd',label:'统计范围'},{key:'reqText',label:'返点要求'},{key:'reqPass',label:'要求状态'},
+  {key:'doneRate',label:'完成比例(%)'},{key:'undoneRate',label:'未完成比例(%)'},
+  {key:'stageGross',label:'区间回款(毛元)'},{key:'stageRebate',label:'扣返利(元)'},{key:'stageRefund',label:'扣返款(元)'},
+  {key:'stageNet',label:'区间回款(净元)'},{key:'stagePct',label:'达成率(%)'},{key:'stageStatus',label:'结算状态'},{key:'stagePay',label:'结算返点(元)'},
   {key:'policy',label:'政策'},{key:'refund',label:'返款参考(元)'},{key:'note',label:'备注'}
 ];
 function exportPolicy(){
@@ -4699,21 +4988,28 @@ function exportPolicy(){
   if(!rows.length){alert('当前视图无数据可导出');return;}
   var out=[];
   for(var i=0;i<rows.length;i++){
-    var r=rows[i];
+    var r=rows[i],st=policyStage(r)?policyStageStat(r):null;
     out.push({seq:i+1,cat:r.cat||'',agent:r.agent||'',custName:r.custName||'（该代理商全部客户）',
       prodCat:r.prodCat||'',prodName:r.prodName||'',spec:r.spec||'',
       basePrice:Number(r.basePrice)||0,supplyPrice:Number(r.supplyPrice)||0,invoicePrice:Number(r.invoicePrice)||0,
       policyType:policyType(r),giftBuy:Number(r.giftBuy)||0,giftGet:Number(r.giftGet)||0,
       rebateRate:Number(r.rebateRate)||0,
+      startDate:r.startDate||'',endDate:r.endDate||'',targetAmount:Number(r.targetAmount)||0,
+      scopeProd:r.scopeProd||'',reqText:r.reqText||'',reqPass:r.reqPass||'',
+      doneRate:Number(r.doneRate)||0,undoneRate:Number(r.undoneRate)||0,
+      stageGross:st?st.gross:'',stageRebate:st?st.rebate:'',stageRefund:st?st.refund:'',
+      stageNet:st?st.net:'',stagePct:st?st.pct:'',stageStatus:st?st.status:'',stagePay:st?st.pay:'',
       policy:policyText(r),refund:Math.round(policyRefund(r)*100)/100,note:r.note||''});
   }
   exportXLS('产品政策',POLICY_EXPORT_COLS,out);
 }
 function downPolicyTpl(){
-  var headers=['客户分类','代理商','客户名称','产品分类','产品名称','产品规格','底价','供货价','开票价','政策类型','赠货·买','赠货·赠','返点比例(%)','备注'];
+  var headers=['客户分类','代理商','客户名称','产品分类','产品名称','产品规格','底价','供货价','开票价','政策类型','赠货·买','赠货·赠','返点比例(%)',
+    '区间开始','区间结束','回款目标(元)','统计范围','返点要求','要求状态','完成比例(%)','未完成比例(%)','备注'];
   var examples=[
-    ['省总','示例代理商医药有限公司','','自销','示例阿莫西林胶囊','12*2*300',10.2,12.5,13,'赠货',10,1,'',''],
-    ['大包商','示例代理商医药有限公司','示例客户（连锁总部）','OEM','示例感冒灵颗粒','10g*9袋*240',7.5,9,9.6,'返点','','',3,'']
+    ['省总','示例代理商医药有限公司','','自销','示例阿莫西林胶囊','12*2*300',10.2,12.5,13,'赠货',10,1,'','','','','','','','','',''],
+    ['大包商','示例代理商医药有限公司','示例客户（连锁总部）','OEM','示例感冒灵颗粒','10g*9袋*240',7.5,9,9.6,'返点','','',3,'','','','','','','','',''],
+    ['大包商','示例代理商医药有限公司','示例客户（连锁总部）','OEM','示例感冒灵颗粒','10g*9袋*240',7.5,9,9.6,'阶段性返点','','','','2026-01-01','2026-06-30',800000,'客户全部产品','客户按供货价办款、挂网价不低于公司规定挂网价','未确认',4,2,'']
   ];
   if(window.XLSX){
     var ws=XLSX.utils.aoa_to_sheet([headers].concat(examples));
@@ -4748,13 +5044,16 @@ function importPolicyExcel(input){
       if(headRow<0){alert('未识别到表头，请先点击"模板"下载模板按格式填写');return;}
       var map={'客户分类':'cat','代理商':'agent','客户名称':'custName','产品分类':'prodCat','产品名称':'prodName',
         '产品规格':'spec','底价':'basePrice','供货价':'supplyPrice','开票价':'invoicePrice','政策类型':'policyType',
-        '赠货·买':'giftBuy','赠货·赠':'giftGet','返点比例(%)':'rebateRate','备注':'note'};
+        '赠货·买':'giftBuy','赠货·赠':'giftGet','返点比例(%)':'rebateRate',
+        '区间开始':'startDate','区间结束':'endDate','回款目标(元)':'targetAmount','统计范围':'scopeProd',
+        '返点要求':'reqText','要求状态':'reqPass','完成比例(%)':'doneRate','未完成比例(%)':'undoneRate','备注':'note'};
       var head=json[headRow],headMap={};
       for(var j=0;j<head.length;j++){
         var hc=String(head[j]==null?'':head[j]).trim();
         if(map[hc])headMap[j]=map[hc];
       }
-      var numKeys={basePrice:1,supplyPrice:1,invoicePrice:1,giftBuy:1,giftGet:1,rebateRate:1};
+      var numKeys={basePrice:1,supplyPrice:1,invoicePrice:1,giftBuy:1,giftGet:1,rebateRate:1,targetAmount:1,doneRate:1,undoneRate:1};
+      var dateKeys={startDate:1,endDate:1};
       var added=0,skip=0,skipMsg=[];
       for(var k=headRow+1;k<json.length;k++){
         var rr=json[k];if(!rr)continue;
@@ -4762,7 +5061,9 @@ function importPolicyExcel(input){
         for(var c in headMap){
           var key=headMap[c],v=String(rr[c]==null?'':rr[c]).trim();
           if(!v&&!any)continue;
-          if(numKeys[key])rec[key]=parseFloat(v)||0;else rec[key]=v;
+          if(numKeys[key])rec[key]=xlNum(v);
+          else if(dateKeys[key])rec[key]=normDate(v);
+          else rec[key]=v;
           if(v)any=true;
         }
         if(!any)continue;
@@ -4770,10 +5071,20 @@ function importPolicyExcel(input){
         if(!rec.agent||!rec.prodName){skip++;skipMsg.push('第'+(k+1)+'行：代理商或产品名称缺失');continue;}
         if(rec.cat&&CAT_ORDER[rec.cat]===undefined)rec.cat='';
         if(rec.prodCat!=='自销'&&rec.prodCat!=='OEM')rec.prodCat='';
-        rec.policyType=rec.policyType==='返点'?'返点':'赠货';
-        if(rec.policyType==='返点'){rec.giftBuy=0;rec.giftGet=0;}
-        else if(!(rec.giftBuy>0||rec.giftGet>0)){rec.giftBuy=10;rec.giftGet=1;}
+        if(POLICY_TYPES.indexOf(rec.policyType)<0)rec.policyType='赠货';
         rec.custName=rec.custName||'';
+        rec.scopeProd=(rec.scopeProd==='仅本产品')?'仅本产品':'客户全部产品';
+        if(['达标','未达标','未确认'].indexOf(rec.reqPass)<0)rec.reqPass='未确认';
+        if(rec.policyType==='阶段性返点'){
+          rec.giftBuy=0;rec.giftGet=0;rec.rebateRate=0;
+          if(!rec.startDate||!rec.endDate){skip++;skipMsg.push('第'+(k+1)+'行：阶段性返点缺少结算区间');continue;}
+          if(!(rec.targetAmount>0)){skip++;skipMsg.push('第'+(k+1)+'行：阶段性返点缺少区间回款目标');continue;}
+          if(!(rec.doneRate>0)){skip++;skipMsg.push('第'+(k+1)+'行：阶段性返点缺少完成比例');continue;}
+        }else{
+          rec.startDate='';rec.endDate='';rec.targetAmount=0;rec.scopeProd='';rec.reqText='';rec.reqPass='';rec.doneRate=0;rec.undoneRate=0;
+          if(rec.policyType==='返点'){rec.giftBuy=0;rec.giftGet=0;if(!(rec.rebateRate>0))rec.rebateRate=0;}
+          else if(!(rec.giftBuy>0||rec.giftGet>0)){rec.giftBuy=10;rec.giftGet=1;}
+        }
         db.prodPolicies.push(touch(rec));
         added++;
       }
