@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-page-node-id="3W01JAtshqtkejUYesEB4t">
-<head data-page-node-id="gYYbg2WqAb23PZ1dQvgN6T">
-<meta charset="UTF-8" data-page-node-id="mxEu8H8kJHZXhTmk82SYMy">
-<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="Ipo7pcfrtRKyoQbfN9Cb6e">
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Eva工作台</title>
 <style>
 :root{
@@ -317,7 +317,6 @@ tbody tr.z2 td.chk-on{background:#e4f7e9!important}
 .pay-item .fgrid{margin-top:6px}
 .pay-item.gift{border-color:var(--accent-g1);background:var(--accent-soft)}
 .pay-item.gift .fitem label{color:var(--accent-d)}
-/* ================= 统一商务主题（2026-09-29 配色收敛）：全站单一主色（青灰绿），仅保留红/绿/橙状态语义色；删去分模块换色、五色卡片与奶油插画风 ================= */
 /* —— 移动端（iPhone）整版优化：一屏放下、不出横向滚动条 —— */
 @media(max-width:900px){
   /* 底部导航：模块名称（销售订单/回款明细等）始终一行显示，不换行 */
@@ -376,11 +375,6 @@ tbody tr.z2 td.chk-on{background:#e4f7e9!important}
 .doc-thumb{width:100%;height:106px;object-fit:cover;border-radius:8px;background:linear-gradient(100deg,#f2f2f7 30%,#e5e5ea 50%,#f2f2f7 70%);cursor:zoom-in;display:block}
 .doc-fileicon{height:106px;border-radius:8px;background:linear-gradient(160deg,var(--accent-soft),#fff);display:flex;align-items:center;justify-content:center;font-size:34px;cursor:pointer}
 .doc-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto}
-.doc-row{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px dashed var(--line);flex-wrap:wrap}
-.doc-row:last-child{border-bottom:none}
-.doc-row .dr-main{flex:1 1 210px;min-width:150px}
-.doc-row .dr-name{font-size:13px;word-break:break-all}
-.doc-row .dr-meta{font-size:11.5px;color:var(--sub);margin-top:2px}
 .doc-cat{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;background:var(--accent-soft);color:var(--accent-d);margin-right:6px;white-space:nowrap}
 .doc-sub{font-size:12.5px;color:var(--sub);line-height:1.7}
 .doc-empty{color:var(--sub);font-size:12.5px;padding:10px 2px}
@@ -401,33 +395,33 @@ tbody tr.z2 td.chk-on{background:#e4f7e9!important}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.bootcdn.net/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';document.head.appendChild(s);"></script>
 </head>
-<body data-page-node-id="ui90eRkaHKcXTwddNuB16i">
-<div class="app" data-page-node-id="XiEcUF7ZrnQhnBxTK0edbS">
-  <div class="sidebar" data-page-node-id="BdRF7nSMhpJ2AyMC72IhGs">
-    <div class="logo" data-page-node-id="7LvoV8eGNYrkxlo8CbB2nt">Eva工作台<small data-page-node-id="KdnnD2jwJGRj4lELhwCsTw">医药销售数据管理 · 多设备同步</small></div>
-    <div class="nav" id="nav" data-page-node-id="kNDdrhOJpjJgCJDr57N1S2"></div>
-    <div class="foot" id="cloudTip" data-page-node-id="sQvlF69NjLNXUT8xMLkeuG">云同步：连接中…</div>
+<body>
+<div class="app">
+  <div class="sidebar">
+    <div class="logo">Eva工作台<small>医药销售数据管理 · 多设备同步</small></div>
+    <div class="nav" id="nav"></div>
+    <div class="foot" id="cloudTip">云同步：连接中…</div>
   </div>
-  <div class="main" data-page-node-id="27EZveiCKOim4gJnokz2GI">
-    <div class="topbar" data-page-node-id="KzWyEHPcnVunEfp8Whoewb"><h2 id="pageTitle" data-page-node-id="7sCbdqoWBjL4rHbDDsEg5O"></h2><span class="date" id="todayStr" data-page-node-id="iZar1rVLYGY4VcUkfRjZbs"></span></div>
-    <div class="content" id="content" data-page-node-id="sjIoXGgEH3midqQNv3Ewqy"></div>
+  <div class="main">
+    <div class="topbar"><h2 id="pageTitle"></h2><span class="date" id="todayStr"></span></div>
+    <div class="content" id="content"></div>
   </div>
 </div>
 
-<div class="mask" id="mask" data-page-node-id="l4RTr1qBLdTGqguFvUiGfg"><div class="modal" data-page-node-id="zCYXDcWszyExNr1JeXUrgA">
-  <div class="m-hd" data-page-node-id="8inSpfuLUIOrGmkKzKWvy5"><h3 id="mTitle" data-page-node-id="QD8CD3XKFmDaBTFHMPt9ow"></h3><span class="x" onclick="closeModal()" data-page-node-id="GF0EACD3zOLNa0yy6Ityyw">×</span></div>
-  <div class="m-bd" data-page-node-id="IGCROmgtOuwJpks35LPlr8"><div class="fgrid" id="mBody" data-page-node-id="hjsBFMxmrQpzFAGhs17oDZ"></div></div>
-  <div class="m-ft" data-page-node-id="IT5ZweQT13F7Xcfms5jWOE"><button class="btn" onclick="closeModal()" data-page-node-id="HSqqcr57Y9300vVIqTugQD">取消</button><button class="btn pri" onclick="submitModal()" data-page-node-id="0MpOKyDtKkgjs0wTC1BqLO">保存</button></div>
+<div class="mask" id="mask"><div class="modal">
+  <div class="m-hd"><h3 id="mTitle"></h3><span class="x" onclick="closeModal()">×</span></div>
+  <div class="m-bd"><div class="fgrid" id="mBody"></div></div>
+  <div class="m-ft"><button class="btn" onclick="closeModal()">取消</button><button class="btn pri" onclick="submitModal()">保存</button></div>
 </div></div>
 
-<div class="big-photo-mask" id="bigPhoto" onclick="this.classList.remove('show')" data-page-node-id="BVWtbB0gBT9pyVwHOKjSir"><img id="bigPhotoImg" data-page-node-id="GIpcaBYYchSDgHceJN1bTc"></div>
+<div class="big-photo-mask" id="bigPhoto" onclick="this.classList.remove('show')"><img id="bigPhotoImg"></div>
 
 <input type="file" id="docFileInput" multiple style="display:none">
 
-<div class="mask" id="wdMask" onclick="if(event.target===this)closeWaveDetail()" data-page-node-id="B6g91KhGRGBcgYGgcHb1xJ"><div class="modal wd-modal" data-page-node-id="Jfd6ErdXMIsn6Eek9rGVRH">
-  <div class="m-hd" data-page-node-id="ik3Zu3suafu7PYum86TR9c"><h3 id="wdTitle" data-page-node-id="eBergCHTGG13iP5bYCeYJZ"></h3><span class="x" onclick="closeWaveDetail()" data-page-node-id="u7Fqo6DWznoAxMCnWzQPFQ">×</span></div>
-  <div class="m-bd" id="wdBody" data-page-node-id="9aGqVAFJd8gVFWTGSlQNFY"></div>
-  <div class="m-ft" data-page-node-id="YF3GBmIFaKjCrUVrE0p2RJ"><button class="btn pri" onclick="closeWaveDetail()" data-page-node-id="iNJlgu5Xpe9UEuvNI6hhBe">关闭</button></div>
+<div class="mask" id="wdMask" onclick="if(event.target===this)closeWaveDetail()"><div class="modal wd-modal">
+  <div class="m-hd"><h3 id="wdTitle"></h3><span class="x" onclick="closeWaveDetail()">×</span></div>
+  <div class="m-bd" id="wdBody"></div>
+  <div class="m-ft"><button class="btn pri" onclick="closeWaveDetail()">关闭</button></div>
 </div></div>
 <div id="hbar"><div></div></div>
 <script>
@@ -668,7 +662,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261011g',_verChecking=false;
+var APP_VER='20261012a',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -746,7 +740,6 @@ function p2(n){return n<10?'0'+n:''+n;}
 function today(){var d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());}
 /* n 天后的日期（合同到期提醒示例数据 / 日期推算用） */
 function dateAdd(days){var d=new Date();d.setDate(d.getDate()+(Number(days)||0));return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());}
-function ym(s){return (s||'').slice(0,7);}
 function curYm(){return today().slice(0,7);}
 /* Excel 日期归一：兼容 日期序列号（46035）/ Date 对象 / 文本（2026-01-12、2026/1/12、2026年1月12日、20260113）；
    不是日期的内容（如「调账」）返回 ''，由调用方决定回退。所有 Excel 导入的日期字段都必须走这里，
@@ -779,6 +772,8 @@ function normDate(s){return xlDate(s)||String(s==null?'':s).trim().replace(/[\/\
 /* 表格数字：容忍千分位、货币符号与「元」后缀 */
 function xlNum(v){return parseFloat(String(v==null?'':v).replace(/[,，\s￥¥$元]/g,''))||0;}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+/* 输入防抖：搜索框每敲一个字都会重画整张表（订单 400+ 行时手机端明显卡），统一延迟 120ms 合并 */
+function debounce(fn,ms){var t=0;return function(){var a=arguments,s=this;clearTimeout(t);t=setTimeout(function(){fn.apply(s,a);},ms||120);};}
 
 /* ================= 导航 ================= */
 /* 按业务属性分三组：销售业务（日常台账，最常用）→ 基础档案（建档案）→ 跟进与记录 */
@@ -840,13 +835,14 @@ function render(){
 
 /* ================= 联动计算 ================= */
 function prodLabel(p){return p?p.name+' '+p.spec:'';}
-/* 只读索引缓存：产品 / 库存 / 已发货 / 已回款，避免列表逐行全表扫描；
+/* 只读索引缓存：产品 / 客户 / 库存 / 已发货 / 已回款，避免列表逐行全表扫描；
    数据每次变动（save）或页面每次重绘（render）时自动失效重建 */
-var _IDX_VER=0,_idxBuilt=-1,_prodMap=null,_stockMap=null,_shipMap=null,_paidMap=null,_orderMap=null,_paidCnt=null,_ordAgg=null,_ordByCust=null;
+var _IDX_VER=0,_idxBuilt=-1,_prodMap=null,_custMap=null,_stockMap=null,_shipMap=null,_paidMap=null,_orderMap=null,_paidCnt=null,_ordAgg=null,_ordByCust=null;
 function _buildIdx(){
   if(_idxBuilt===_IDX_VER)return;
-  _prodMap={};_stockMap={};_shipMap={};_paidMap={};_orderMap={};_paidCnt={};_ordAgg={};_ordByCust={};
+  _prodMap={};_custMap={};_stockMap={};_shipMap={};_paidMap={};_orderMap={};_paidCnt={};_ordAgg={};_ordByCust={};
   for(var i=0;i<db.products.length;i++)_prodMap[db.products[i].id]=db.products[i];
+  for(var ci=0;ci<db.customers.length;ci++){var cu=db.customers[ci];if(cu&&cu.id&&!_custMap[cu.id])_custMap[cu.id]=cu;}
   for(var b=0;b<db.batches.length;b++){
     var bt=db.batches[b],bp=_prodMap[bt.pid],per=bp?prodPerBox(bp):(Number(bt.perBox)||1);
     _stockMap[bt.pid]=(_stockMap[bt.pid]||0)+(Number(bt.boxes)||0)*per+(Number(bt.units)||0);
@@ -887,7 +883,7 @@ function prodPerBox(p){
   return parsePerBox(p.spec)||Number(p.perBox)||40;
 }
 function findProd(id){_buildIdx();return _prodMap[id]||null;}
-function findCust(id){for(var i=0;i<db.customers.length;i++)if(db.customers[i].id===id)return db.customers[i];return null;}
+function findCust(id){_buildIdx();return _custMap[id]||null;}
 function stockUnits(pid){_buildIdx();return _stockMap[pid]||0;}
 function stockText(pid){var p=findProd(pid);if(!p)return '0盒';var u=stockUnits(pid);var per=prodPerBox(p);return Math.floor(u/per)+'件'+u%per+'盒';}
 /* 回款关联的发货单号列表（支持一笔回款对应多笔订单，单号间用逗号/空格分隔） */
@@ -1024,6 +1020,9 @@ function smartTableHTML(mod,cols,rows,actionsFn,redraw,grp){
   var st=colFilterState[mod]||{};
   if(!rows.length)return '<div class="empty">暂无数据</div>';
   var hasGrp=!!(grp&&grp.key);
+  /* 单元格 HTML 缓存：判断竖向合并要逐列比对同组各行的值，直接算会把每个 fmt 跑两遍（大表翻倍） */
+  var CC=[];
+  function ccell(r,c){var row=CC[r]||(CC[r]=[]);if(row[c]===undefined)row[c]=cellHTML(cols[c],rows[r]);return row[c];}
   var rowG=[],gnum=[],gstart=[],gcnt=[],gsame=[],gn=0,gkey=null;
   if(hasGrp){
     /* 按行序切成连续块：同一单号的多行必然相邻，避免 rowspan 跨组错位 */
@@ -1035,8 +1034,8 @@ function smartTableHTML(mod,cols,rows,actionsFn,redraw,grp){
     for(var g=0;g<gn;g++){
       var s0=gstart[g],n0=gcnt[g],flags=[];
       for(var mc=0;mc<cols.length;mc++){
-        var cd=cols[mc],same=n0>1&&!cd.chk,v0=cellHTML(cd,rows[s0]);   /* 核对列逐行独立，不参与合并 */
-        for(var mz=1;same&&mz<n0;mz++){if(cellHTML(cd,rows[s0+mz])!==v0)same=false;}
+        var cd=cols[mc],same=n0>1&&!cd.chk,v0=ccell(s0,mc);   /* 核对列逐行独立，不参与合并 */
+        for(var mz=1;same&&mz<n0;mz++){if(ccell(s0+mz,mc)!==v0)same=false;}
         flags.push(same);
       }
       gsame.push(flags);
@@ -1075,9 +1074,9 @@ function smartTableHTML(mod,cols,rows,actionsFn,redraw,grp){
       var cc=cols[c];
       if(cc.chk)continue;
       if(grouped&&gsame[gg][c]){
-        if(first)h+='<td class="mg" rowspan="'+gcnt[gg]+'">'+cellHTML(cc,rows[r])+'</td>';
+        if(first)h+='<td class="mg" rowspan="'+gcnt[gg]+'">'+ccell(r,c)+'</td>';
       }else{
-        h+='<td>'+cellHTML(cc,rows[r])+'</td>';
+        h+='<td>'+ccell(r,c)+'</td>';
       }
     }
     if(actionsFn)h+='<td class="act">'+actionsFn(rows[r])+'</td>';
@@ -1817,6 +1816,7 @@ function waveDetail(cat,idx){
 /* 关闭「年度明细 / 资料管理」共用弹窗；若是资料面板，关闭时刷新背后的列表（资料份数/到期状态已变） */
 function closeWaveDetail(){
   document.getElementById('wdMask').classList.remove('show');
+  document.getElementById('wdBody').innerHTML='';   /* 关掉即释放弹窗内容（含预览用的大图 dataURL），避免残留 */
   if(_docPanel.redraw){_docPanel.redraw=null;render();}
 }
 /* 年度月度回款趋势动态表 */
@@ -2005,7 +2005,7 @@ function renderCust(c){
       ])+
       '<div class="card"><div class="card-bd" id="custTbl"></div></div>';
     drawCust();
-    document.getElementById('custSearch').oninput=drawCust;
+    document.getElementById('custSearch').oninput=debounce(drawCust);
   });
 }
 function custSort(a,b){
@@ -2199,7 +2199,7 @@ function renderStock(c){
       ])+
       '<div class="card"><div class="card-bd" id="stockTbl"></div></div>';
     drawStock();
-    document.getElementById('stockSearch').oninput=drawStock;
+    document.getElementById('stockSearch').oninput=debounce(drawStock);
   });
 }
 /* 库存排序：产品分类（自销→OEM）→ 产品名称（拼音首字母）→ 规格（数字小→大）→ 批号（数字小→大）
@@ -2552,7 +2552,7 @@ function renderOrder(c){
       ])+
       '<div class="card"><div class="card-bd" id="orderTbl"></div></div>';
     drawOrder();
-    document.getElementById('orderSearch').oninput=drawOrder;
+    document.getElementById('orderSearch').oninput=debounce(drawOrder);
   });
 }
 function filterOrder(){
@@ -3127,7 +3127,7 @@ function renderShip(c){
       ])+
       '<div class="card"><div class="card-bd" id="shipTbl"></div></div>';
     drawShip();
-    document.getElementById('shipSearch').oninput=drawShip;
+    document.getElementById('shipSearch').oninput=debounce(drawShip);
   });
 }
 function filterShip(){
@@ -3458,7 +3458,7 @@ function renderPay(c){
       '<div class="card" style="margin-bottom:14px;padding:8px 16px;display:flex;justify-content:flex-end">'+tabsHTML('pay',PAY_VIEWS)+'</div>';
     drawPay(vs);
     bindTabs('pay',PAY_VIEWS,function(){renderPay(c);});
-    document.getElementById('paySearch').oninput=function(){drawPay(viewState.pay||'month');};
+    document.getElementById('paySearch').oninput=debounce(function(){drawPay(viewState.pay||'month');});
   });
 }
 /* ================= 销售订单 ↔ 回款明细 自动/手动匹配 =================
@@ -3637,7 +3637,15 @@ function openMatchPanel(kind,id){
   renderMatchPanel();
   document.getElementById('wdMask').classList.add('show');
 }
-function mpSetQ(v){MP.q=v;renderMatchPanel();}
+/* 匹配面板搜索：只刷新候选列表，并保持输入框焦点（重画整块会让输入框失焦，等于一个字都打不进去） */
+var _mpRedraw=debounce(function(){
+  var mk=document.getElementById('wdMask');
+  if(!mk||!mk.classList.contains('show'))return;
+  renderMatchPanel();
+  var el=document.getElementById('mpSearch');
+  if(el){el.focus();try{el.setSelectionRange(el.value.length,el.value.length);}catch(e){}}
+},150);
+function mpSetQ(v){MP.q=v;_mpRedraw();}
 function mpRelaxChk(on){MP.relax=!!on;renderMatchPanel();}
 /* 订单候选池：有搜索词时全库搜（跨客户/跨时间）；否则同客户窗口 → 同客户全部 → 同代理商相近日期 */
 function mpOrderPool(p){
@@ -3760,7 +3768,7 @@ function renderMatchPanel(){
     if(nos.length)h+='<div class="hint" style="margin-top:8px">已关联订单 <b>'+esc(nos.join('、'))+'</b>（'+(p.matchBy==='auto'?'系统自动匹配':'手动匹配')+'）　<button class="btn sm dgr" onclick="matchUnlink()">解除匹配</button></div>';
     else h+='<div class="hint" style="margin-top:8px">点下面的订单即可关联（一笔回款可对应多张订单，再进「编辑」可勾选多张）。</div>';
     h+='<div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
-      +'<input class="search" style="max-width:250px" placeholder="搜索订单号 / 客户 / 产品" value="'+esc(MP.q)+'" oninput="mpSetQ(this.value)">'
+      +'<input class="search" style="max-width:250px" placeholder="搜索订单号 / 客户 / 产品" value="'+esc(MP.q)+'" id="mpSearch" oninput="mpSetQ(this.value)">'
       +'<label style="display:flex;gap:6px;align-items:center;font-weight:400;font-size:12.5px"><input type="checkbox" onchange="mpRelaxChk(this.checked)"'+(MP.relax?' checked':'')+'>不限代理商</label>'
       +'</div>';
     h+='<div class="mch-list">'+mpOrderCandHTML(p)+'</div>';
@@ -3777,7 +3785,7 @@ function renderMatchPanel(){
       +'<span><em>已回款</em> '+fmtN(orderPaid(a.no))+' 元 / '+orderPaidCnt(a.no)+' 笔</span>'
       +'</div>';
     h+='<div class="hint" style="margin-top:8px">点下面任意一条未匹配回款，即关联到本订单。</div>';
-    h+='<div style="margin-top:10px"><input class="search" style="max-width:250px" placeholder="搜索回款（客户 / 金额 / 日期）" value="'+esc(MP.q)+'" oninput="mpSetQ(this.value)"></div>';
+    h+='<div style="margin-top:10px"><input class="search" style="max-width:250px" placeholder="搜索回款（客户 / 金额 / 日期）" value="'+esc(MP.q)+'" id="mpSearch" oninput="mpSetQ(this.value)"></div>';
     h+='<div class="mch-list">'+mpPayCandHTML(a)+'</div>';
   }
   document.getElementById('wdTitle').textContent=title;
@@ -5105,7 +5113,15 @@ function docUpload(input){
   var refLabel=(meta.scope==='prod'&&p)?prodLabel(p):'';
   var catSel=document.getElementById('docFirstCat');
   var cat=(meta.scope==='first')?(catSel?catSel.value:''):'';
-  function setProg(t){var el=document.getElementById('docProg');if(el)el.textContent=t;}
+  /* 上传进度写到「当前正在操作的那一块」：弹窗打开时写在弹窗里，否则写在资料库页面里
+     （页面上与弹窗里各有一个进度条，用同一个 id 会写错位置） */
+  function setProg(t){
+    var mk=document.getElementById('wdMask');
+    var scope=(mk&&mk.classList.contains('show'))?document.getElementById('wdBody'):document.getElementById('content');
+    var el=scope?scope.querySelector('.doc-prog'):null;
+    if(!el)el=document.querySelector('.doc-prog');
+    if(el)el.textContent=t;
+  }
   setProg('正在上传 0/'+arr.length+' …');
   (function next(){
     if(done>=arr.length){finish();return;}
@@ -5332,7 +5348,7 @@ function prodDocsBody(id){
   var isOem=(p.cat==='OEM');
   var h='<div class="doc-sub" style="margin-bottom:12px">产品分类：<b>'+esc(p.cat||'—')+'</b>　'
     +(isOem?'OEM 产品可上传「销售合同」与「产品资料」，并登记合同到期日（到期前 30 天首页预警）':'自销产品只上传「产品资料」')+'</div>';
-  h+='<div id="docProg" class="up-prog"></div>';
+  h+='<div class="up-prog doc-prog"></div>';
   if(isOem){
     h+='<div style="border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:14px">'
       +'<div style="margin-bottom:10px"><label style="display:block;font-size:12.5px;color:var(--sub);margin-bottom:5px">销售合同到期日</label>'
@@ -5402,7 +5418,7 @@ function renderProd(c){
       ])+
       '<div class="card"><div class="card-bd" id="prodTbl"></div></div>';
     drawProd();
-    document.getElementById('prodSearch').oninput=drawProd;
+    document.getElementById('prodSearch').oninput=debounce(drawProd);
   });
 }
 function filterProd(){
@@ -5549,7 +5565,7 @@ function renderProdo(c){
       ])+
       '<div class="card"><div class="card-bd" id="prodoTbl"></div></div>';
     drawProdo();
-    document.getElementById('prodoSearch').oninput=drawProdo;
+    document.getElementById('prodoSearch').oninput=debounce(drawProdo);
   });
 }
 function filterProdo(){
@@ -6073,7 +6089,7 @@ function renderDoc(c){
       '<div class="card"><div class="card-hd"><h3>企业首营资料</h3></div><div class="card-bd">'
       +'<div class="doc-sub" style="margin-bottom:10px">公司对外提供的首营资质电子版：可上传<b>整体压缩包</b>一次给全套，也可按类别上传<b>具体内容图片</b>。上传后自动存入云端，其他设备打开即可下载。</div>'
       +docUpZone('first','first','','<span class="doc-sub" style="flex:0 0 auto">资料类别</span>'+firstCatSelectHTML())
-      +'<div id="docProg" class="up-prog"></div>'
+      +'<div class="up-prog doc-prog"></div>'
       +firstDocsHTML(first)
       +'</div></div>'
       +'<div class="card"><div class="card-hd"><h3>产品合同与资料总览</h3></div><div class="card-bd">'
@@ -6082,7 +6098,7 @@ function renderDoc(c){
       +'</div></div>';
     drawDocProdList();
     var si=document.getElementById('docSearch');
-    if(si)si.oninput=drawDocProdList;
+    if(si)si.oninput=debounce(drawDocProdList);
   });
 }
 
@@ -6120,7 +6136,7 @@ function renderSet(c){
       '</div></div>'+
       '<div class="card"><div class="card-hd"><h3>关于</h3></div><div class="card-bd">'+
       '<p><b>Eva工作台</b> v2.1　医药销售业务数据管理系统</p>'+
-      '<p style="color:var(--sub);margin-top:6px">模块：客户档案 · 产品档案 · 资料库 · 销售订单 · 物流明细 · 回款明细 · 销售库存 · 产品订单 · 新品开发 · 工作记录</p>'+
+      '<p style="color:var(--sub);margin-top:6px">模块：销售订单 · 回款明细 · 销售库存 · 产品订单 · 物流明细 · 客户档案 · 产品档案 · 资料库 · 新品开发 · 工作记录 · 设置</p>'+
       '<p style="color:var(--sub);margin-top:6px">所有台账支持 Excel 导出留痕，用于对账与公司内部核查；OEM 销售合同到期前 30 天自动预警。</p>'+
       '</div></div>';
   });
