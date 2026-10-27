@@ -670,7 +670,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261027a',_verChecking=false;
+var APP_VER='20261027b',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -1913,6 +1913,32 @@ function yearPayTrend(){
   }
   return h;
 }
+/* 首页政策提醒：有效期内（或阶段性返点进行中/未开始）的政策逐条提示；
+   累计达标政策带累计发货进度，点击进入产品政策页 */
+function policyAlertHTML(){
+  var t=today(),list=[];
+  (db.prodPolicies||[]).forEach(function(r){
+    if(policyStage(r)){
+      var st=policyStageStat(r).status;
+      if(st==='未开始'||st==='进行中')list.push(r);
+    }else if(policyActive(r,t))list.push(r);
+  });
+  if(!list.length)return '';
+  policySort(list);
+  var h='<div class="todo-list">';
+  list.forEach(function(r){
+    var w=policyWindow(r);
+    var extra='';
+    if(policyStage(r)){var s=policyStageStat(r);extra='目标 '+fmtN(s.target)+' 元 · 已回款 '+fmtN(s.net)+'（'+s.pct+'%）';}
+    else if(policyExeMode(r)==='累计达标')extra='累计发货 '+fmtN(policyCumQty(r))+' / 目标 '+fmtN(Number(r.targetQty)||0)+' 盒';
+    h+='<div class="todo-item"><span class="todo-txt" style="cursor:pointer" onclick="cur=\'pay\';viewState.pay=\'policy\';render()" title="点击查看产品政策"><span class="tag c1">政策</span> '
+      +esc((r.custName||r.agent)+' · '+r.prodName+' · '+policyText(r))
+      +(extra?('　<span style="color:var(--sub)">'+esc(extra)+'</span>'):'')
+      +(w.s?('　<span style="color:var(--sub)">'+esc(w.s+' ~ '+(w.e||'至今'))+'</span>'):'')+'</span></div>';
+  });
+  h+='</div>';
+  return h;
+}
 function renderDash(c){
   var m=MODULES[0];
   setPage(m,function(root){
@@ -1922,6 +1948,10 @@ function renderDash(c){
 
     /* 产品一览（薄荷绿卡片） */
     h+='<div class="card"><div class="card-hd"><h3>产品一览</h3></div><div class="card-bd">'+prodOverviewHTML()+'</div></div>';
+
+    /* 政策提醒（有效期内 / 进行中的产品政策，累计达标带发货进度） */
+    var paHTML=policyAlertHTML();
+    if(paHTML)h+='<div class="card"><div class="card-hd"><h3>政策提醒</h3><div class="sp"><span class="tag c1">进行中</span></div></div><div class="card-bd">'+paHTML+'</div></div>';
 
     /* 合同到期提醒（OEM 销售合同到期前 1 个月预警；没有 OEM 产品时不显示） */
     var oemCnt=0;
@@ -2654,6 +2684,7 @@ function orderCols(){
     {key:'refund',label:'返款',fmt:function(r){return fmtN(r.refund);},sumFn:function(rs){return fmtN(sumCol(rs,'refund'));}},
     {key:'payMethod',label:'付款方式'},
     {key:'st',label:'状态',fmt:function(r){var s=orderStatus(r);return '<span class="tag '+(s.c==='ok'?'ok':s.c==='warn'?'warn':'pend')+'">'+s.t+'</span>';}},
+    {key:'pol',label:'政策',fmt:function(r){var t=String(r.polText||'');return t?('<span title="'+esc(t)+'">'+esc(t.length>14?t.slice(0,14)+'…':t)+'</span>'):'—';}},
     {key:'wr',label:'工作纪要',fmt:wrCell}
   ];
 }
@@ -2686,7 +2717,8 @@ function openOrderForm(id){
   var cc=r?(findCust(r.agentId)||db.customers.filter(function(x){return x.company===r.agentName;})[0]||null):null;
   OF={id:id||'',oldNo:r?(r.no||''):'',cat:cc?(cc.cat||''):'',agent:cc?(cc.agent||''):'',
       custName:r?(r.custName||''):'',shipDate:r?(r.shipDate||today()):today(),
-      payMethod:r?(r.payMethod||'现款'):'现款',note:r?(r.note||''):'',items:[]};
+      payMethod:r?(r.payMethod||'现款'):'现款',note:r?(r.note||''):'',
+      polId:r?(r.polId||''):'',polText:r?(r.polText||''):'',items:[]};
   rows.forEach(function(o){
     var p=findProd(o.pid)||{};
     OF.items.push({pid:o.pid||'',prodCat:(p.cat==='OEM'||p.cat==='自销')?p.cat:'',batchNo:o.batchNo||'',
@@ -2713,10 +2745,10 @@ function renderOrderForm(){
   h+='</select></div>';
   h+='<div class="fitem"><label>代理商 <b>*</b></label><select data-k="agent" onchange="orderAgentSel(this)">'+orderAgentOptsHTML(OF.cat,OF.agent)+'</select></div>';
   var cl=orderCustList(OF.cat,OF.agent);
-  h+='<div class="fitem"><label>客户名称 <b>*</b></label><input data-k="custName" list="dl_custName" value="'+esc(OF.custName)+'" placeholder="从列表选择或手动输入下游客户"><datalist id="dl_custName">';
+  h+='<div class="fitem"><label>客户名称 <b>*</b></label><input data-k="custName" list="dl_custName" value="'+esc(OF.custName)+'" placeholder="从列表选择或手动输入下游客户" oninput="orderPolRefresh()"><datalist id="dl_custName">';
   for(var d=0;d<cl.length;d++)h+='<option value="'+esc(cl[d])+'">';
   h+='</datalist></div>';
-  h+='<div class="fitem"><label>发货日期 <b>*</b></label><input type="date" data-k="shipDate" value="'+esc(OF.shipDate)+'"></div>';
+  h+='<div class="fitem"><label>发货日期 <b>*</b></label><input type="date" data-k="shipDate" value="'+esc(OF.shipDate)+'" onchange="orderPolRefresh()"></div>';
   h+='<div class="fgroup">产品明细</div>';
   h+='<div id="ofItems"></div>';
   h+='<div class="fitem full"><button type="button" class="btn sm" onclick="orderAddItem()">＋ 添加产品</button></div>';
@@ -2724,6 +2756,8 @@ function renderOrderForm(){
   var pm=['现款','预付','账期','承兑'];
   for(var m=0;m<pm.length;m++)h+='<option value="'+pm[m]+'"'+(OF.payMethod===pm[m]?' selected':'')+'>'+pm[m]+'</option>';
   h+='</select></div>';
+  h+='<div class="fitem"><label>订单政策</label><select data-k="polId" onchange="orderPolSel(this)">'+orderPolOptsHTML(OF.polId||(OF.polText?'__custom__':''))+'</select></div>';
+  h+='<div class="fitem full"><label>政策说明（一次性政策在此手动填写）</label><input data-k="polText" value="'+esc(OF.polText||'')+'" placeholder="选择政策自动带入；一次性政策可直接手动填写"></div>';
   h+='<div class="fitem full"><label>订单备注</label><textarea data-k="note">'+esc(OF.note)+'</textarea></div>';
   document.getElementById('mBody').innerHTML=h;
   orderRenderItems();
@@ -2754,6 +2788,8 @@ function saveOrderForm(){
   var cust=db.customers.filter(function(x){return x.company===custName;})[0]
     ||db.customers.filter(function(x){return x.cat===cat&&x.agent===agent;})[0]||null;
   var payMethod=formVal('payMethod'),note=formVal('note');
+  var polId=formVal('polId')||'',polText=(formVal('polText')||'').trim();
+  if(polId==='__custom__')polId='';   /* 手动填写的一次性政策只留文字说明 */
   if(OF.oldNo){markDel(db.orders.filter(function(x){return x.no===OF.oldNo;}).map(function(x){return x.id;}));db.orders=db.orders.filter(function(x){return x.no!==OF.oldNo;});}
   /* 订单号改了：工作纪要跟着改挂到新订单号，避免变成孤儿记录 */
   if(OF.oldNo&&OF.oldNo!==no)db.wnotes.forEach(function(w){if(String(w.no)===String(OF.oldNo)){w.no=no;touch(w);}});
@@ -2763,9 +2799,47 @@ function saveOrderForm(){
       shipDate:shipDate,pid:it.pid,prodLabel:prodLabel(p),batchNo:it.batchNo||'',qtyBoxes:0,qtyUnits:Number(it.qty)||0,
       basePrice:Number(it.basePrice)||0,supplyPrice:Number(it.supplyPrice)||0,invoicePrice:Number(it.invoicePrice)||0,
       amount:Number(it.amount)||0,rebate:Number(it.rebate)||0,rebateOn:!!it.rebateOn,rebatePer:Number(it.rebatePer)||0,
-      tax:Number(it.tax)||0,refund:Number(it.refund)||0,gift:it.gift?1:0,payMethod:payMethod,note:note});
+      tax:Number(it.tax)||0,refund:Number(it.refund)||0,gift:it.gift?1:0,payMethod:payMethod,note:note,
+      polId:polId,polText:polText});
   });
   save();closeModal();render();
+}
+/* ---- 订单政策：发货日期在政策有效期内、客户/代理商匹配的政策自动列入下拉；
+        没有现成政策的一次性政策，选「手动填写一次性政策」直接写说明 ---- */
+function orderPolList(agent,custName,shipDate){
+  return (db.prodPolicies||[]).filter(function(r){
+    if(!policyActive(r,shipDate||today()))return false;
+    var pc=String(r.custName||'').trim(),pa=String(r.agent||'').trim();
+    if(pc&&pc!==String(custName||'').trim())return false;
+    if(!pc&&pa&&pa!==String(agent||'').trim())return false;
+    return true;
+  });
+}
+function orderPolOptsHTML(keep){
+  var list=orderPolList(formVal('agent'),formVal('custName'),formVal('shipDate'));
+  var h='<option value="">无</option>';
+  list.forEach(function(r){
+    var w=policyWindow(r);
+    h+='<option value="'+r.id+'"'+(keep===r.id?' selected':'')+'>'
+      +esc(r.prodName+' · '+policyText(r)+(w.s?('（'+w.s+'~'+(w.e||'')+'）'):'')+' · '+policyExeMode(r))+'</option>';
+  });
+  h+='<option value="__custom__"'+(keep==='__custom__'?' selected':'')+'>手动填写一次性政策</option>';
+  return h;
+}
+/* 选政策自动带出政策说明；选「手动填写」清空说明框方便输入 */
+function orderPolSel(sel){
+  var v=sel?sel.value:'',el=formEl('polText');
+  if(!el)return;
+  if(v&&v!=='__custom__'){
+    var r=db.prodPolicies.filter(function(x){return x.id===v;})[0];
+    if(r){var w=policyWindow(r);el.value=r.prodName+' '+policyText(r)+(w.s?('（'+w.s+'~'+(w.e||'')+'）'):'')+' · '+policyExeMode(r);}
+  }else if(v==='__custom__'){el.value='';try{el.focus();}catch(e){}}
+}
+/* 客户 / 代理商 / 发货日期变化后重建政策下拉（保留已选项） */
+function orderPolRefresh(){
+  var sel=formEl('polId');if(!sel)return;
+  var keep=formVal('polId')||((formVal('polText')||'').trim()?'__custom__':'');
+  sel.innerHTML=orderPolOptsHTML(keep);
 }
 /* 订单表单：客户分类 → 代理商 → 客户名称 三级联动（数据来自客户档案，选项按首字母排序） */
 function orderAgentOpts(cat,keep){
@@ -2794,12 +2868,14 @@ function orderCatSel(sel){
   if(ael)ael.innerHTML=orderAgentOptsHTML(cat,'');
   orderFillCust(cat,'');
   orderRefreshItemProds();
+  orderPolRefresh();
 }
 function orderAgentSel(sel){
   var cel=document.querySelector('[data-k="cat"]');
   OF.agent=sel?sel.value:'';
   orderFillCust(cel?cel.value:'',sel?sel.value:'');
   orderRefreshItemProds();
+  orderPolRefresh();
 }
 function orderFillCust(cat,agent){
   var list=orderCustList(cat,agent);
@@ -2956,12 +3032,13 @@ function orderItemAmtInput(i){
   it.amount=parseFloat(itF(i,'amount'))||0;it.amountManual=true;
 }
 /* ====== 产品政策联动：数量达到赠货政策时自动加赠品行（金额 0 元，可手动修改） ====== */
-function policyMatchFor(pid,agent,custName){
+function policyMatchFor(pid,agent,custName,date){
   var p=findProd(pid);if(!p)return null;
   var name=String(p.name||'').trim(),spec=String(p.spec||'').trim();
   agent=String(agent||'').trim();custName=String(custName||'').trim();
   var best=null,rank=-1;
   (db.prodPolicies||[]).forEach(function(pol){
+    if(!policyActive(pol,date||today()))return;   /* 只匹配政策有效期内的（下单日不在有效期内不享受） */
     if(String(pol.prodName||'').trim()!==name)return;
     var ps=String(pol.spec||'').trim();
     if(ps&&ps!==spec)return;
@@ -2991,7 +3068,7 @@ function orderGiftSoon(i){
 }
 function orderGiftCheck(i){
   var it=OF.items[i];if(!it||!it.pid||it.gift)return;
-  var pol=policyMatchFor(it.pid,formVal('agent'),formVal('custName'));
+  var pol=policyMatchFor(it.pid,formVal('agent'),formVal('custName'),formVal('shipDate'));
   if(!pol||policyType(pol)!=='赠货')return;
   var b=Number(pol.giftBuy)||0,g=Number(pol.giftGet)||0,qty=Number(it.qty)||0;
   if(!b||!g)return;
@@ -4594,6 +4671,31 @@ function policyText(r){
   if(t==='阶段性返点')return (r.startDate||'—')+' ~ '+(r.endDate||'—')+' · 完成 '+(Number(r.doneRate)||0)+'% / 未完成 '+(Number(r.undoneRate)||0)+'%';
   return '买 '+(Number(r.giftBuy)||0)+' 赠 '+(Number(r.giftGet)||0);
 }
+/* 政策有效期：阶段性返点用结算区间（startDate/endDate），赠货/返点用生效区间（effStart/effEnd）。
+   有效期内的销售订单该品种享受对应政策；两个日期都没填视为长期有效 */
+function policyWindow(r){
+  if(policyStage(r))return {s:r.startDate||'',e:r.endDate||''};
+  return {s:r.effStart||'',e:r.effEnd||''};
+}
+function policyActive(r,t){
+  t=t||today();var w=policyWindow(r);
+  if(w.s&&t<w.s)return false;
+  if(w.e&&t>w.e)return false;
+  return true;
+}
+/* 兑现方式：一次性发货（单次下单即享受）/ 累计达标（政策期内累计发货达到目标后享受） */
+function policyExeMode(r){return policyStage(r)?'':(r.exeMode==='累计达标'?'累计达标':'一次性发货');}
+/* 累计发货统计：政策有效期内、该客户（无客户名按代理商）该产品的订单件数合计（盒） */
+function policyCumQty(r){
+  var w=policyWindow(r),pn=String(r.prodName||'').trim(),s=0;
+  db.orders.forEach(function(o){
+    var d=o.shipDate||'';if(w.s&&d<w.s)return;if(w.e&&d>w.e)return;
+    if(!policyStageHit(r,o))return;
+    if(pn&&String(o.prodLabel||'').indexOf(pn)<0)return;
+    s+=Number(o.qtyUnits)||0;
+  });
+  return s;
+}
 /* 返款参考（单个政策循环）：
    赠货 = 开票价×(买+赠) − 供货价×买
    返点 = 开票价 × 返点比例（单件）
@@ -4695,7 +4797,19 @@ function policyCols(){
       return '<span class="tag '+(t==='阶段性返点'?'c3':(t==='返点'?'c2':'c1'))+'">'+esc(t)+'</span>';
     }},
     {key:'policy',label:'政策',fmt:function(r){return esc(policyText(r));}},
-    {key:'period',label:'结算区间',fmt:function(r){return policyStage(r)?(esc((r.startDate||'—')+' ~ '+(r.endDate||'—'))):'—';}},
+    {key:'exe',label:'兑现方式',fmt:function(r){
+      if(policyStage(r))return '—';
+      return policyExeMode(r)==='累计达标'?'<span class="tag c2">累计达标</span>':'<span class="tag c3">一次性发货</span>';
+    }},
+    {key:'cum',label:'累计发货',fmt:function(r){
+      if(policyStage(r)||policyExeMode(r)!=='累计达标')return '—';
+      var q=policyCumQty(r),t=Number(r.targetQty)||0;
+      return '<span title="政策期内该客户该产品订单合计">'+esc(fmtN(q))+' / '+esc(fmtN(t))+' 盒'+(t>0?('（'+Math.min(999,Math.round(q/t*100))+'%）'):'')+'</span>';
+    }},
+    {key:'period',label:'政策区间',fmt:function(r){
+      var w=policyWindow(r);
+      return (w.s||w.e)?esc((w.s||'—')+' ~ '+(w.e||'—')):'<span class="tag c3">长期</span>';
+    }},
     {key:'actual',label:'区间回款（净）',fmt:function(r){
       if(!policyStage(r))return '—';
       var s=policyStageStat(r);
@@ -4847,17 +4961,24 @@ function policyProdNameChg(el){
   policyFillPrice();
   if(document.getElementById('polStageBox'))policyStagePreview();
 }
-/* 政策类型切换：赠货 → 买赠；返点 → 返点比例；阶段性返点 → 区间结算字段 */
+/* 政策类型切换：赠货 → 买赠；返点 → 返点比例；阶段性返点 → 区间结算字段（并隐藏兑现方式/生效区间，用结算区间） */
 function policyTypeChg(sel){
   var t=sel?sel.value:formVal('policyType');
   var stage=(t==='阶段性返点');
   formToggle('giftBuy',t==='赠货');
   formToggle('giftGet',t==='赠货');
   formToggle('rebateRate',t==='返点');
+  formToggle('exeMode',!stage);
+  formToggle('effStart',!stage);
+  formToggle('effEnd',!stage);
+  formToggle('targetQty',!stage&&formVal('exeMode')==='累计达标');
+  formGroupToggle('政策有效期（期间内下单享受本政策）',!stage);
   ['startDate','endDate','targetAmount','scopeProd','reqText','reqPass','doneRate','undoneRate'].forEach(function(k){formToggle(k,stage);});
   formGroupToggle('阶段性返点（区间结算）',stage);
   policyStagePreview();
 }
+/* 兑现方式切换：累计达标才显示累计发货目标 */
+function policyExeChg(){formToggle('targetQty',formVal('exeMode')==='累计达标');}
 /* 区间结算实时预览：改区间 / 目标 / 比例 立即看到区间回款与结算结果 */
 function policyStagePreview(){
   var box=document.getElementById('polStageBox');if(!box)return;
@@ -4905,6 +5026,12 @@ function openPolicyForm(id){
     {key:'giftBuy',label:'赠货 · 买（件）',type:'number',def:10},
     {key:'giftGet',label:'赠货 · 赠（件）',type:'number',def:1},
     {key:'rebateRate',label:'返点比例（%）',type:'number'},
+    {key:'exeMode',label:'兑现方式',type:'select',onchange:'policyExeChg',options:[{v:'一次性发货',t:'一次性发货'},{v:'累计达标',t:'累计达标'}],
+      hint:'一次性发货：单次下单即享受；累计达标：政策期内该产品累计发货达到目标后享受'},
+    {key:'targetQty',label:'累计发货目标（盒）',type:'number',hint:'政策期内累计发货达到该数量后享受本政策'},
+    {group:'政策有效期（期间内下单享受本政策）'},
+    {key:'effStart',label:'生效开始',type:'date'},
+    {key:'effEnd',label:'生效结束',type:'date',hint:'都不填视为长期有效；阶段性返点用下方结算区间'},
     {group:'阶段性返点（区间结算）'},
     {key:'startDate',label:'区间开始',type:'date',required:true,onchange:'policyStagePreview'},
     {key:'endDate',label:'区间结束',type:'date',required:true,onchange:'policyStagePreview'},
@@ -4919,9 +5046,10 @@ function openPolicyForm(id){
   var vals=r?{cat:r.cat,agent:r.agent,custName:r.custName,prodCat:r.prodCat,prodName:r.prodName,spec:r.spec,
     basePrice:r.basePrice,supplyPrice:r.supplyPrice,invoicePrice:r.invoicePrice,
     policyType:policyType(r),giftBuy:r.giftBuy,giftGet:r.giftGet,rebateRate:r.rebateRate,
+    exeMode:policyExeMode(r)||'一次性发货',targetQty:r.targetQty,effStart:r.effStart,effEnd:r.effEnd,
     startDate:r.startDate,endDate:r.endDate,targetAmount:r.targetAmount,scopeProd:r.scopeProd||'客户全部产品',
     reqText:r.reqText,reqPass:r.reqPass||'未确认',doneRate:r.doneRate,undoneRate:r.undoneRate,note:r.note}
-    :{cat:curCat||'',policyType:'赠货',giftBuy:10,giftGet:1,scopeProd:'客户全部产品',reqPass:'未确认'};
+    :{cat:curCat||'',policyType:'赠货',giftBuy:10,giftGet:1,exeMode:'一次性发货',scopeProd:'客户全部产品',reqPass:'未确认'};
   openForm(id?'编辑产品政策':'新增产品政策',fields,vals,function(v){
     v.prodName=String(v.prodName||'').trim();v.agent=String(v.agent||'').trim();v.custName=String(v.custName||'').trim();
     if(!v.agent){markErr('agent');alert('请填写代理商');return;}
@@ -4932,13 +5060,19 @@ function openPolicyForm(id){
     v.doneRate=Number(v.doneRate)||0;
     v.undoneRate=Number(v.undoneRate)||0;
     if(v.policyType==='阶段性返点'){
-      v.giftBuy=0;v.giftGet=0;v.rebateRate=0;
+      v.giftBuy=0;v.giftGet=0;v.rebateRate=0;v.exeMode='';v.targetQty=0;v.effStart='';v.effEnd='';
       if(!v.startDate||!v.endDate){markErr(!v.startDate?'startDate':'endDate');alert('阶段性返点请填写结算区间（开始 / 结束日期）');return;}
       if(v.endDate<v.startDate){markErr('endDate');alert('区间结束日期不能早于开始日期');return;}
       if(!(v.targetAmount>0)){markErr('targetAmount');alert('请填写完成要求（区间回款目标金额）');return;}
       if(!(v.doneRate>0)){markErr('doneRate');alert('请填写完成后返点比例（%）');return;}
     }else{
       v.startDate='';v.endDate='';v.targetAmount=0;v.scopeProd='';v.reqText='';v.reqPass='';v.doneRate=0;v.undoneRate=0;
+      v.exeMode=(v.exeMode==='累计达标')?'累计达标':'一次性发货';
+      if(v.exeMode==='累计达标'){
+        v.targetQty=Number(v.targetQty)||0;
+        if(!(v.targetQty>0)){markErr('targetQty');alert('累计达标政策请填写累计发货目标（盒）');return;}
+      }else{v.targetQty=0;}
+      if(v.effStart&&v.effEnd&&v.effEnd<v.effStart){markErr('effEnd');alert('政策有效期结束日期不能早于开始日期');return;}
       if(v.policyType==='返点'){
         v.giftBuy=0;v.giftGet=0;
         if(!(v.rebateRate>0)){markErr('rebateRate');alert('返点政策请填写返点比例（%）');return;}
@@ -5038,7 +5172,8 @@ var POLICY_EXPORT_COLS=[
   {key:'seq',label:'序号'},{key:'cat',label:'客户分类'},{key:'agent',label:'代理商'},{key:'custName',label:'客户名称'},
   {key:'prodCat',label:'产品分类'},{key:'prodName',label:'产品名称'},{key:'spec',label:'产品规格'},
   {key:'basePrice',label:'底价'},{key:'supplyPrice',label:'供货价'},{key:'invoicePrice',label:'开票价'},
-  {key:'policyType',label:'政策类型'},{key:'giftBuy',label:'赠货·买'},{key:'giftGet',label:'赠货·赠'},
+  {key:'policyType',label:'政策类型'},{key:'exeMode',label:'兑现方式'},{key:'effStart',label:'生效开始'},{key:'effEnd',label:'生效结束'},{key:'targetQty',label:'累计目标(盒)'},{key:'cumQty',label:'累计发货(盒)'},
+  {key:'giftBuy',label:'赠货·买'},{key:'giftGet',label:'赠货·赠'},
   {key:'rebateRate',label:'返点比例(%)'},
   {key:'startDate',label:'区间开始'},{key:'endDate',label:'区间结束'},{key:'targetAmount',label:'回款目标(元)'},
   {key:'scopeProd',label:'统计范围'},{key:'reqText',label:'返点要求'},{key:'reqPass',label:'要求状态'},
@@ -5058,6 +5193,8 @@ function exportPolicy(){
       basePrice:Number(r.basePrice)||0,supplyPrice:Number(r.supplyPrice)||0,invoicePrice:Number(r.invoicePrice)||0,
       policyType:policyType(r),giftBuy:Number(r.giftBuy)||0,giftGet:Number(r.giftGet)||0,
       rebateRate:Number(r.rebateRate)||0,
+      exeMode:policyExeMode(r),effStart:r.effStart||'',effEnd:r.effEnd||'',
+      targetQty:Number(r.targetQty)||0,cumQty:policyExeMode(r)==='累计达标'?policyCumQty(r):'',
       startDate:r.startDate||'',endDate:r.endDate||'',targetAmount:Number(r.targetAmount)||0,
       scopeProd:r.scopeProd||'',reqText:r.reqText||'',reqPass:r.reqPass||'',
       doneRate:Number(r.doneRate)||0,undoneRate:Number(r.undoneRate)||0,
@@ -5068,12 +5205,12 @@ function exportPolicy(){
   exportXLS('产品政策',POLICY_EXPORT_COLS,out);
 }
 function downPolicyTpl(){
-  var headers=['客户分类','代理商','客户名称','产品分类','产品名称','产品规格','底价','供货价','开票价','政策类型','赠货·买','赠货·赠','返点比例(%)',
+  var headers=['客户分类','代理商','客户名称','产品分类','产品名称','产品规格','底价','供货价','开票价','政策类型','兑现方式','生效开始','生效结束','累计目标(盒)','赠货·买','赠货·赠','返点比例(%)',
     '区间开始','区间结束','回款目标(元)','统计范围','返点要求','要求状态','完成比例(%)','未完成比例(%)','备注'];
   var examples=[
-    ['省总','示例代理商医药有限公司','','自销','示例阿莫西林胶囊','12*2*300',10.2,12.5,13,'赠货',10,1,'','','','','','','','','',''],
-    ['大包商','示例代理商医药有限公司','示例客户（连锁总部）','OEM','示例感冒灵颗粒','10g*9袋*240',7.5,9,9.6,'返点','','',3,'','','','','','','','',''],
-    ['大包商','示例代理商医药有限公司','示例客户（连锁总部）','OEM','示例感冒灵颗粒','10g*9袋*240',7.5,9,9.6,'阶段性返点','','','','2026-01-01','2026-06-30',800000,'客户全部产品','客户按供货价办款、挂网价不低于公司规定挂网价','未确认',4,2,'']
+    ['省总','示例代理商医药有限公司','','自销','示例阿莫西林胶囊','12*2*300',10.2,12.5,13,'赠货','一次性发货','2026-10-01','2026-12-31','','',10,1,'','','','','','','','','',''],
+    ['大包商','示例代理商医药有限公司','示例客户（连锁总部）','OEM','示例感冒灵颗粒','10g*9袋*240',7.5,9,9.6,'返点','累计达标','2026-10-01','2026-12-31',5000,'','',3,'','','','','','','','',''],
+    ['大包商','示例代理商医药有限公司','示例客户（连锁总部）','OEM','示例感冒灵颗粒','10g*9袋*240',7.5,9,9.6,'阶段性返点','','','','','','','','',4,'2026-01-01','2026-06-30',800000,'客户全部产品','客户按供货价办款、挂网价不低于公司规定挂网价','未确认',4,2,'']
   ];
   if(window.XLSX){
     var ws=XLSX.utils.aoa_to_sheet([headers].concat(examples));
@@ -5108,6 +5245,7 @@ function importPolicyExcel(input){
       if(headRow<0){alert('未识别到表头，请先点击"模板"下载模板按格式填写');return;}
       var map={'客户分类':'cat','代理商':'agent','客户名称':'custName','产品分类':'prodCat','产品名称':'prodName',
         '产品规格':'spec','底价':'basePrice','供货价':'supplyPrice','开票价':'invoicePrice','政策类型':'policyType',
+        '兑现方式':'exeMode','生效开始':'effStart','生效结束':'effEnd','累计目标(盒)':'targetQty',
         '赠货·买':'giftBuy','赠货·赠':'giftGet','返点比例(%)':'rebateRate',
         '区间开始':'startDate','区间结束':'endDate','回款目标(元)':'targetAmount','统计范围':'scopeProd',
         '返点要求':'reqText','要求状态':'reqPass','完成比例(%)':'doneRate','未完成比例(%)':'undoneRate','备注':'note'};
@@ -5116,8 +5254,8 @@ function importPolicyExcel(input){
         var hc=String(head[j]==null?'':head[j]).trim();
         if(map[hc])headMap[j]=map[hc];
       }
-      var numKeys={basePrice:1,supplyPrice:1,invoicePrice:1,giftBuy:1,giftGet:1,rebateRate:1,targetAmount:1,doneRate:1,undoneRate:1};
-      var dateKeys={startDate:1,endDate:1};
+      var numKeys={basePrice:1,supplyPrice:1,invoicePrice:1,giftBuy:1,giftGet:1,rebateRate:1,targetAmount:1,doneRate:1,undoneRate:1,targetQty:1};
+      var dateKeys={startDate:1,endDate:1,effStart:1,effEnd:1};
       var added=0,skip=0,skipMsg=[];
       for(var k=headRow+1;k<json.length;k++){
         var rr=json[k];if(!rr)continue;
@@ -5140,12 +5278,14 @@ function importPolicyExcel(input){
         rec.scopeProd=(rec.scopeProd==='仅本产品')?'仅本产品':'客户全部产品';
         if(['达标','未达标','未确认'].indexOf(rec.reqPass)<0)rec.reqPass='未确认';
         if(rec.policyType==='阶段性返点'){
-          rec.giftBuy=0;rec.giftGet=0;rec.rebateRate=0;
+          rec.giftBuy=0;rec.giftGet=0;rec.rebateRate=0;rec.exeMode='';rec.targetQty=0;rec.effStart='';rec.effEnd='';
           if(!rec.startDate||!rec.endDate){skip++;skipMsg.push('第'+(k+1)+'行：阶段性返点缺少结算区间');continue;}
           if(!(rec.targetAmount>0)){skip++;skipMsg.push('第'+(k+1)+'行：阶段性返点缺少区间回款目标');continue;}
           if(!(rec.doneRate>0)){skip++;skipMsg.push('第'+(k+1)+'行：阶段性返点缺少完成比例');continue;}
         }else{
           rec.startDate='';rec.endDate='';rec.targetAmount=0;rec.scopeProd='';rec.reqText='';rec.reqPass='';rec.doneRate=0;rec.undoneRate=0;
+          rec.exeMode=(rec.exeMode==='累计达标')?'累计达标':'一次性发货';
+          if(rec.exeMode==='累计达标')rec.targetQty=xlNum(rec.targetQty)||0;else rec.targetQty=0;
           if(rec.policyType==='返点'){rec.giftBuy=0;rec.giftGet=0;if(!(rec.rebateRate>0))rec.rebateRate=0;}
           else if(!(rec.giftBuy>0||rec.giftGet>0)){rec.giftBuy=10;rec.giftGet=1;}
         }
