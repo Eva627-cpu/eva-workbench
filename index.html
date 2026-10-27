@@ -124,7 +124,10 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 #hbar::-webkit-scrollbar-thumb{background:#aeaeb4;border-radius:8px}
 #hbar::-webkit-scrollbar-track{background:transparent}
 body.hbar-on .content{padding-bottom:40px}
-td.mg{vertical-align:middle}
+/* 合并单元格（rowspan）：内容与标记上下左右居中 */
+td.mg{vertical-align:middle;text-align:center}
+td.mg>.tag,td.mg>span.tag{display:inline-block;vertical-align:middle}
+td.mg input.chkbox{vertical-align:middle}
 tbody tr.grp-first td{border-top:1px solid var(--accent-g1)}
 tbody tr.grp-last td{border-bottom:1px solid var(--accent-g1)}
 @media(min-width:901px){.tbl-scroll td{white-space:nowrap}}
@@ -670,7 +673,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261027h',_verChecking=false;
+var APP_VER='20261027i',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -1097,7 +1100,7 @@ function smartTableHTML(mod,cols,rows,actionsFn,redraw,grp){
     for(var g=0;g<gn;g++){
       var s0=gstart[g],n0=gcnt[g],flags=[];
       for(var mc=0;mc<cols.length;mc++){
-        var cd=cols[mc],same=n0>1&&!cd.chk,v0=ccell(s0,mc);   /* 核对列逐行独立，不参与合并 */
+        var cd=cols[mc],same=n0>1&&!cd.chk&&!cd.noMerge,v0=ccell(s0,mc);   /* 核对列、noMerge 列逐行独立，不参与合并 */
         for(var mz=1;same&&mz<n0;mz++){if(ccell(s0+mz,mc)!==v0)same=false;}
         flags.push(same);
       }
@@ -6534,15 +6537,15 @@ function devCols(){
     {key:'prodCat',label:'产品分类',fmt:function(r){return r.prodCat?prodCatTag(r.prodCat):'—';}},
     {key:'name',label:'产品名称',fmt:function(r){return (r.done?'<span class="tag ok" title="该项目已完成">✓</span> ':'')+esc(r.name||'');}},
     {key:'preSpec',label:'预选规格',fmt:function(r){return esc(r.preSpec||'—');}},
-    {key:'quote',label:'报价',fmt:function(r){return devNum(r,'quote');}},
-    {key:'packDesign',label:'包装设计',fmt:function(r){return devStageTag(r.packDesign);}},
-    {key:'packCraft',label:'包材工艺',fmt:function(r){return devStageTag(r.packCraft);}},
-    {key:'sample',label:'打样',fmt:function(r){return devStageTag(r.sample);}},
-    {key:'contract',label:'合同',fmt:function(r){return devStageTag(r.contract);}},
-    {key:'packArrived',label:'包材是否到货',fmt:function(r){return devYN(r.packArrived);}},
-    {key:'sampleBox',label:'申请样盒',fmt:function(r){return devStageTag(r.sampleBox);}},
-    {key:'prodData',label:'产品资料',fmt:function(r){return devStageTag(r.prodData);}},
-    {key:'note',label:'备注',fmt:function(r){return esc(r.note||'—');}}
+    {key:'quote',label:'报价',fmt:function(r){return devNum(r,'quote');},noMerge:true},
+    {key:'packDesign',label:'包装设计',noMerge:true,fmt:function(r){return devStageTag(r.packDesign);}},
+    {key:'packCraft',label:'包材工艺',noMerge:true,fmt:function(r){return devStageTag(r.packCraft);}},
+    {key:'sample',label:'打样',noMerge:true,fmt:function(r){return devStageTag(r.sample);}},
+    {key:'contract',label:'合同',noMerge:true,fmt:function(r){return devStageTag(r.contract);}},
+    {key:'packArrived',label:'包材是否到货',noMerge:true,fmt:function(r){return devYN(r.packArrived);}},
+    {key:'sampleBox',label:'申请样盒',noMerge:true,fmt:function(r){return devStageTag(r.sampleBox);}},
+    {key:'prodData',label:'产品资料',noMerge:true,fmt:function(r){return devStageTag(r.prodData);}},
+    {key:'note',label:'备注',noMerge:true,fmt:function(r){return esc(r.note||'—');}}
   ];
 }
 /* 同一客户（客户分类+代理商+客户名称）归为一个分组：列表里共用一个序号，
