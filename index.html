@@ -670,7 +670,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261027b',_verChecking=false;
+var APP_VER='20261027c',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -1913,30 +1913,63 @@ function yearPayTrend(){
   }
   return h;
 }
-/* 首页政策提醒：有效期内（或阶段性返点进行中/未开始）的政策逐条提示；
-   累计达标政策带累计发货进度，点击进入产品政策页 */
+/* 首页政策提醒：只提示"该管了"的政策，避免长期挂一堆不痛不痒的条目。
+   触发条件（满足任一即提醒）：
+   ① 累计达标政策：累计发货 / 阶段性返点净回款 达到目标的 POLICY_REMIND_PCT%（默认 80%）
+   ② 结束日期前 POLICY_REMIND_DAYS 天内（默认 10 天）
+   其余有效期内但未到条件的政策不打扰，只在页脚提示还剩多少条 */
+var POLICY_REMIND_PCT=80;    /* 达到目标的这个百分比即提醒 */
+var POLICY_REMIND_DAYS=10;   /* 结束日期前多少天提醒 */
+/* 距政策结束还有几天：无结束日期返回 null，已结束返回负数 */
+function policyEndDays(r){
+  var w=policyWindow(r);
+  if(!w.e)return null;
+  var a=Date.parse(w.e+'T00:00:00'),b=Date.parse(today()+'T00:00:00');
+  if(isNaN(a)||isNaN(b))return null;
+  return Math.round((a-b)/86400000);
+}
+/* 返回该政策的提醒信息（不需提醒返回 null）：{r, qty:'…', days:'…'} */
+function policyRemind(r){
+  var t=today(),qtyTxt='',daysTxt='';
+  if(policyStage(r)){
+    var s=policyStageStat(r);
+    if(s.status!=='未开始'&&s.status!=='进行中')return null;
+    if(s.target>0&&s.pct>=POLICY_REMIND_PCT)qtyTxt='净回款 '+fmtN(s.net)+' / 目标 '+fmtN(s.target)+' 元（'+s.pct+'%）';
+  }else{
+    if(!policyActive(r,t))return null;
+    if(policyExeMode(r)==='累计达标'){
+      var q=policyCumQty(r),tg=Number(r.targetQty)||0;
+      if(tg>0&&q/tg*100>=POLICY_REMIND_PCT)qtyTxt='累计发货 '+fmtN(q)+' / 目标 '+fmtN(tg)+' 盒（'+Math.round(q/tg*100)+'%）';
+    }
+  }
+  var d=policyEndDays(r);
+  if(d!==null&&d>=0&&d<=POLICY_REMIND_DAYS)daysTxt=(d===0?'今天到期':('距结束还有 '+d+' 天'));
+  if(!qtyTxt&&!daysTxt)return null;
+  return {r:r,qty:qtyTxt,days:daysTxt};
+}
 function policyAlertHTML(){
-  var t=today(),list=[];
+  var t=today(),hits=[],act=0;
   (db.prodPolicies||[]).forEach(function(r){
-    if(policyStage(r)){
-      var st=policyStageStat(r).status;
-      if(st==='未开始'||st==='进行中')list.push(r);
-    }else if(policyActive(r,t))list.push(r);
+    var live=policyStage(r)?(['未开始','进行中'].indexOf(policyStageStat(r).status)>=0):policyActive(r,t);
+    if(!live)return;
+    act++;
+    var rm=policyRemind(r);
+    if(rm)hits.push(rm);
   });
-  if(!list.length)return '';
-  policySort(list);
+  if(!hits.length)return '';
+  var order={};hits.forEach(function(x){order[x.r.id]=x;});
+  var list=policySort(hits.map(function(x){return x.r;}));
   var h='<div class="todo-list">';
   list.forEach(function(r){
-    var w=policyWindow(r);
-    var extra='';
-    if(policyStage(r)){var s=policyStageStat(r);extra='目标 '+fmtN(s.target)+' 元 · 已回款 '+fmtN(s.net)+'（'+s.pct+'%）';}
-    else if(policyExeMode(r)==='累计达标')extra='累计发货 '+fmtN(policyCumQty(r))+' / 目标 '+fmtN(Number(r.targetQty)||0)+' 盒';
+    var rm=order[r.id]||{},w=policyWindow(r);
     h+='<div class="todo-item"><span class="todo-txt" style="cursor:pointer" onclick="cur=\'pay\';viewState.pay=\'policy\';render()" title="点击查看产品政策"><span class="tag c1">政策</span> '
       +esc((r.custName||r.agent)+' · '+r.prodName+' · '+policyText(r))
-      +(extra?('　<span style="color:var(--sub)">'+esc(extra)+'</span>'):'')
-      +(w.s?('　<span style="color:var(--sub)">'+esc(w.s+' ~ '+(w.e||'至今'))+'</span>'):'')+'</span></div>';
+      +(rm.qty?('　<span style="color:var(--sub)">'+esc(rm.qty)+'</span>'):'')
+      +(rm.days?('　<span class="tag warn">'+esc(rm.days)+'</span>'):'')
+      +(w.e?('　<span style="color:var(--sub)">'+esc(w.s||'')+' ~ '+esc(w.e)+'</span>'):'')+'</span></div>';
   });
   h+='</div>';
+  if(act>hits.length)h+='<div class="hint" style="margin-top:8px">其余 '+(act-hits.length)+' 条政策在有效期内，累计未达 '+POLICY_REMIND_PCT+'%、距今结束超过 '+POLICY_REMIND_DAYS+' 天，暂不提醒（点上方任一条可查看全部政策）</div>';
   return h;
 }
 function renderDash(c){
@@ -1949,9 +1982,9 @@ function renderDash(c){
     /* 产品一览（薄荷绿卡片） */
     h+='<div class="card"><div class="card-hd"><h3>产品一览</h3></div><div class="card-bd">'+prodOverviewHTML()+'</div></div>';
 
-    /* 政策提醒（有效期内 / 进行中的产品政策，累计达标带发货进度） */
+    /* 政策提醒（到达阈值或临近结束才提示，避免长期挂一堆不痛不痒的条目） */
     var paHTML=policyAlertHTML();
-    if(paHTML)h+='<div class="card"><div class="card-hd"><h3>政策提醒</h3><div class="sp"><span class="tag c1">进行中</span></div></div><div class="card-bd">'+paHTML+'</div></div>';
+    if(paHTML)h+='<div class="card"><div class="card-hd"><h3>政策提醒</h3><div class="sp"><span class="tag warn">需关注</span></div></div><div class="card-bd">'+paHTML+'</div></div>';
 
     /* 合同到期提醒（OEM 销售合同到期前 1 个月预警；没有 OEM 产品时不显示） */
     var oemCnt=0;
