@@ -435,7 +435,7 @@ tbody tr.z2 td.chk-on{background:#e4f7e9!important}
 <script>
 /* ================= 存储 ================= */
 var DB_KEY='pharmaSalesWorkbench';
-var DB_TABLES=['customers','products','batches','orders','shipments','payments','logs','prodOrders','develop','todos','prodPolicies','docs'];
+var DB_TABLES=['customers','products','batches','orders','shipments','payments','logs','prodOrders','develop','todos','prodPolicies','docs','wnotes'];
 /* 历史数据自愈用到的字段表（必须在 load() 之前初始化，否则打开瞬间的自愈会空跑） */
 var DATE_FIELDS={orders:['shipDate'],shipments:['shipDate'],payments:['payDate','ym'],batches:['inDate','prodDate','expire'],prodOrders:['date','shipDate'],develop:['orderDate'],logs:['date','planDate']};
 var _HEALED=0;
@@ -532,7 +532,7 @@ function localIsEmpty(){
     &&db.batches.length===0&&db.payments.length===0&&db.shipments.length===0
     &&db.prodOrders.length===0&&db.develop.length===0&&(db.docs||[]).length===0;
 }
-var MERGE_KEYS=['orders','customers','products','batches','payments','shipments','prodOrders','develop','logs','todos','prodPolicies','docs'];
+var MERGE_KEYS=['orders','customers','products','batches','payments','shipments','prodOrders','develop','logs','todos','prodPolicies','docs','wnotes'];
 /* 空值判定：''/null/undefined/0 都视为"未填"（本工作台价格与数量字段 0 即未填） */
 function isBlank(v){return v===undefined||v===null||v===''||v===0||v==='0'||(typeof v==='number'&&isNaN(v));}
 /* 字段级补空：本机为空而云端有值的字段，采用云端值（避免"A设备填了字段、B设备本地为空"时永远同步不过来） */
@@ -670,7 +670,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261012b',_verChecking=false;
+var APP_VER='20261027a',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -846,10 +846,10 @@ function render(){
 function prodLabel(p){return p?p.name+' '+p.spec:'';}
 /* 只读索引缓存：产品 / 客户 / 库存 / 已发货 / 已回款，避免列表逐行全表扫描；
    数据每次变动（save）或页面每次重绘（render）时自动失效重建 */
-var _IDX_VER=0,_idxBuilt=-1,_prodMap=null,_custMap=null,_stockMap=null,_shipMap=null,_paidMap=null,_orderMap=null,_paidCnt=null,_ordAgg=null,_ordByCust=null;
+var _IDX_VER=0,_idxBuilt=-1,_prodMap=null,_custMap=null,_stockMap=null,_shipMap=null,_paidMap=null,_orderMap=null,_paidCnt=null,_ordAgg=null,_ordByCust=null,_wrMap=null;
 function _buildIdx(){
   if(_idxBuilt===_IDX_VER)return;
-  _prodMap={};_custMap={};_stockMap={};_shipMap={};_paidMap={};_orderMap={};_paidCnt={};_ordAgg={};_ordByCust={};
+  _prodMap={};_custMap={};_stockMap={};_shipMap={};_paidMap={};_orderMap={};_paidCnt={};_ordAgg={};_ordByCust={};_wrMap={};
   for(var i=0;i<db.products.length;i++)_prodMap[db.products[i].id]=db.products[i];
   for(var ci=0;ci<db.customers.length;ci++){var cu=db.customers[ci];if(cu&&cu.id&&!_custMap[cu.id])_custMap[cu.id]=cu;}
   for(var b=0;b<db.batches.length;b++){
@@ -877,6 +877,8 @@ function _buildIdx(){
     a3.amt+=Number(od3.amount)||0;a3.n++;
     if(od3.prodLabel&&a3.names.indexOf(od3.prodLabel)<0)a3.names.push(od3.prodLabel);
   }
+  /* 工作纪要：订单号 → 纪要记录（按订单号存一条，不随订单行编辑重建丢失） */
+  for(var w1=0;w1<(db.wnotes||[]).length;w1++){var wn1=db.wnotes[w1];if(wn1&&wn1.no)_wrMap[String(wn1.no)]=wn1;}
   _idxBuilt=_IDX_VER;
 }
 /* 件装量解析：规格最后一组数为件装量，如 12*2*300 → 300盒/件 */
@@ -908,6 +910,57 @@ function orderStatus(o){
   return {t:'未回款',c:'warn'};
 }
 function custCatTag(c){var map={'省总':'c1','大包商':'c2','零散客户':'c3'};return '<span class="tag '+(map[c]||'c1')+'">'+esc(c)+'</span>';}
+
+/* ================= 工作纪要（销售订单）：拒收 / 卡盒 / 买赔 =================
+   按「订单号」存一条记录（db.wnotes），编辑订单行重建不影响；删除整单时一并删除。
+   列表纪要列可直接打勾✅，未完成的自动提示在首页「业务待办」。 */
+function findWr(k){_buildIdx();return _wrMap[String(k)]||null;}
+function wrText(w){
+  if(!w)return '';
+  var p=[];
+  if(Number(w.rj)>0)p.push('拒'+fmtN(w.rj));
+  if(Number(w.kb)>0)p.push('卡'+fmtN(w.kb));
+  if(Number(w.mp)>0)p.push('赔'+fmtN(w.mp));
+  return p.join(' ');
+}
+/* 订单列表「工作纪要」列：有小方格可直接打勾，完成后划线置灰 */
+function wrCell(r){
+  var w=findWr(r.no),t=wrText(w);
+  if(!t)return '<span style="color:var(--sub)">—</span>';
+  return '<label style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap;cursor:pointer;margin:0">'
+    +'<input type="checkbox" class="chkbox"'+(w.done?' checked':'')+' onchange="toggleWrDone(\''+r.no+'\',this)">'
+    +(w.done?'<span style="text-decoration:line-through;color:var(--sub)">'+esc(t)+'</span>':'<span>'+esc(t)+'</span>')+'</label>';
+}
+/* 打勾/取消：k 可传订单号（列表）或纪要记录 id（首页待办） */
+function toggleWrDone(k,el){
+  var w=db.wnotes.filter(function(x){return x.id===k||String(x.no)===String(k);})[0];
+  if(!w){if(el)el.checked=false;return;}
+  w.done=!w.done;touch(w);save();render();
+}
+/* 编辑工作纪要（订单列表「纪要」按钮） */
+function openWrForm(no){
+  var o=db.orders.filter(function(x){return x.no===no;})[0]||{};
+  var w=findWr(no)||{};
+  openForm('工作纪要 · 订单 '+no,[
+    {key:'wrRj',label:'拒收（数量）',type:'number',ph:'拒收数量（盒），没有填 0'},
+    {key:'wrKb',label:'卡盒（数量）',type:'number',ph:'卡盒数量（盒），没有填 0'},
+    {key:'wrMp',label:'买赔（金额）',type:'number',ph:'买赔金额（元），没有填 0'},
+    {key:'wrDone',label:'完成状态',type:'select',options:['未完成','已完成']}
+  ],{wrRj:Number(w.rj)||0,wrKb:Number(w.kb)||0,wrMp:Number(w.mp)||0,wrDone:w.done?'已完成':'未完成'},
+  function(v){saveWr(no,o.custName||'',v);});
+}
+function saveWr(no,custName,v){
+  var rj=Number(v.wrRj)||0,kb=Number(v.wrKb)||0,mp=Number(v.wrMp)||0,done=v.wrDone==='已完成';
+  var w=db.wnotes.filter(function(x){return String(x.no)===String(no);})[0];
+  if(!w){
+    if(!rj&&!kb&&!mp){closeModal();return;}
+    w={id:uid(),no:String(no),custName:custName||'',rj:0,kb:0,mp:0,done:false};
+    db.wnotes.push(w);
+  }
+  w.rj=rj;w.kb=kb;w.mp=mp;w.done=done;
+  if(custName&&!w.custName)w.custName=custName;
+  touch(w);save();closeModal();render();
+}
 
 /* ================= 表格渲染 ================= */
 function actB(id,editFn,delFn){
@@ -1522,13 +1575,17 @@ function todoHTML(){
   for(var i=rows.length-1;i>=0;i--){if(rows[i].done&&rows[i].doneDate&&rows[i].doneDate!==td){markDel(rows[i].id);rows.splice(i,1);dirty=true;}}
   if(dirty){db.todos=rows;save();}
   var h='';
-  /* ---- 联动待办：新品开发 + 工作记录 未完成项 ---- */
+  /* ---- 联动待办：新品开发 + 工作记录 + 销售订单工作纪要 未完成项 ---- */
   var devOpen=(db.develop||[]).filter(function(d){return !d.done;});
   var devFin=(db.develop||[]).filter(function(d){return d.done;});
   var logOpen=(db.logs||[]).filter(function(l){return !l.done;});
   var logFin=(db.logs||[]).filter(function(l){return l.done;});
-  if(devOpen.length||logOpen.length||devFin.length||logFin.length){
+  var wrOpen=(db.wnotes||[]).filter(function(w){return !w.done&&wrText(w);});
+  if(devOpen.length||logOpen.length||wrOpen.length||devFin.length||logFin.length){
     h+='<div class="sec-title">业务待办</div><div class="todo-list">';
+    wrOpen.forEach(function(w){
+      h+='<div class="todo-item"><span class="todo-box" onclick="toggleWrDone(\''+w.id+'\')"></span><span class="todo-txt" style="cursor:pointer" onclick="cur=\'order\';render()" title="点击进入销售订单"><span class="tag c1">纪要</span> '+esc('订单 '+w.no+(w.custName?' · '+w.custName:'')+'：'+wrText(w))+'</span></div>';
+    });
     devOpen.forEach(function(d){
       h+='<div class="todo-item"><span class="todo-box" onclick="toggleDevDone(\''+d.id+'\')"></span><span class="todo-txt" style="cursor:pointer" onclick="cur=\'dev\';render()" title="点击进入新品开发"><span class="tag c2">新品</span> '+esc((d.custName||d.customer||'')+' · '+(d.name||''))+(d.orderDate?'（订单日期 '+d.orderDate+'）':'')+'</span></div>';
     });
@@ -2596,7 +2653,8 @@ function orderCols(){
     {key:'tax',label:'税金',fmt:function(r){return fmtN(r.tax);},sumFn:function(rs){return fmtN(sumCol(rs,'tax'));}},
     {key:'refund',label:'返款',fmt:function(r){return fmtN(r.refund);},sumFn:function(rs){return fmtN(sumCol(rs,'refund'));}},
     {key:'payMethod',label:'付款方式'},
-    {key:'st',label:'状态',fmt:function(r){var s=orderStatus(r);return '<span class="tag '+(s.c==='ok'?'ok':s.c==='warn'?'warn':'pend')+'">'+s.t+'</span>';}}
+    {key:'st',label:'状态',fmt:function(r){var s=orderStatus(r);return '<span class="tag '+(s.c==='ok'?'ok':s.c==='warn'?'warn':'pend')+'">'+s.t+'</span>';}},
+    {key:'wr',label:'工作纪要',fmt:wrCell}
   ];
 }
 function drawOrder(){
@@ -2609,6 +2667,7 @@ function drawOrder(){
   sortWithinGroups(rows,function(r){return r.no;},prodNameSpecCmp(rowProdName,rowProdSpec));
   document.getElementById('orderTbl').innerHTML=smartTableHTML('order',orderCols(),rows,function(r){
     var btns='<button class="btn sm" onclick="openOrderForm(\''+r.id+'\')">编辑</button>';
+    btns+='<button class="btn sm" onclick="openWrForm(\''+r.no+'\')">纪要</button>';
     if(orderShipped(r.no)<orderNeed(r))btns+='<button class="btn sm" onclick="openShipForm(null,\''+r.no+'\')">发货</button>';
     btns+='<button class="btn sm" onclick="openPayForm(null,\''+r.no+'\')">记回款</button>';
     btns+='<button class="btn sm" onclick="openMatchPanel(\'order\',\''+r.no+'\')">匹配回款</button>';
@@ -2696,6 +2755,8 @@ function saveOrderForm(){
     ||db.customers.filter(function(x){return x.cat===cat&&x.agent===agent;})[0]||null;
   var payMethod=formVal('payMethod'),note=formVal('note');
   if(OF.oldNo){markDel(db.orders.filter(function(x){return x.no===OF.oldNo;}).map(function(x){return x.id;}));db.orders=db.orders.filter(function(x){return x.no!==OF.oldNo;});}
+  /* 订单号改了：工作纪要跟着改挂到新订单号，避免变成孤儿记录 */
+  if(OF.oldNo&&OF.oldNo!==no)db.wnotes.forEach(function(w){if(String(w.no)===String(OF.oldNo)){w.no=no;touch(w);}});
   items.forEach(function(it){
     var p=findProd(it.pid);
     db.orders.push({id:uid(),no:no,cat:cat,agentId:cust?cust.id:'',agentName:agent||custName,custName:custName,
@@ -2986,19 +3047,22 @@ function delOrder(id){  var o=db.orders.filter(function(x){return x.id===id;})[0
   var others=db.orders.filter(function(x){return x.no===o.no&&x.id!==id;}).length;
   var sh=db.shipments.filter(function(s){return s.orderNo===o.no;}).length;
   var py=db.payments.filter(function(s){return s.orderNo===o.no;}).length;
+  var wn=db.wnotes.filter(function(x){return String(x.no)===String(o.no);}).length;
   var msg=others>0?('该订单号下还有 '+others+' 条其他产品行，本次仅删除这一行「'+(o.prodLabel||'')+'」。确定？')
-    :('删除订单 '+o.no+' 将同时删除其 '+sh+' 条发货、'+py+' 条回款记录（库存不受影响）。确定？');
+    :('删除订单 '+o.no+' 将同时删除其 '+sh+' 条发货、'+py+' 条回款记录'+(wn?('、'+wn+' 条工作纪要'):'')+'（库存不受影响）。确定？');
   if(!confirm(msg))return;
   var gone=[id];
   if(!others){
     gone=gone.concat(db.shipments.filter(function(x){return x.orderNo===o.no;}).map(function(x){return x.id;}))
-               .concat(db.payments.filter(function(x){return x.orderNo===o.no||x.shipNo===o.no;}).map(function(x){return x.id;}));
+               .concat(db.payments.filter(function(x){return x.orderNo===o.no||x.shipNo===o.no;}).map(function(x){return x.id;}))
+               .concat(db.wnotes.filter(function(x){return String(x.no)===String(o.no);}).map(function(x){return x.id;}));
   }
   markDel(gone);
   db.orders=db.orders.filter(function(x){return x.id!==id;});
   if(!others){
     db.shipments=db.shipments.filter(function(x){return x.orderNo!==o.no;});
     db.payments=db.payments.filter(function(x){return x.orderNo!==o.no&&x.shipNo!==o.no;});
+    db.wnotes=db.wnotes.filter(function(x){return String(x.no)!==String(o.no);});
   }
   save();render();
 }
@@ -6462,19 +6526,20 @@ function clearAllData(){
 }
 /* 仅清空销售与库存台账，保留基础档案（客户/产品/生产订单/新品开发/工作记录/待办） */
 function clearSalesStockData(){
-  var n=db.orders.length+db.shipments.length+db.payments.length+db.batches.length;
+  var n=db.orders.length+db.shipments.length+db.payments.length+db.batches.length+(db.wnotes||[]).length;
   if(!n){alert('当前没有销售与库存数据，无需清理。');return;}
   var msg='确定清空以下销售与库存数据？共 '+n+' 条，此操作不可恢复（云端数据也会被覆盖）：\n\n'
     +'· 销售订单 '+db.orders.length+' 条\n'
     +'· 物流发货 '+db.shipments.length+' 条\n'
     +'· 回款明细 '+db.payments.length+' 条\n'
-    +'· 库存批次 '+db.batches.length+' 条\n\n'
+    +'· 库存批次 '+db.batches.length+' 条\n'
+    +'· 工作纪要 '+(db.wnotes||[]).length+' 条\n\n'
     +'将保留：客户档案、产品档案、产品政策、生产订单、新品开发、工作记录、待办。\n建议先到「数据备份」导出一份留底！';
   if(!confirm(msg))return;
   var gone=[];
-  ['orders','shipments','payments','batches'].forEach(function(k){(db[k]||[]).forEach(function(r){if(r&&r.id)gone.push(r.id);});});
+  ['orders','shipments','payments','batches','wnotes'].forEach(function(k){(db[k]||[]).forEach(function(r){if(r&&r.id)gone.push(r.id);});});
   markDel(gone);
-  db.orders=[];db.shipments=[];db.payments=[];db.batches=[];
+  db.orders=[];db.shipments=[];db.payments=[];db.batches=[];db.wnotes=[];
   WAVE_CACHE={};
   save();render();
   alert('已清空销售与库存数据。\n\n接下来：\n1. 到「销售库存」录入现有实际库存（批次）；\n2. 从 9 月 1 日起正常记录订单、发货与回款。');
