@@ -46,8 +46,8 @@ body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:var(--bg)
 .card .card-hd{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .card .card-hd .sp{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
 table{width:100%;border-collapse:collapse;font-size:13px}
-th{background:var(--accent-g1);text-align:left;padding:9px 10px;border-bottom:1px solid var(--accent-g1);color:var(--accent-d);font-weight:600;white-space:nowrap}
-td{padding:9px 10px;border-bottom:1px solid var(--accent-soft);vertical-align:middle}
+th{background:var(--accent-g1);text-align:left;vertical-align:middle;padding:9px 10px;border-bottom:1px solid var(--accent-g1);color:var(--accent-d);font-weight:600;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--accent-soft);vertical-align:middle;text-align:left}
 .empty{text-align:center;color:var(--sub);padding:36px 0}
 .btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:6px;border:1px solid var(--line);background:#fff;color:var(--txt);font-size:13px;cursor:pointer}
 .btn.dgr{color:var(--red)}
@@ -125,7 +125,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 #hbar::-webkit-scrollbar-track{background:transparent}
 body.hbar-on .content{padding-bottom:40px}
 /* 合并单元格（rowspan）：内容与标记上下左右居中 */
-td.mg{vertical-align:middle;text-align:center}
+td.mg{vertical-align:middle;text-align:left}
 td.mg>.tag,td.mg>span.tag{display:inline-block;vertical-align:middle}
 td.mg input.chkbox{vertical-align:middle}
 tbody tr.grp-first td{border-top:1px solid var(--accent-g1)}
@@ -674,7 +674,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261027j',_verChecking=false;
+var APP_VER='20261027k',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
