@@ -670,7 +670,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261027f',_verChecking=false;
+var APP_VER='20261027g',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -6512,9 +6512,9 @@ function devCols(){
   return [
     {key:'cat',label:'客户分类',fmt:function(r){return r.cat?custCatTag(r.cat):'—';}},
     {key:'agent',label:'代理商',fmt:function(r){return esc(r.agent||'—');}},
-    {key:'custName',label:'客户名称',fmt:function(r){return (r.done?'<span class="tag ok">✓</span> ':'')+esc(devCust(r)||'—');}},
+    {key:'custName',label:'客户名称',fmt:function(r){return esc(devCust(r)||'—');}},
     {key:'prodCat',label:'产品分类',fmt:function(r){return r.prodCat?prodCatTag(r.prodCat):'—';}},
-    {key:'name',label:'产品名称'},
+    {key:'name',label:'产品名称',fmt:function(r){return (r.done?'<span class="tag ok" title="该项目已完成">✓</span> ':'')+esc(r.name||'');}},
     {key:'preSpec',label:'预选规格',fmt:function(r){return esc(r.preSpec||'—');}},
     {key:'quote',label:'报价',fmt:function(r){return devNum(r,'quote');}},
     {key:'packDesign',label:'包装设计',fmt:function(r){return devStageTag(r.packDesign);}},
@@ -6527,17 +6527,24 @@ function devCols(){
     {key:'note',label:'备注',fmt:function(r){return esc(r.note||'—');}}
   ];
 }
+/* 同一客户（客户分类+代理商+客户名称）归为一个分组：列表里共用一个序号，
+   组内取值完全相同的列合并成一个单元格（客户分类/代理商/客户名称等不再逐行重复） */
+function devGrpKey(r){return String(r.cat||'')+'\u0001'+String(r.agent||'')+'\u0001'+devCust(r);}
 function drawDev(){
+  /* 先按分组键排序，保证同一客户的项目上下相邻（否则 rowspan 会跨组错位）：
+     客户分类 → 代理商 → 客户名称 → 建档日期倒序 */
   var rows=db.develop.slice().sort(function(a,b){
     var c1=custCatIdx(a.cat),c2=custCatIdx(b.cat);
     if(c1!==c2)return c1-c2;
-    var d=dateDescCmp(devDate(a),devDate(b));
+    var d=pyCmp(a.agent||'',b.agent||'');
     if(d)return d;
-    return pyCmp(devCust(a),devCust(b));
+    d=pyCmp(devCust(a),devCust(b));
+    if(d)return d;
+    return dateDescCmp(devDate(a),devDate(b));
   });
   document.getElementById('devTbl').innerHTML=smartTableHTML('dev',devCols(),rows,function(r){
     return actB(r.id,'openDevForm','delDev');
-  },drawDev);
+  },drawDev,{key:devGrpKey});
 }
 function openDevForm(id){
   var r=id?db.develop.filter(function(x){return x.id===id;})[0]:null;
