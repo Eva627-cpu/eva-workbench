@@ -404,7 +404,8 @@ tbody tr.z2 td.chk-on{background:#e4f7e9!important}
   .exp-tbl th,.exp-tbl td{padding:7px 4px;font-size:12.5px}
 }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.bootcdn.net/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';document.head.appendChild(s);"></script>
+<!-- Excel 解析库：只在导入/导出时用到，async 异步加载，避免首屏被 CDN 拖慢 -->
+<script async src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" onerror="this.onerror=null;var s=document.createElement('script');s.async=1;s.src='https://cdn.bootcdn.net/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';document.head.appendChild(s);"></script>
 </head>
 <body>
 <div class="app">
@@ -673,7 +674,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261027i',_verChecking=false;
+var APP_VER='20261027j',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -746,7 +747,13 @@ function flushNow(){
 }
 window.addEventListener('pagehide',function(){if(_dirty||_uploading)flushNow();});
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
-function fmtN(n){return (Number(n)||0).toLocaleString('zh-CN',{maximumFractionDigits:2});}
+/* 数字千分位：复用同一个 Intl 实例（toLocaleString 每次调用都要新建格式化器，大表里上万次会明显拖慢） */
+var _NF=null;
+function fmtN(n){
+  n=Number(n)||0;
+  if(_NF===null){try{_NF=new Intl.NumberFormat('zh-CN',{maximumFractionDigits:2});}catch(e){_NF=false;}}
+  return _NF?_NF.format(n):String(n);
+}
 /* 两位补零：先转数字，避免把已经补过零的字符串（'03'）再补一次变成 '003' */
 function p2(n){var v=parseInt(n,10);if(isNaN(v))v=0;return v<10?'0'+v:''+v;}
 function today(){var d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());}
@@ -786,6 +793,12 @@ function xlNum(v){return parseFloat(String(v==null?'':v).replace(/[,，\s￥¥$�
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 /* 输入防抖：搜索框每敲一个字都会重画整张表（订单 400+ 行时手机端明显卡），统一延迟 120ms 合并 */
 function debounce(fn,ms){var t=0;return function(){var a=arguments,s=this;clearTimeout(t);t=setTimeout(function(){fn.apply(s,a);},ms||120);};}
+/* Excel 解析库是异步加载的（首屏不再被 CDN 阻塞）：点导入时若还没到，等它到货再继续，不打断操作 */
+function whenXLSX(fn,tries){
+  if(window.XLSX)return fn();
+  if((tries|0)>=40){alert('Excel 解析库加载失败，请检查网络后刷新重试');return;}
+  setTimeout(function(){whenXLSX(fn,(tries|0)+1);},200);
+}
 
 /* ================= 导航 ================= */
 /* 按业务属性分三组：销售业务（日常台账，最常用）→ 基础档案（建档案）→ 跟进与记录 */
@@ -849,10 +862,10 @@ function render(){
 function prodLabel(p){return p?p.name+' '+p.spec:'';}
 /* 只读索引缓存：产品 / 客户 / 库存 / 已发货 / 已回款，避免列表逐行全表扫描；
    数据每次变动（save）或页面每次重绘（render）时自动失效重建 */
-var _IDX_VER=0,_idxBuilt=-1,_prodMap=null,_custMap=null,_stockMap=null,_shipMap=null,_paidMap=null,_orderMap=null,_paidCnt=null,_ordAgg=null,_ordByCust=null,_wrMap=null;
+var _IDX_VER=0,_idxBuilt=-1,_prodMap=null,_custMap=null,_stockMap=null,_shipMap=null,_paidMap=null,_paidRf=null,_orderMap=null,_paidCnt=null,_ordAgg=null,_ordByCust=null,_ordByAgent=null,_ordLines=null,_wrMap=null;
 function _buildIdx(){
   if(_idxBuilt===_IDX_VER)return;
-  _prodMap={};_custMap={};_stockMap={};_shipMap={};_paidMap={};_orderMap={};_paidCnt={};_ordAgg={};_ordByCust={};_wrMap={};
+  _prodMap={};_custMap={};_stockMap={};_shipMap={};_paidMap={};_paidRf={};_orderMap={};_paidCnt={};_ordAgg={};_ordByCust={};_ordByAgent={};_ordLines={};_wrMap={};
   for(var i=0;i<db.products.length;i++)_prodMap[db.products[i].id]=db.products[i];
   for(var ci=0;ci<db.customers.length;ci++){var cu=db.customers[ci];if(cu&&cu.id&&!_custMap[cu.id])_custMap[cu.id]=cu;}
   for(var b=0;b<db.batches.length;b++){
@@ -864,18 +877,20 @@ function _buildIdx(){
     _shipMap[sh.orderNo]=(_shipMap[sh.orderNo]||0)+(Number(sh.totalUnits)||0);
   }
   for(var y=0;y<db.payments.length;y++){
-    var pm=db.payments[y],nos=payNos(pm),amt=Number(pm.amount)||0;
-    for(var n=0;n<nos.length;n++){_paidMap[nos[n]]=(_paidMap[nos[n]]||0)+amt;_paidCnt[nos[n]]=(_paidCnt[nos[n]]||0)+1;}
+    var pm=db.payments[y],nos=payNos(pm),amt=Number(pm.amount)||0,rf=Number(pm.refund)||0;
+    for(var n=0;n<nos.length;n++){_paidMap[nos[n]]=(_paidMap[nos[n]]||0)+amt;_paidRf[nos[n]]=(_paidRf[nos[n]]||0)+rf;_paidCnt[nos[n]]=(_paidCnt[nos[n]]||0)+1;}
   }
   for(var o2=0;o2<db.orders.length;o2++){var od=db.orders[o2];if(!_orderMap[od.no])_orderMap[od.no]=od;}
-  /* 订单按「单号」聚合（一个单号可能多行产品），并按客户建倒排，供回款自动匹配用 */
+  /* 订单按「单号」聚合（一个单号可能多行产品），并按客户 / 代理商建倒排，供回款匹配与明细查表用 */
   for(var o3=0;o3<db.orders.length;o3++){
     var od3=db.orders[o3],no3=String(od3.no==null?'':od3.no);if(!no3)continue;
+    (_ordLines[no3]||(_ordLines[no3]=[])).push(od3);   /* 单号 → 该单的全部产品行 */
     var a3=_ordAgg[no3];
     if(!a3){
       a3=_ordAgg[no3]={no:no3,cust:String(od3.custName==null?'':od3.custName).trim(),agent:String(od3.agentName==null?'':od3.agentName).trim(),
         date:od3.shipDate||'',amt:0,n:0,names:[]};
       if(a3.cust){if(!_ordByCust[a3.cust])_ordByCust[a3.cust]=[];_ordByCust[a3.cust].push(no3);}
+      if(a3.agent){if(!_ordByAgent[a3.agent])_ordByAgent[a3.agent]=[];_ordByAgent[a3.agent].push(no3);}
     }
     a3.amt+=Number(od3.amount)||0;a3.n++;
     if(od3.prodLabel&&a3.names.indexOf(od3.prodLabel)<0)a3.names.push(od3.prodLabel);
@@ -903,13 +918,21 @@ function stockText(pid){var p=findProd(pid);if(!p)return '0盒';var u=stockUnits
 /* 回款关联的发货单号列表（支持一笔回款对应多笔订单，单号间用逗号/空格分隔） */
 function payNos(r){var s=String((r&&(r.shipNo||r.orderNo))||'');return s.split(/[,，、;；\s]+/).filter(function(x){return x;});}
 function orderPaid(no){_buildIdx();return _paidMap[String(no)]||0;}
+function orderPaidRefund(no){_buildIdx();return _paidRf[String(no)]||0;}
 function orderPaidCnt(no){_buildIdx();return _paidCnt[String(no)]||0;}
+/* 单号 → 该单的产品行（订单表里同一单号可能有多行产品）；查表用索引，避免逐行扫全表 */
+function ordLines(no){_buildIdx();return _ordLines[String(no)]||[];}
+function ordLine1(no){return ordLines(no)[0]||null;}
 function orderShipped(no){_buildIdx();return _shipMap[no]||0;}
 function orderNeed(o){var p=findProd(o.pid);return (Number(o.qtyBoxes)||0)*prodPerBox(p)+(Number(o.qtyUnits)||0);}
-/* 订单状态：自动匹配回款明细——有匹配回款即已回款，无匹配即未回款（一笔订单可对应多笔回款，如预付款+尾款） */
+/* 订单状态：自动匹配回款明细——有匹配回款即已回款，无匹配即未回款（一笔订单可对应多笔回款，如预付款+尾款）
+   回款金额为 0、全靠返款冲抵的，标「已回款（全返款）」 */
 function orderStatus(o){
   var amt=orderPaid(o.no),cnt=orderPaidCnt(o.no);
-  if(cnt)return {t:'已回款'+(amt>0?(' '+fmtN(amt)+' 元'):''),c:'ok'};
+  if(cnt){
+    if(amt>0)return {t:'已回款 '+fmtN(amt)+' 元',c:'ok'};
+    return orderPaidRefund(o.no)>0?{t:'已回款（全返款）',c:'ok'}:{t:'已回款',c:'ok'};
+  }
   return {t:'未回款',c:'warn'};
 }
 function custCatTag(c){var map={'省总':'c1','大包商':'c2','零散客户':'c3'};return '<span class="tag '+(map[c]||'c1')+'">'+esc(c)+'</span>';}
@@ -942,7 +965,7 @@ function toggleWrDone(k,el){
 }
 /* 编辑工作纪要（订单列表「纪要」按钮） */
 function openWrForm(no){
-  var o=db.orders.filter(function(x){return x.no===no;})[0]||{};
+  var o=ordLine1(no)||{};
   var w=findWr(no)||{};
   openForm('工作纪要 · 订单 '+no,[
     {key:'wrRj',label:'拒收（数量）',type:'number',ph:'拒收数量（盒），没有填 0'},
@@ -1046,8 +1069,14 @@ function sumCol(rows,key){var s=0;for(var i=0;i<rows.length;i++)s+=Number(rows[i
 /* ================= 通用智能表格（自动序号 / 列筛选 / 合计行 / 排序辅助） ================= */
 var PROD_CAT_ORDER={'自销':0,'OEM':1};
 var colFilterState={},colFilterData={},_colFltEl=null;
-/* 中文按拼音（首字母）排序 */
-function pyCmp(a,b){a=String(a==null?'':a);b=String(b==null?'':b);try{return a.localeCompare(b,'zh-Hans-CN-u-co-pinyin');}catch(e){return a<b?-1:(a>b?1:0);}}
+/* 中文按拼音（首字母）排序：复用同一个 Collator（localeCompare 带 locale 参数每次都要新建校序器，排序时开销大） */
+var _COL=null;
+function pyCmp(a,b){
+  a=String(a==null?'':a);b=String(b==null?'':b);
+  if(_COL===null){try{_COL=new Intl.Collator('zh-Hans-CN-u-co-pinyin');}catch(e){_COL=false;}}
+  if(_COL)return _COL.compare(a,b);
+  return a<b?-1:(a>b?1:0);
+}
 /* 自然排序：数字段按数值大小（如规格 12*2*300 排在 180*60 之前），文字段按拼音 */
 function natCmp(a,b){
   var ra=String(a==null?'':a).match(/\d+|\D+/g)||[],rb=String(b==null?'':b).match(/\d+|\D+/g)||[];
@@ -1209,7 +1238,9 @@ function hbarSync(){if(HBAR_RAF)return;HBAR_RAF=requestAnimationFrame(function()
   });
   window.addEventListener('scroll',hbarSync,true);   /* 捕获阶段：页面竖向滚动与表内横向滚动都能收到 */
   window.addEventListener('resize',hbarSync);
-  new MutationObserver(hbarSync).observe(document.documentElement,{childList:true,subtree:true});
+  /* 只盯内容区（表格重绘的地方），不再监听整棵文档树，减少每次 DOM 变动带来的回调开销 */
+  var host=document.getElementById('content')||document.body;
+  new MutationObserver(hbarSync).observe(host,{childList:true,subtree:true});
   hbarSync();
 })();
 function colFltPos(dv,btn){
@@ -2263,7 +2294,7 @@ function exportCust(){exportXLS('客户档案',custExportCols(),getCustRows());}
 /* 导入 Excel（支持模板 .xlsx 与导出的 .xls） */
 function importCustExcel(input){
   var f=input.files&&input.files[0];if(!f)return;
-  if(!window.XLSX){alert('Excel解析库未加载，请检查网络后刷新重试');return;}
+  if(!window.XLSX){whenXLSX(function(){importCustExcel(input);});return;}
   var rd=new FileReader();
   rd.onload=function(){
     try{
@@ -2577,7 +2608,7 @@ function exportStock(){
 /* 库存导入 Excel（支持模板 .xlsx 与导出的 .xls） */
 function importStockExcel(input){
   var f=input.files&&input.files[0];if(!f)return;
-  if(!window.XLSX){alert('Excel解析库未加载，请检查网络后刷新重试');return;}
+  if(!window.XLSX){whenXLSX(function(){importStockExcel(input);});return;}
   var rd=new FileReader();
   rd.onload=function(){
     try{
@@ -2749,7 +2780,7 @@ function pySortArr(arr){return arr.slice().sort(pyCmp);}
 function orderNewItem(){return {pid:'',prodCat:'',batchNo:'',qty:'',basePrice:'',supplyPrice:'',invoicePrice:'',amount:'',amountManual:false,tax:'',taxManual:false,refund:'',refundManual:false,rebateOn:false,rebatePer:'',rebate:'',gift:false};}
 function openOrderForm(id){
   var r=id?db.orders.filter(function(x){return x.id===id;})[0]:null;
-  var rows=r?db.orders.filter(function(x){return x.no===r.no;}):[]; /* 同订单号的多行产品 */
+  var rows=r?ordLines(r.no):[]; /* 同订单号的多行产品 */
   if(!rows.length&&r)rows=[r];
   var cc=r?(findCust(r.agentId)||db.customers.filter(function(x){return x.company===r.agentName;})[0]||null):null;
   OF={id:id||'',oldNo:r?(r.no||''):'',cat:cc?(cc.cat||''):'',agent:cc?(cc.agent||''):'',
@@ -3192,7 +3223,7 @@ function exportOrder(){
 /* 销售订单导入 Excel */
 function importOrderExcel(input){
   var f=input.files&&input.files[0];if(!f)return;
-  if(!window.XLSX){alert('Excel解析库未加载，请检查网络后刷新重试');return;}
+  if(!window.XLSX){whenXLSX(function(){importOrderExcel(input);});return;}
   var rd=new FileReader();
   rd.onload=function(){
     try{
@@ -3531,7 +3562,7 @@ function exportShip(){
 /* 导入物流记录（按发货单号关联销售订单，自动扣减库存） */
 function importShipExcel(input){
   var f=input.files&&input.files[0];if(!f)return;
-  if(!window.XLSX){alert('Excel解析库未加载，请检查网络后刷新重试');return;}
+  if(!window.XLSX){whenXLSX(function(){importShipExcel(input);});return;}
   var rd=new FileReader();
   rd.onload=function(){
     try{
@@ -3700,13 +3731,12 @@ function agentOrderCands(p){
   var agent=String((p&&p.agentName)||'').trim(),d=dtNum(p&&p.payDate);
   if(!agent)return [];
   _buildIdx();
-  var out=[];
-  for(var no in _ordAgg){
-    var a=_ordAgg[no];
-    if(a.agent!==agent)continue;
+  var list=_ordByAgent[agent]||[],out=[];
+  for(var i=0;i<list.length;i++){
+    var a=_ordAgg[list[i]];if(!a)continue;
     var od=dtNum(a.date),diff=(od==null||d==null)?null:(od-d);
     if(d!=null&&(diff<-MATCH_BACK||diff>MATCH_FWD))continue;
-    out.push({no:no,diff:diff,date:a.date,amt:a.amt,agent:a.agent,cust:a.cust,names:a.names});
+    out.push({no:a.no,diff:diff,date:a.date,amt:a.amt,agent:a.agent,cust:a.cust,names:a.names});
   }
   out.sort(function(x,y){
     var ax=x.diff==null?99999:Math.abs(x.diff),ay=y.diff==null?99999:Math.abs(y.diff);
@@ -4004,6 +4034,8 @@ function matchUnlink(){
 function payType(r){if(r.type==='ship'||r.type==='prepay')return r.type;var ns=payNos(r);for(var i=0;i<ns.length;i++){if(orderShipped(ns[i])>0)return 'ship';}return 'prepay';}
 function payYm(r){return r.ym||((r.payDate||'').slice(0,7));}
 function payShipNo(r){return r.shipNo||r.orderNo||'';}
+/* 全返款：本笔回款金额为 0，货款全部靠返款冲抵 */
+function payAllRefund(r){return !!r&&!(Number(r.amount)>0)&&(Number(r.refund)>0);}
 function payItems(r){
   var t=payType(r);
   if(t==='prepay'){
@@ -4016,7 +4048,7 @@ function payItems(r){
   }
   var nos=payNos(r),out=[];
   for(var i=0;i<nos.length;i++){
-    var o=db.orders.filter(function(x){return x.no===nos[i];})[0];
+    var o=ordLine1(nos[i]);
     if(o){var p=findProd(o.pid)||{};var per=prodPerBox(p);var q=(Number(o.qtyBoxes)||0)*per+(Number(o.qtyUnits)||0);
       out.push({name:p.name||o.prodLabel,spec:p.spec||'',qty:q,supplyPrice:o.supplyPrice,invoicePrice:(Number(o.invoicePrice)>0?o.invoicePrice:(Number(p.invoicePrice)>0?p.invoicePrice:o.supplyPrice))});}
   }
@@ -4058,7 +4090,7 @@ function payCols(){
     {key:'cat',label:'客户分类',fmt:function(r){return r.cat?custCatTag(r.cat):'—';}},
     {key:'agentName',label:'代理商'},
     {key:'custName',label:'客户名称'},
-    {key:'amount',label:'回款金额',fmt:function(r){return fmtN(r.amount)+' 元';},sumFn:function(rs){return fmtN(sumByPay(rs,'amount'));}},
+    {key:'amount',label:'回款金额',fmt:function(r){return fmtN(r.amount)+' 元'+(payAllRefund(r)?' <span class="tag c2">全返款</span>':'');},sumFn:function(rs){return fmtN(sumByPay(rs,'amount'));}},
     {key:'name',label:'产品名称',fmt:function(r){return r.name?(esc(r.name)+(r.gift?' <span class="tag c3">赠品</span>':'')):'—';}},
     {key:'spec',label:'规格',fmt:function(r){return esc(r.spec||'—');}},
     {key:'qty',label:'数量',fmt:function(r){return Number(r.qty)>0?fmtN(r.qty)+' 盒':'—';}},
@@ -4104,7 +4136,7 @@ function drawPay(vs){
   var card=document.createElement('div');card.className='card pay-card';
   var my=curPayYm();
   var title=vs==='month'?('当月回款明细（'+my.replace('-','/')+'）'+(my!==curYm()?'<span class="tag warn" style="margin-left:8px">本月暂未录入，显示上月</span>':'')):'全部回款明细';
-  card.innerHTML='<div class="card-hd"><h3>'+title+'</h3><div class="sp"><span class="tag ok">回款合计 '+fmtN(sumCol(rows,'amount'))+' 元</span></div></div>'+
+  card.innerHTML='<div class="card-hd"><h3>'+title+'</h3><div class="sp"><span class="tag ok">回款合计 '+fmtN(sumByPay(rows,'amount'))+' 元</span></div></div>'+
     '<div class="card-bd">'+smartTableHTML('pay',payCols(),payOutRows(rows),function(r){
       if(r.chkHide)return '';   /* 同一笔回款只在首行显示操作按钮 */
       return actB(r.id,'openPayForm','delPay')+'<button class="btn sm" onclick="openMatchPanel(\'pay\',\''+r.id+'\')">匹配</button>';
@@ -4165,7 +4197,7 @@ function openPayForm(id,preOrderNo){
   var t=r?payType(r):'ship';
   PF={id:id||'',type:t,ym:r?payYm(r):curYm(),payDate:r?(r.payDate||today()):today(),
     cat:r?(r.cat||''):'',agentName:r?(r.agentName||''):'',custName:r?(r.custName||''):'',
-    amount:r?(r.amount||''):'',tax:r?(Number(r.tax)||0):0,refund:r?(Number(r.refund)||0):0,
+    amount:(r&&r.amount!=null)?r.amount:'',tax:r?(Number(r.tax)||0):0,refund:r?(Number(r.refund)||0):0,
     note:r?(r.note||''):'',invoice:r?(r.invoice||'否'):'否',
     shipNo:r?payShipNo(r):(preOrderNo||''),shipNos:r?payNos(r):(preOrderNo?[preOrderNo]:[]),rebateOn:!!(r&&r.rebateOn),rebatePer:r?(Number(r.rebatePer)||''):'',
     name:r?(r.name||''):'',spec:r?(r.spec||''):'',qty:r?(Number(r.qty)||0):0,
@@ -4181,7 +4213,7 @@ function openPayForm(id,preOrderNo){
       if(qit.gift&&!(Number(qit.subtotal)>0)){qit.basePrice=0;qit.supplyPrice=0;qit.invoicePrice=0;}
     }
   }
-  if(preOrderNo&&!r){var o=db.orders.filter(function(x){return x.no===preOrderNo;})[0];
+  if(preOrderNo&&!r){var o=ordLine1(preOrderNo);
     if(o){var cc=findCust(o.agentId);PF.cat=(cc&&cc.cat)||'';PF.agentName=o.agentName||'';PF.custName=o.custName||'';}}
   document.getElementById('mTitle').textContent=id?'编辑回款明细':'新增回款明细';
   mFields=[];mPhotoVals={};
@@ -4262,33 +4294,28 @@ function payShipSecHTML(){
     +'<span id="payRebatePerBox" style="display:'+(PF.rebateOn?'inline-flex':'none')+';gap:6px;align-items:center">每盒返利 <input type="number" step="any" data-k="rebatePer" style="width:90px" value="'+esc(PF.rebatePer||'')+'" oninput="payShipCalc()"></span>'
     +'<span style="display:inline-flex;gap:6px;align-items:center">返利金额 <input type="number" step="any" data-k="rebate" readonly style="width:110px" value="'+esc(PF.rebate||'')+'"></span></div></div>';
   h+='<div class="fitem"><label>回款日期 <b>*</b></label><input type="date" data-k="payDate" value="'+esc(PF.payDate)+'"></div>';
-  h+='<div class="fitem"><label>回款金额（元）<b>*</b></label><input type="number" step="any" data-k="amount" value="'+esc(PF.amount)+'" oninput="payAmountInput(this)"></div>';
+  h+='<div class="fitem"><label>回款金额（元）<b>*</b></label><input type="number" step="any" min="0" data-k="amount" value="'+esc(PF.amount)+'" oninput="payAmountInput(this)"><div class="hint">整笔靠返款冲抵时填 0</div></div>';
   h+='<div class="fitem"><label>税金（元）</label><input type="number" step="any" data-k="tax" value="'+esc(PF.tax||'')+'" oninput="payShipTaxInput(this)"></div>';
   h+='<div class="fitem"><label>返款金额'+payRefundTagHTML()+'</label><input type="number" step="any" data-k="refund" value="'+esc(PF.refund||'')+'" oninput="payRefundInput(this)" title="可直接手动修改；清空输入框恢复按明细自动计算"></div>';
   h+='<div class="fitem full"><label>备注</label><textarea data-k="note">'+esc(PF.note)+'</textarea></div>';
   return h;
 }
-/* 发货单号勾选列表：先按客户信息（代理商/客户名称）过滤，再按搜索过滤 */
+/* 发货单号勾选列表：先按客户信息（代理商/客户名称）过滤，再按搜索过滤
+   数据取自已聚合的单号索引（_ordAgg），不再逐行扫订单表 */
 function payOrderPick(){
   var box=document.getElementById('payOrderList');if(!box)return;
   var q=(document.querySelector('[data-k="shipSearch"]')||{}).value||'';
   var ag=String(PF.agentName||'').trim(),cn=String(PF.custName||'').trim();
-  var all=db.orders.slice();
-  if(ag||cn)all=all.filter(function(o){
-    if(ag&&String(o.agentName||'').trim()!==ag)return false;
-    if(cn&&String(o.custName||'').trim()!==cn)return false;
-    return true;
-  });
-  /* 同一订单号可能有多行产品：合并为一条，避免重复勾选 */
-  var map={},list=[];
-  for(var k=0;k<all.length;k++){
-    var o0=all[k],key=String(o0.no||'');
-    if(!map[key]){map[key]={no:key,o:o0,labels:[]};list.push(map[key]);}
-    var lb=o0.prodLabel||'';
-    if(lb&&map[key].labels.indexOf(lb)<0)map[key].labels.push(lb);
+  _buildIdx();
+  var list=[];
+  for(var no in _ordAgg){
+    var a=_ordAgg[no];
+    if(ag&&a.agent!==ag)continue;
+    if(cn&&a.cust!==cn)continue;
+    list.push(a);
   }
-  list.sort(function(a,b){return String(a.no)<String(b.no)?-1:(String(a.no)>String(b.no)?1:0);}); /* 按单号首字顺序 */
-  if(q)list=list.filter(function(x){return (x.no+(x.o.agentName||'')+(x.o.custName||'')+x.labels.join('')).indexOf(q)>=0;});
+  list.sort(function(a,b){return natCmp(a.no,b.no);});
+  if(q)list=list.filter(function(x){return (x.no+x.agent+x.cust+x.names.join('')).indexOf(q)>=0;});
   if(list.length>60)list=list.slice(0,60);
   var h='';
   if(!list.length)h='<div class="hint" style="padding:6px">无匹配订单</div>';
@@ -4297,7 +4324,7 @@ function payOrderPick(){
     var ck=PF.shipNos.indexOf(r0.no)>=0?' checked':'';
     h+='<label style="display:flex;gap:8px;align-items:center;padding:3px 6px;font-weight:400;cursor:pointer;border-bottom:1px solid #f2f2f7">'
       +'<input type="checkbox" style="width:15px;height:15px" onchange="payOrderToggle(\''+esc(r0.no)+'\')"'+ck+'>'
-      +'<span class="mono">'+esc(r0.no)+'</span>　'+esc(r0.o.custName||'')+'　'+esc(r0.labels.join('、'))+'</label>';
+      +'<span class="mono">'+esc(r0.no)+'</span>　'+esc(r0.cust)+'　'+esc(r0.names.join('、'))+'</label>';
   }
   box.innerHTML=h;
 }
@@ -4312,7 +4339,7 @@ function payShipFill(){
   var rows=[],qty=0,sub=0,rf=0,tax=0,first=null;
   for(var i=0;i<PF.shipNos.length;i++){
     /* 同一订单号可能对应多行产品，全部计入 */
-    var lines=db.orders.filter(function(x){return x.no===PF.shipNos[i];});
+    var lines=ordLines(PF.shipNos[i]);
     for(var j=0;j<lines.length;j++){
       var o=lines[j];
       if(!first)first=o;
@@ -4367,7 +4394,7 @@ function payPreSecHTML(){
   var h='';
   h+='<div class="fitem full"><label>产品明细</label><div id="payItems"></div><div style="margin-top:8px"><button type="button" class="btn sm" onclick="payAddItem()">＋ 添加产品</button></div></div>';
   h+='<div class="fitem"><label>回款日期 <b>*</b></label><input type="date" data-k="payDate" value="'+esc(PF.payDate)+'" oninput="payPolSoon()"></div>';
-  h+='<div class="fitem"><label>回款金额（元）<b>*</b></label><input type="number" step="any" data-k="amount" value="'+esc(PF.amount)+'" oninput="payAmountInput(this)"></div>';
+  h+='<div class="fitem"><label>回款金额（元）<b>*</b></label><input type="number" step="any" min="0" data-k="amount" value="'+esc(PF.amount)+'" oninput="payAmountInput(this)"><div class="hint">整笔靠返款冲抵时填 0</div></div>';
   h+='<div class="fitem"><label>税金（元）</label><input type="number" step="any" data-k="tax" value="'+esc(PF.tax||'')+'" oninput="payTaxInput(this)"></div>';
   h+='<div class="fitem"><label>返款金额'+payRefundTagHTML()+'</label><input type="number" step="any" data-k="refund" value="'+esc(PF.refund||'')+'" oninput="payRefundInput(this)" title="可直接手动修改；清空输入框恢复按明细自动计算"></div>';
   h+='<div class="fitem full"><label>备注</label><textarea data-k="note">'+esc(PF.note)+'</textarea></div>';
@@ -4540,12 +4567,10 @@ function payGiftDrop(pid){
   for(var i=PF.items.length-1;i>=0;i--){if(PF.items[i].gift&&PF.items[i].pid===pid){PF.items.splice(i,1);ch=true;}}
   if(ch)payRenderItems();
 }
-var _payGiftT=null,_payGiftI=-1;
-function payGiftSoon(i){
-  _payGiftI=i;
-  if(_payGiftT)clearTimeout(_payGiftT);
-  _payGiftT=setTimeout(function(){_payGiftT=null;var k=_payGiftI;if(k>=0&&PF&&PF.items&&PF.items[k]&&!PF.items[k].gift)payGiftCheck(k);},600);
-}
+/* 赠品政策检查（防抖 600ms：连续敲数量时不逐次弹窗） */
+var payGiftSoon=debounce(function(i){
+  if(PF&&PF.items&&PF.items[i]&&!PF.items[i].gift)payGiftCheck(i);
+},600);
 function payGiftCheck(i){
   var it=PF.items[i];if(!it||!it.pid||it.gift)return;
   var pol=policyMatchFor(it.pid,PF.agentName,PF.custName,PF.payDate||today());
@@ -4570,12 +4595,8 @@ function payGiftCheck(i){
     invoicePrice:0,subtotal:0,subtotalManual:false,refund:0,rebateOn:false,rebatePer:'',rebate:0,gift:true});
   payRenderItems();
 }
-/* 客户/代理商变化后（防抖）：按政策刷新各产品行价格与赠品 */
-var _payPolT=null;
-function payPolSoon(){
-  if(_payPolT)clearTimeout(_payPolT);
-  _payPolT=setTimeout(function(){_payPolT=null;payPolRefreshAll();},500);
-}
+/* 客户/代理商/回款日期变化后（防抖）：按政策刷新各产品行价格与赠品 */
+var payPolSoon=debounce(function(){payPolRefreshAll();},500);
 function payPolRefreshAll(){
   if(!PF||PF.type!=='prepay'||!PF.items)return;
   var pd=document.querySelector('[data-k="payDate"]');
@@ -4647,8 +4668,11 @@ function savePayForm(id){
   if(!formVal('cat')){alert('请选择客户分类');return;}
   if(!formVal('agentName')){alert('请填写代理商');return;}
   if(!formVal('custName')){alert('请填写客户名称');return;}
-  var amount=parseFloat(formVal('amount'));
-  if(!(amount>0)){alert('请填写回款金额');return;}
+  /* 回款金额允许为 0：本笔全部靠返款冲抵时填 0（留空才算没填） */
+  var amount=parseFloat(formVal('amount')),rfNow=parseFloat(formVal('refund'))||0;
+  if(!(amount>=0)){alert('请填写回款金额（本笔全部为返款时填 0）');return;}
+  amount=r2(amount);
+  if(!amount&&!rfNow&&!confirm('回款金额与返款金额都是 0，确定保存这条回款吗？'))return;
   var rec={id:id||uid(),type:PF.type,ym:ymV,payDate:formVal('payDate'),cat:formVal('cat'),agentName:formVal('agentName'),custName:formVal('custName'),
     amount:amount,tax:parseFloat(formVal('tax'))||0,taxManual:!!PF.taxManual,refundManual:!!PF.refundManual,note:formVal('note'),invoice:formVal('invoice')};
   if(PF.type==='ship'){
@@ -4656,7 +4680,7 @@ function savePayForm(id){
     var rp=parseFloat(formVal('rebatePer'))||0;
     rec.shipNo=PF.shipNos.join(',');
     if(PF.shipNos.length===1){
-      var so=db.orders.filter(function(x){return x.no===PF.shipNos[0];})[0];
+      var so=ordLine1(PF.shipNos[0]);
       if(so){var spp=findProd(so.pid)||{};rec.name=spp.name||so.prodLabel;rec.spec=spp.spec||'';}
       else{rec.name=PF.name||'';rec.spec=PF.spec||'';}
     }else{rec.name='';rec.spec='';}
@@ -4705,7 +4729,7 @@ function payKey(r){
 }
 function importPayExcel(input){
   var f=input.files&&input.files[0];if(!f)return;
-  if(!window.XLSX){alert('Excel解析库未加载，请检查网络后刷新重试');return;}
+  if(!window.XLSX){whenXLSX(function(){importPayExcel(input);});return;}
   var rd=new FileReader();
   rd.onload=function(){
     try{
@@ -4759,8 +4783,9 @@ function importPayExcel(input){
       db.payments.forEach(function(r){seen[payKey(r)]=1;});
       var added=0;
       for(var t=0;t<lines.length;t++){
-        var L=lines[t],st=L.str,amt=xlNum(L.cell.amount);
-        if(!amt){skip++;skipMsg.push('第'+L.ln+'行：回款金额为 0（无实际回款）');continue;}
+        var L=lines[t],st=L.str,amt=r2(xlNum(L.cell.amount)),rfd=r2(xlNum(L.cell.refund));
+        /* 回款金额可以是 0（整笔靠返款冲抵）；金额与返款都为 0 才视为空行跳过 */
+        if(!amt&&!rfd){skip++;skipMsg.push('第'+L.ln+'行：回款金额与返款金额都为 0');continue;}
         var year=L.date?L.date.slice(0,4):dftYear;
         var ymV=xlYm(L.cell.ym,year)||(L.date?L.date.slice(0,7):'');
         if(!ymV){skip++;skipMsg.push('第'+L.ln+'行：回款日期与回款年/月都缺失');continue;}
@@ -4771,10 +4796,9 @@ function importPayExcel(input){
         var cust=custOf(st.custName);
         var note=st.note||'';
         if(!L.date)note=(note?note+'；':'')+'原表未填回款日期，按回款年月「'+ymV+'」归集';
-        var rfd=r2(xlNum(L.cell.refund));
         var out={id:uid(),type:type,ym:ymV,shipNo:(type==='ship'?st.shipNo:''),payDate:L.date,
           cat:st.cat||(cust?cust.cat:''),agentName:st.agentName||'',custName:st.custName||'',
-          amount:r2(amt),rebate:r2(xlNum(L.cell.rebate)),refund:rfd,refundManual:!!rfd,tax:0,
+          amount:amt,rebate:r2(xlNum(L.cell.rebate)),refund:rfd,refundManual:!!rfd,tax:0,
           invoice:(st.invoice==='是'||st.invoice==='✓'||st.invoice==='☑')?'是':'否',note:note,chk:false};
         if(type==='ship'){
           out.name=st.name||'';out.spec=st.spec||'';
@@ -5400,7 +5424,7 @@ function downPolicyTpl(){
 function importPolicyExcel(input){
   var f=input.files&&input.files[0];if(!f)return;
   input.value='';
-  if(!window.XLSX){alert('Excel解析库未加载，请检查网络后刷新重试');return;}
+  if(!window.XLSX){whenXLSX(function(){importPolicyExcel(input);});return;}
   var rd=new FileReader();
   rd.onload=function(){
     try{
@@ -5564,7 +5588,7 @@ function exportLog(){
 /* 导入工作记录 Excel */
 function importLogExcel(input){
   var f=input.files&&input.files[0];if(!f)return;
-  if(!window.XLSX){alert('Excel解析库未加载，请检查网络后刷新重试');return;}
+  if(!window.XLSX){whenXLSX(function(){importLogExcel(input);});return;}
   var rd=new FileReader();
   rd.onload=function(){
     try{
@@ -6162,7 +6186,7 @@ function exportProd(){
 /* 产品导入 Excel（支持模板 .xlsx 与导出的 .xls） */
 function importProdExcel(input){
   var f=input.files&&input.files[0];if(!f)return;
-  if(!window.XLSX){alert('Excel解析库未加载，请检查网络后刷新重试');return;}
+  if(!window.XLSX){whenXLSX(function(){importProdExcel(input);});return;}
   var rd=new FileReader();
   rd.onload=function(){
     try{
@@ -6426,7 +6450,7 @@ function delProdo(id){
 /* 导入 Excel */
 function importProdoExcel(input){
   var f=input.files&&input.files[0];if(!f)return;
-  if(!window.XLSX){alert('Excel解析库未加载，请检查网络后刷新重试');return;}
+  if(!window.XLSX){whenXLSX(function(){importProdoExcel(input);});return;}
   var rd=new FileReader();
   rd.onload=function(){
     try{
@@ -6639,7 +6663,7 @@ function exportDev(){
 /* 导入新品开发 Excel */
 function importDevExcel(input){
   var f=input.files&&input.files[0];if(!f)return;
-  if(!window.XLSX){alert('Excel解析库未加载，请检查网络后刷新重试');return;}
+  if(!window.XLSX){whenXLSX(function(){importDevExcel(input);});return;}
   var rd=new FileReader();
   rd.onload=function(){
     try{
