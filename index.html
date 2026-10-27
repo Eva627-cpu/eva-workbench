@@ -670,7 +670,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261027c',_verChecking=false;
+var APP_VER='20261027d',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -4214,7 +4214,7 @@ function payCustChg(){
   var dl=document.getElementById('dl_payAgent');if(dl)dl.innerHTML=custDLHTML('agent',PF.cat);
   dl=document.getElementById('dl_payCust');if(dl)dl.innerHTML=custDLHTML('company',PF.cat,PF.agentName);
   if(PF.type==='ship')payOrderPick();
-  else payRefreshItemProds();
+  else{payRefreshItemProds();payPolSoon();}
 }
 function payTypeChange(sel){
   var keys=['payDate','cat','agentName','custName','amount','note','invoice','ym'];
@@ -4340,7 +4340,7 @@ function payShipTaxInput(el){
 function payPreSecHTML(){
   var h='';
   h+='<div class="fitem full"><label>产品明细</label><div id="payItems"></div><div style="margin-top:8px"><button type="button" class="btn sm" onclick="payAddItem()">＋ 添加产品</button></div></div>';
-  h+='<div class="fitem"><label>回款日期 <b>*</b></label><input type="date" data-k="payDate" value="'+esc(PF.payDate)+'"></div>';
+  h+='<div class="fitem"><label>回款日期 <b>*</b></label><input type="date" data-k="payDate" value="'+esc(PF.payDate)+'" oninput="payPolSoon()"></div>';
   h+='<div class="fitem"><label>回款金额（元）<b>*</b></label><input type="number" step="any" data-k="amount" value="'+esc(PF.amount)+'" oninput="payAmountInput(this)"></div>';
   h+='<div class="fitem"><label>税金（元）</label><input type="number" step="any" data-k="tax" value="'+esc(PF.tax||'')+'" oninput="payTaxInput(this)"></div>';
   h+='<div class="fitem"><label>返款金额</label><input type="number" step="any" data-k="refund" readonly value="'+esc(PF.refund||'')+'"></div>';
@@ -4403,7 +4403,7 @@ function payItemHTML(i){
   catH+='</select>';
   return '<div class="pay-item" data-i="'+i+'"><div class="fgrid">'
     +'<div class="fitem"><label>产品分类</label>'+catH+'</div>'
-    +'<div class="fitem"><label>产品名称</label><select data-f="prod" onchange="payItemSel('+i+',this)">'+opts+'</select></div>'
+    +'<div class="fitem"><label>产品名称'+(it.gift?' <span class="tag ok">赠品</span>':'')+'</label><select data-f="prod" onchange="payItemSel('+i+',this)"'+(it.gift?' disabled':'')+'>'+opts+'</select></div>'
     +'<div class="fitem"><label>规格</label><input data-f="spec" value="'+esc(it.spec||'')+'" readonly></div>'
     +'<div class="fitem"><label>数量（盒）</label><input type="number" step="any" data-f="qty" value="'+esc(it.qty||'')+'" oninput="payItemCalc('+i+')"></div>'
     +'<div class="fitem"><label>底价</label><input data-f="basePrice" value="'+esc(it.basePrice||'')+'" readonly></div>'
@@ -4416,26 +4416,32 @@ function payItemHTML(i){
     +'<span data-f="rebatePerBox" style="display:'+(it.rebateOn?'inline-flex':'none')+';gap:6px;align-items:center">每盒返利 <input type="number" step="any" data-f="rebatePer" style="width:90px" value="'+esc(it.rebatePer||'')+'" oninput="payItemCalc('+i+')"></span>'
     +'<span style="display:inline-flex;gap:6px;align-items:center">返利金额 <input type="number" step="any" data-f="rebate" style="width:110px" value="'+esc(it.rebate||'')+'" readonly></span>'
     +'<button type="button" class="btn sm dgr" onclick="payDelItem('+i+')">删除</button></div></div>'
+    +(it.polText&&!it.gift?'<div class="hint" style="grid-column:1/-1">政策价：'+esc(it.polText)+'（价格按产品政策自动带出，可手动修改）</div>':'')
     +'</div></div>';
 }
 function payItemSel(i,sel){
   var it=PF.items[i];if(!it)return;
   if(sel.value!==it.pid)it.subtotalManual=false; /* 换产品后小计回到自动 */
+  var oldPid=it.pid;
   it.pid=sel.value;
+  if(oldPid&&oldPid!==it.pid)payGiftDrop(oldPid);
   var p=findProd(sel.value);
   if(p){
     if(!it.cat&&(p.cat==='自销'||p.cat==='OEM'))it.cat=p.cat;
     it.name=p.name;it.spec=p.spec||'';it.basePrice=p.basePrice;it.supplyPrice=p.supplyPrice;it.invoicePrice=p.invoicePrice||'';
     itSet(i,'spec',it.spec);itSet(i,'basePrice',it.basePrice||'');itSet(i,'supplyPrice',it.supplyPrice||'');itSet(i,'invoicePrice',it.invoicePrice||'');
   }
+  payPolApply(i);   /* 有匹配政策时价格按政策带出 */
   payItemCalc(i);
+  payGiftCheck(i);  /* 赠货政策自动加赠品行 */
 }
 /* 产品分类切换：切换后清空已选产品与价格，产品下拉只列该分类 */
 function payItemCatSel(i,sel){
   var it=PF.items[i];if(!it)return;
   var v=sel?sel.value:'';
   if(v!==it.cat){
-    it.cat=v;it.pid='';it.name='';it.spec='';it.basePrice='';it.supplyPrice='';it.invoicePrice='';it.subtotal='';it.subtotalManual=false;it.refund='';it.rebate='';
+    if(it.pid)payGiftDrop(it.pid);
+    it.cat=v;it.pid='';it.name='';it.spec='';it.basePrice='';it.supplyPrice='';it.invoicePrice='';it.subtotal='';it.subtotalManual=false;it.refund='';it.rebate='';it.polId='';it.polText='';
   }
   payRenderItems();payPreTotals();
 }
@@ -4444,6 +4450,12 @@ function payItemCalc(i){
   it.qty=parseFloat(itF(i,'qty'))||0;
   it.invoicePrice=parseFloat(itF(i,'invoicePrice'))||0;
   it.supplyPrice=parseFloat(itF(i,'supplyPrice'))||0;
+  if(it.gift){
+    if(!it.subtotalManual)it.subtotal=0;
+    it.refund=0;it.rebate=0;
+    itSet(i,'subtotal',it.subtotal||0);itSet(i,'refund',0);itSet(i,'rebate',0);
+    payPreTotals();return;
+  }
   if(it.subtotalManual){it.subtotal=r2(parseFloat(itF(i,'subtotal'))||0);}
   else{it.subtotal=r2(it.invoicePrice*it.qty);}
   it.refund=r2((it.invoicePrice-it.supplyPrice)*it.qty);
@@ -4451,6 +4463,7 @@ function payItemCalc(i){
   it.rebate=it.rebateOn?r2(it.rebatePer*it.qty):0;
   itSet(i,'subtotal',it.subtotal||'');itSet(i,'refund',it.refund||'');itSet(i,'rebate',it.rebate||'');
   payPreTotals();
+  payGiftSoon(i);
 }
 /* 小计手动修改：手改后不再被自动值覆盖；清空输入框恢复自动（开票价×数量） */
 function payItemSubInput(i,el){
@@ -4466,7 +4479,79 @@ function payItemRebate(i,chk){
   itShow(i,'rebatePerBox',chk.checked);
   payItemCalc(i);
 }
-function payDelItem(i){PF.items.splice(i,1);payRenderItems();payPreTotals();}
+function payDelItem(i){
+  var it=PF.items[i];var pid=it?it.pid:'';var wasGift=it?!!it.gift:false;
+  PF.items.splice(i,1);
+  if(pid&&!wasGift){for(var k=PF.items.length-1;k>=0;k--){if(PF.items[k].gift&&PF.items[k].pid===pid)PF.items.splice(k,1);}}
+  payRenderItems();payPreTotals();
+}
+/* ====== 回款（预付款）产品明细 × 产品政策联动：价格按政策带出 + 赠货自动加赠品行 ====== */
+/* 按政策带出价格（回款日期落在政策有效期内且客户/代理商匹配时生效） */
+function payPolApply(i){
+  var it=PF.items[i];if(!it||!it.pid||it.gift)return;
+  var pol=policyMatchFor(it.pid,PF.agentName,PF.custName,PF.payDate||today());
+  it.polId=pol?pol.id:'';it.polText=pol?policyText(pol):'';
+  if(!pol)return;
+  var bp=Number(pol.basePrice)||0,sp=Number(pol.supplyPrice)||0,ip=Number(pol.invoicePrice)||0;
+  if(bp){it.basePrice=bp;itSet(i,'basePrice',bp);}
+  if(sp){it.supplyPrice=sp;itSet(i,'supplyPrice',sp);}
+  if(ip){it.invoicePrice=ip;itSet(i,'invoicePrice',ip);}
+}
+function payGiftIdx(pid){
+  for(var i=0;i<PF.items.length;i++){if(PF.items[i].gift&&PF.items[i].pid===pid)return i;}
+  return -1;
+}
+function payGiftDrop(pid){
+  var ch=false;
+  for(var i=PF.items.length-1;i>=0;i--){if(PF.items[i].gift&&PF.items[i].pid===pid){PF.items.splice(i,1);ch=true;}}
+  if(ch)payRenderItems();
+}
+var _payGiftT=null,_payGiftI=-1;
+function payGiftSoon(i){
+  _payGiftI=i;
+  if(_payGiftT)clearTimeout(_payGiftT);
+  _payGiftT=setTimeout(function(){_payGiftT=null;var k=_payGiftI;if(k>=0&&PF&&PF.items&&PF.items[k]&&!PF.items[k].gift)payGiftCheck(k);},600);
+}
+function payGiftCheck(i){
+  var it=PF.items[i];if(!it||!it.pid||it.gift)return;
+  var pol=policyMatchFor(it.pid,PF.agentName,PF.custName,PF.payDate||today());
+  if(!pol||policyType(pol)!=='赠货')return;
+  var b=Number(pol.giftBuy)||0,g=Number(pol.giftGet)||0,qty=Number(it.qty)||0;
+  if(!b||!g)return;
+  var gq=qty>=b?Math.floor(qty/b)*g:0;
+  var gi=payGiftIdx(it.pid);
+  if(gi>=0){
+    var gt=PF.items[gi];
+    if(gq>0&&Number(gt.qty)!==gq){gt.qty=gq;itSet(gi,'qty',gq);payPreTotals();}
+    return;
+  }
+  if(gq<=0)return;
+  PF.giftAsked=PF.giftAsked||{};PF.giftDeclined=PF.giftDeclined||{};
+  if(PF.giftDeclined[it.pid]===gq)return;
+  if(PF.giftAsked[it.pid]===gq)return;
+  var p=findProd(it.pid)||{};
+  if(!confirm('「'+(p.name||'')+'」符合赠货政策：买 '+b+' 赠 '+g+'，赠品 '+gq+' 件，金额 0 元（可手动修改）。\n自动添加赠品？')){PF.giftDeclined[it.pid]=gq;return;}
+  PF.giftAsked[it.pid]=gq;
+  PF.items.splice(i+1,0,{cat:it.cat,pid:it.pid,name:it.name,spec:it.spec,qty:gq,basePrice:it.basePrice,supplyPrice:it.supplyPrice,
+    invoicePrice:it.invoicePrice,subtotal:0,subtotalManual:false,refund:0,rebateOn:false,rebatePer:'',rebate:0,gift:true});
+  payRenderItems();
+}
+/* 客户/代理商变化后（防抖）：按政策刷新各产品行价格与赠品 */
+var _payPolT=null;
+function payPolSoon(){
+  if(_payPolT)clearTimeout(_payPolT);
+  _payPolT=setTimeout(function(){_payPolT=null;payPolRefreshAll();},500);
+}
+function payPolRefreshAll(){
+  if(!PF||PF.type!=='prepay'||!PF.items)return;
+  var pd=document.querySelector('[data-k="payDate"]');
+  if(pd&&pd.value)PF.payDate=pd.value;
+  for(var i=0;i<PF.items.length;i++){
+    var it=PF.items[i];
+    if(!it||!it.pid||it.gift)continue;
+    payPolApply(i);payItemCalc(i);
+  }
+}
 function payAddItem(){
   PF.items.push({cat:'',pid:'',name:'',spec:'',qty:'',basePrice:'',supplyPrice:'',invoicePrice:'',subtotal:'',subtotalManual:false,refund:'',rebateOn:false,rebatePer:'',rebate:''});
   payRenderItems();
@@ -4475,6 +4560,7 @@ function payPreTotals(){
   var tax=0,rf=0,amt=0;
   for(var i=0;i<PF.items.length;i++){
     var it=PF.items[i];if(!it.pid)continue;
+    if(it.gift)continue; /* 赠品行金额 0 元，不计税 */
     tax+=payTaxCalc(it.invoicePrice,it.supplyPrice,it.qty);
     rf+=Number(it.refund)||0;
     amt+=Number(it.subtotal)||0;
@@ -4537,7 +4623,8 @@ function savePayForm(id){
       rec.items.push({cat:it.cat||'',pid:it.pid,name:it.name,spec:it.spec,qty:Number(it.qty)||0,basePrice:Number(it.basePrice)||0,
         supplyPrice:Number(it.supplyPrice)||0,invoicePrice:Number(it.invoicePrice)||0,subtotal:Number(it.subtotal)||0,
         subtotalManual:!!it.subtotalManual,
-        refund:Number(it.refund)||0,rebateOn:!!it.rebateOn,rebatePer:Number(it.rebatePer)||0,rebate:Number(it.rebate)||0});
+        refund:Number(it.refund)||0,rebateOn:!!it.rebateOn,rebatePer:Number(it.rebatePer)||0,rebate:Number(it.rebate)||0,
+        gift:!!it.gift,polId:it.polId||'',polText:it.polText||''});
       rec.rebate+=Number(it.rebate)||0;
     }
     rec.rebate=r2(rec.rebate);
