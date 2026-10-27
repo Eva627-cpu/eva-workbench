@@ -670,7 +670,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261027g',_verChecking=false;
+var APP_VER='20261027h',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -4167,7 +4167,8 @@ function openPayForm(id,preOrderNo){
     shipNo:r?payShipNo(r):(preOrderNo||''),shipNos:r?payNos(r):(preOrderNo?[preOrderNo]:[]),rebateOn:!!(r&&r.rebateOn),rebatePer:r?(Number(r.rebatePer)||''):'',
     name:r?(r.name||''):'',spec:r?(r.spec||''):'',qty:r?(Number(r.qty)||0):0,
     basePrice:r?(Number(r.basePrice)||''):'',supplyPrice:r?(Number(r.supplyPrice)||''):'',invoicePrice:r?(Number(r.invoicePrice)||''):'',
-    subtotal:r?(Number(r.subtotal)||0):0,refundBase:0,rebate:0,items:[],taxManual:!!(r&&r.taxManual),amountManual:!!id};
+    subtotal:r?(Number(r.subtotal)||0):0,refundBase:0,rebate:0,items:[],taxManual:!!(r&&r.taxManual),amountManual:!!id,
+    refundManual:!!(r&&r.refundManual)};
   if(r&&payType(r)==='prepay'&&r.items&&r.items.length){
     PF.items=r.items.map(function(x){var c={};for(var k in x)c[k]=x[k];return c;});
     for(var qi=0;qi<PF.items.length;qi++){
@@ -4260,7 +4261,7 @@ function payShipSecHTML(){
   h+='<div class="fitem"><label>回款日期 <b>*</b></label><input type="date" data-k="payDate" value="'+esc(PF.payDate)+'"></div>';
   h+='<div class="fitem"><label>回款金额（元）<b>*</b></label><input type="number" step="any" data-k="amount" value="'+esc(PF.amount)+'" oninput="payAmountInput(this)"></div>';
   h+='<div class="fitem"><label>税金（元）</label><input type="number" step="any" data-k="tax" value="'+esc(PF.tax||'')+'" oninput="payShipTaxInput(this)"></div>';
-  h+='<div class="fitem"><label>返款金额</label><input type="number" step="any" data-k="refund" readonly value="'+esc(PF.refund||'')+'"></div>';
+  h+='<div class="fitem"><label>返款金额'+payRefundTagHTML()+'</label><input type="number" step="any" data-k="refund" value="'+esc(PF.refund||'')+'" oninput="payRefundInput(this)" title="可直接手动修改；清空输入框恢复按明细自动计算"></div>';
   h+='<div class="fitem full"><label>备注</label><textarea data-k="note">'+esc(PF.note)+'</textarea></div>';
   return h;
 }
@@ -4348,7 +4349,7 @@ function payShipCalc(){
   var rb=document.querySelector('[data-k="rebate"]');if(rb)rb.value=PF.rebate||'';
   var taxEl=document.querySelector('[data-k="tax"]');
   var tax=taxEl?parseFloat(taxEl.value)||0:0;
-  PF.refund=r2((Number(PF.refundBase)||0)-tax);
+  if(!PF.refundManual)PF.refund=r2((Number(PF.refundBase)||0)-tax);   /* 手改过的返款金额保持不动 */
   setV('refund',PF.refund);
 }
 /* 已发货回款 税金手动修改：手改后勾选/取消订单不再覆盖；清空输入框恢复自动 */
@@ -4365,7 +4366,7 @@ function payPreSecHTML(){
   h+='<div class="fitem"><label>回款日期 <b>*</b></label><input type="date" data-k="payDate" value="'+esc(PF.payDate)+'" oninput="payPolSoon()"></div>';
   h+='<div class="fitem"><label>回款金额（元）<b>*</b></label><input type="number" step="any" data-k="amount" value="'+esc(PF.amount)+'" oninput="payAmountInput(this)"></div>';
   h+='<div class="fitem"><label>税金（元）</label><input type="number" step="any" data-k="tax" value="'+esc(PF.tax||'')+'" oninput="payTaxInput(this)"></div>';
-  h+='<div class="fitem"><label>返款金额</label><input type="number" step="any" data-k="refund" readonly value="'+esc(PF.refund||'')+'"></div>';
+  h+='<div class="fitem"><label>返款金额'+payRefundTagHTML()+'</label><input type="number" step="any" data-k="refund" value="'+esc(PF.refund||'')+'" oninput="payRefundInput(this)" title="可直接手动修改；清空输入框恢复按明细自动计算"></div>';
   h+='<div class="fitem full"><label>备注</label><textarea data-k="note">'+esc(PF.note)+'</textarea></div>';
   return h;
 }
@@ -4597,14 +4598,30 @@ function payPreTotals(){
   tax=r2(tax);rf=r2(rf);amt=r2(amt);
   if(!PF.amountManual){PF.amount=amt;setV('amount',amt||'');}
   if(!PF.taxManual)PF.tax=tax;
-  PF.refund=r2(rf-(Number(PF.tax)||0));
+  if(!PF.refundManual)PF.refund=r2(rf-(Number(PF.tax)||0));   /* 手改过的返款金额保持不动 */
   setV('tax',PF.tax||'');setV('refund',PF.refund||'');
+}
+/* 返款金额标签上的「手动」标记：手改后亮起，清空输入框恢复自动计算 */
+function payRefundTagHTML(){
+  return '<span id="payRefundTag" class="tag c2" style="margin-left:6px;display:'+(PF.refundManual?'inline':'none')+'">手动</span>';
+}
+function payRefundTagSync(){
+  var b=document.getElementById('payRefundTag');if(b)b.style.display=PF.refundManual?'inline':'none';
+}
+/* 返款金额手动修改：手改后不再被产品明细/税金自动覆盖；清空输入框恢复自动 */
+function payRefundInput(el){
+  var v=parseFloat(el.value);
+  if(el.value===''){PF.refundManual=false;if(PF.type==='ship')payShipCalc();else payPreTotals();payRefundTagSync();return;}
+  if(isNaN(v)){PF.refundManual=false;return;}
+  PF.refundManual=true;PF.refund=r2(v);
+  payRefundTagSync();
 }
 /* 税金/回款金额手动修改：手改后不再自动覆盖；清空输入框则恢复自动计算 */
 function payTaxInput(el){
   var v=parseFloat(el.value);
   if(isNaN(v)){PF.taxManual=false;payPreTotals();return;}
   PF.taxManual=true;PF.tax=r2(v);
+  if(PF.refundManual)return;   /* 返款手改过就不跟随税金 */
   var rf=0;
   for(var i=0;i<PF.items.length;i++){var it=PF.items[i];if(it.pid)rf+=Number(it.refund)||0;}
   PF.refund=r2(rf-PF.tax);
@@ -4630,7 +4647,7 @@ function savePayForm(id){
   var amount=parseFloat(formVal('amount'));
   if(!(amount>0)){alert('请填写回款金额');return;}
   var rec={id:id||uid(),type:PF.type,ym:ymV,payDate:formVal('payDate'),cat:formVal('cat'),agentName:formVal('agentName'),custName:formVal('custName'),
-    amount:amount,tax:parseFloat(formVal('tax'))||0,taxManual:!!PF.taxManual,note:formVal('note'),invoice:formVal('invoice')};
+    amount:amount,tax:parseFloat(formVal('tax'))||0,taxManual:!!PF.taxManual,refundManual:!!PF.refundManual,note:formVal('note'),invoice:formVal('invoice')};
   if(PF.type==='ship'){
     if(!PF.shipNos||!PF.shipNos.length){alert('请勾选发货单号');return;}
     var rp=parseFloat(formVal('rebatePer'))||0;
@@ -4644,7 +4661,7 @@ function savePayForm(id){
     rec.basePrice=Number(PF.basePrice)||0;rec.supplyPrice=Number(PF.supplyPrice)||0;rec.invoicePrice=Number(PF.invoicePrice)||0;
     rec.subtotal=Number(PF.subtotal)||0;
     rec.rebateOn=!!PF.rebateOn;rec.rebatePer=rp;rec.rebate=r2(rp*(Number(PF.qty)||0));
-    rec.refund=r2((Number(PF.refundBase)||0)-(parseFloat(formVal('tax'))||0));
+    rec.refund=PF.refundManual?(parseFloat(formVal('refund'))||0):r2((Number(PF.refundBase)||0)-(parseFloat(formVal('tax'))||0));
   }else{
     rec.shipNo='';rec.items=[];rec.rebate=0;
     for(var i=0;i<PF.items.length;i++){
@@ -4751,9 +4768,10 @@ function importPayExcel(input){
         var cust=custOf(st.custName);
         var note=st.note||'';
         if(!L.date)note=(note?note+'；':'')+'原表未填回款日期，按回款年月「'+ymV+'」归集';
+        var rfd=r2(xlNum(L.cell.refund));
         var out={id:uid(),type:type,ym:ymV,shipNo:(type==='ship'?st.shipNo:''),payDate:L.date,
           cat:st.cat||(cust?cust.cat:''),agentName:st.agentName||'',custName:st.custName||'',
-          amount:r2(amt),rebate:r2(xlNum(L.cell.rebate)),refund:r2(xlNum(L.cell.refund)),tax:0,
+          amount:r2(amt),rebate:r2(xlNum(L.cell.rebate)),refund:rfd,refundManual:!!rfd,tax:0,
           invoice:(st.invoice==='是'||st.invoice==='✓'||st.invoice==='☑')?'是':'否',note:note,chk:false};
         if(type==='ship'){
           out.name=st.name||'';out.spec=st.spec||'';
