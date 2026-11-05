@@ -403,6 +403,27 @@ tbody tr.z2 td.chk-on{background:#e4f7e9!important}
   .doc-thumb,.doc-fileicon{height:88px}
   .exp-tbl th,.exp-tbl td{padding:7px 4px;font-size:12.5px}
 }
+/* ---- 语音录入（说一句话 → 自动整理成表单字段） ---- */
+#vFab{position:fixed;right:18px;bottom:64px;z-index:95;display:flex;align-items:center;gap:7px;padding:10px 16px;border:none;border-radius:999px;background:linear-gradient(135deg,var(--accent-g2),var(--accent));color:#fff;font-size:13.5px;font-weight:700;box-shadow:0 8px 20px rgba(0,122,255,.34);cursor:pointer;transition:transform .15s}
+#vFab:active{transform:scale(.96)}
+#vFab .ico{font-size:16px;line-height:1}
+.v-mic{display:flex;align-items:center;justify-content:center;width:92px;height:92px;margin:2px auto 0;border:none;border-radius:50%;font-size:32px;line-height:1;background:linear-gradient(135deg,var(--accent-g2),var(--accent));color:#fff;box-shadow:0 8px 22px rgba(0,122,255,.32);cursor:pointer;transition:background .2s}
+.v-mic.on{background:linear-gradient(135deg,#ff8a7a,#ff3b30);animation:vpulse 1.4s infinite}
+@keyframes vpulse{0%{box-shadow:0 0 0 0 rgba(255,59,48,.42)}70%{box-shadow:0 0 0 18px rgba(255,59,48,0)}100%{box-shadow:0 0 0 0 rgba(255,59,48,0)}}
+.v-hint{text-align:center;color:var(--sub);font-size:12.5px;line-height:1.55;margin:9px 0 4px}
+.v-live{min-height:16px;text-align:center;color:var(--accent-b);font-size:12.5px;margin-bottom:6px}
+.v-ta{width:100%;min-height:86px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--txt);font-family:inherit;font-size:14px;line-height:1.65;resize:vertical}
+.v-prev{margin-top:10px;border:1px solid var(--line);border-radius:10px;overflow:hidden;display:none}
+.v-prev .vp-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 11px;background:var(--accent-soft);color:var(--accent-d);font-size:12.5px;font-weight:700}
+.v-prev table{width:100%;font-size:13px}
+.v-prev th{width:92px;padding:6px 10px;background:#fff;color:var(--sub);font-weight:500;border-bottom:1px solid #f2f2f7;white-space:nowrap}
+.v-prev td{padding:6px 10px;border-bottom:1px solid #f2f2f7;color:var(--txt);word-break:break-all}
+.v-empty{color:#c0392b}
+.v-warn{padding:8px 11px;background:#fff7f7;color:#c0392b;font-size:12.5px;line-height:1.65}
+#vToast{position:fixed;left:50%;bottom:96px;transform:translate(-50%,12px);z-index:210;max-width:86vw;padding:10px 16px;border-radius:12px;background:rgba(29,29,31,.92);color:#fff;font-size:13px;line-height:1.5;box-shadow:0 10px 26px rgba(0,0,0,.24);opacity:0;pointer-events:none;transition:opacity .22s,transform .22s}
+#vToast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:900px){#vFab{bottom:88px;right:14px;padding:9px 14px;font-size:13px}#vToast{bottom:150px}}
+
 </style>
 <!-- Excel 解析库：只在导入/导出时用到，async 异步加载，避免首屏被 CDN 拖慢 -->
 <script async src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" onerror="this.onerror=null;var s=document.createElement('script');s.async=1;s.src='https://cdn.bootcdn.net/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';document.head.appendChild(s);"></script>
@@ -436,6 +457,25 @@ tbody tr.z2 td.chk-on{background:#e4f7e9!important}
   <div class="m-ft"><button class="btn pri" onclick="closeWaveDetail()">关闭</button></div>
 </div></div>
 <div id="hbar"><div></div></div>
+
+<button id="vFab" onclick="voiceOpen()" title="语音录入：说一句话，自动整理成表单"><span class="ico">🎤</span> 语音录入</button>
+
+<div class="mask" id="vMask" onclick="if(event.target===this)voiceClose()"><div class="modal">
+  <div class="m-hd"><h3>语音录入</h3><span class="x" onclick="voiceClose()">×</span></div>
+  <div class="m-bd">
+    <button class="v-mic" id="vMic" onclick="voiceToggle()" title="点击开始 / 结束">🎤</button>
+    <div class="v-hint" id="vHint"></div>
+    <div class="v-live" id="vInterim"></div>
+    <textarea class="v-ta" id="vText" placeholder="例：给长春XX医药张总下五福化毒丸 60丸*2袋 20盒，供货价8元，今天发货"></textarea>
+    <div class="fgrid" style="margin-top:10px">
+      <div class="fitem"><label>整理成</label><select id="vKind" onchange="voiceParse()"></select></div>
+      <div class="fitem"><label>&nbsp;</label><button class="btn" onclick="voiceParse()" style="width:100%">重新整理</button></div>
+    </div>
+    <div class="v-prev" id="vPrev"></div>
+  </div>
+  <div class="m-ft"><button class="btn" onclick="voiceClearText()">清空</button><button class="btn pri" onclick="voiceFill()">填入表单</button></div>
+</div></div>
+
 <script>
 /* ================= 存储 ================= */
 var DB_KEY='pharmaSalesWorkbench';
@@ -674,7 +714,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261027k',_verChecking=false;
+var APP_VER='20261105a',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -6877,6 +6917,516 @@ function clearSalesStockData(){
   WAVE_CACHE={};
   save();render();
   alert('已清空销售与库存数据。\n\n接下来：\n1. 到「销售库存」录入现有实际库存（批次）；\n2. 从 9 月 1 日起正常记录订单、发货与回款。');
+}
+
+/* ================= 语音录入：说一句话 → 自动整理成表单字段 =================
+   1) 用浏览器自带语音识别（Chrome / Edge / Safari，中文）把话转成文字；
+      不支持的浏览器（部分 App 内置浏览器）可直接在输入框打字，整理逻辑完全一样。
+   2) 把口语按关键词整理成 销售订单 / 回款明细 / 新品开发 / 客户档案 需要的字段，
+      客户、代理商、产品优先用档案里的真名匹配（含规格数字比对），匹配不到才留空。
+   3) 先预览整理结果（哪项没听出来会标红），确认后一键填进对应表单，再核对保存。 */
+var VKINDS=[['auto','自动识别'],['order','销售订单'],['pay','回款明细'],['dev','新品开发'],['cust','客户档案']];
+var V={rec:null,on:false,text:'',interim:'',last:null,silence:null,tt:null};
+function voiceSR(){return window.SpeechRecognition||window.webkitSpeechRecognition||null;}
+function voiceOpen(){
+  V.text='';V.interim='';V.last=null;
+  var m=document.getElementById('vMask');if(!m)return;
+  var sel=document.getElementById('vKind');
+  sel.innerHTML=VKINDS.map(function(k){return '<option value="'+k[0]+'">'+k[1]+'</option>';}).join('');
+  sel.value='auto';
+  document.getElementById('vText').value='';
+  document.getElementById('vInterim').textContent='';
+  document.getElementById('vPrev').style.display='none';
+  document.getElementById('vMic').classList.remove('on');
+  document.getElementById('vHint').textContent=voiceSR()
+    ?'点麦克风开始说话，说完可直接点「填入表单」；停顿 5 秒会自动结束'
+    :'当前浏览器不支持语音识别，可直接在下面打字后点「填入表单」（Chrome / Edge / Safari 支持语音）';
+  m.classList.add('show');
+}
+function voiceClose(){voiceStop();var m=document.getElementById('vMask');if(m)m.classList.remove('show');}
+function voiceClearText(){
+  V.text='';V.interim='';V.last=null;
+  document.getElementById('vText').value='';
+  document.getElementById('vInterim').textContent='';
+  document.getElementById('vPrev').style.display='none';
+}
+function voiceToggle(){if(V.on)voiceStop();else voiceStart();}
+function voiceStart(){
+  var SR=voiceSR();
+  if(!SR){alert('这个浏览器不支持语音识别，可直接在输入框里打字，整理效果一样。');return;}
+  var ta=document.getElementById('vText');
+  V.text=String((ta&&ta.value)||'').replace(/\s+$/,'');
+  try{
+    var rec=new SR();
+    rec.lang='zh-CN';rec.continuous=true;rec.interimResults=true;rec.maxAlternatives=1;
+    rec.onstart=function(){V.on=true;voiceUI();voiceSilence(5000);};
+    rec.onresult=function(e){
+      var fin='',intr='';
+      for(var i=e.resultIndex;i<e.results.length;i++){
+        var rs=e.results[i],tx=(rs[0]&&rs[0].transcript)||'';
+        if(rs.isFinal)fin+=tx;else intr+=tx;
+      }
+      if(fin)V.text+=fin;
+      V.interim=intr;
+      voiceSyncText();
+      voiceSilence(5000);
+    };
+    rec.onerror=function(ev){
+      var m={'not-allowed':'麦克风权限被拒绝：请在浏览器设置里允许本页使用麦克风',
+        'service-not-allowed':'语音识别服务不可用，可改用文字输入',
+        'audio-capture':'没有检测到麦克风，可改用文字输入',
+        'network':'网络中断，语音识别不可用，可改用文字输入',
+        'no-speech':'没有听到声音，请再说一次'};
+      var msg=m[ev.error]!=null?m[ev.error]:('识别出错：'+ev.error);
+      if(msg)document.getElementById('vHint').textContent=msg;
+    };
+    rec.onend=function(){
+      V.rec=null;V.on=false;V.interim='';
+      voiceUI();voiceSyncText();
+      if(V.silence){clearTimeout(V.silence);V.silence=null;}
+    };
+    V.rec=rec;rec.start();
+  }catch(e){
+    V.rec=null;
+    document.getElementById('vHint').textContent='启动语音识别失败：'+((e&&e.message)||e);
+  }
+}
+function voiceStop(){
+  var r=V.rec;V.rec=null;V.on=false;
+  if(r){try{r.stop();}catch(e){}}
+  voiceUI();voiceSilence(0);
+}
+function voiceUI(){
+  var mic=document.getElementById('vMic');
+  if(mic){if(V.on)mic.classList.add('on');else mic.classList.remove('on');}
+  var h=document.getElementById('vHint');
+  if(h&&V.on)h.textContent='正在听……说完点麦克风结束（停顿 5 秒也会自动结束）';
+}
+/* 说话间隙倒计时：静音超时自动收尾，避免忘记点停止 */
+function voiceSilence(ms){
+  if(V.silence){clearTimeout(V.silence);V.silence=null;}
+  if(ms>0)V.silence=setTimeout(function(){V.silence=null;if(V.on)voiceStop();},ms);
+}
+function voiceSyncText(){
+  var ta=document.getElementById('vText');
+  if(ta)ta.value=(V.text+(V.interim?' '+V.interim:'')).replace(/\s+/g,' ').trim();
+  var li=document.getElementById('vInterim');
+  if(li)li.textContent=V.interim?('正在识别：'+V.interim):'';
+}
+function voiceText(){var ta=document.getElementById('vText');return ta?ta.value:'';}
+/* ---------- 文本归一化：全角转半角、中文数字转阿拉伯数字 ---------- */
+var V_CN={'零':0,'〇':0,'一':1,'二':2,'两':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9};
+function vCnNum(s){
+  var total=0,num=0,has=false;
+  for(var i=0;i<s.length;i++){
+    var ch=s.charAt(i);
+    if(V_CN[ch]!=null){num=V_CN[ch];has=true;}
+    else if(ch==='十'){total+=(num||1)*10;num=0;has=true;}
+    else if(ch==='百'){total+=(num||1)*100;num=0;has=true;}
+    else if(ch==='千'){total+=(num||1)*1000;num=0;has=true;}
+    else if(ch==='万'){total=(total+num)*10000;num=0;has=true;}
+    else return NaN;
+  }
+  return has?(total+num):NaN;
+}
+function vNum(s){
+  s=String(s==null?'':s).trim();
+  if(!s)return NaN;
+  if(/^\d+(\.\d+)?$/.test(s))return parseFloat(s);
+  return vCnNum(s);
+}
+function vHalf(s){
+  return String(s==null?'':s)
+    .replace(/[\uff01-\uff5e]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0xfee0);})
+    .replace(/\u3000/g,' ');
+}
+function vClean(raw){
+  var t=vHalf(raw);
+  t=t.replace(/[，。、；：！？,;:!?"'“”‘’（）()【】\[\]]/g,' ');
+  return t.replace(/\s+/g,' ').trim();
+}
+/* 去掉规格串（60丸*2袋*3小盒）与「8元/盒」，避免把规格里的数字当数量 */
+function vStripSpec(t){
+  t=t.replace(/[0-9]+\s*[丸粒片袋盒瓶支包条克g毫升mLl]*(?:\s*[*xX×]\s*[0-9]+\s*[丸粒片袋盒瓶支包条克g毫升mLl]*)+/g,' ');
+  t=t.replace(/[0-9]+(?:\.[0-9]+)?\s*(?:元|块)?\s*\/\s*(?:盒|瓶|袋|件|支|板|箱|桶)/g,' ');
+  return t;
+}
+function shiftDay(n){
+  var d=new Date();d.setDate(d.getDate()+n);
+  return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
+}
+/* ---------- 各类信息的抽取 ---------- */
+function vDate(t){
+  var m=t.match(/(20\d{2})\s*[年\/\-\.]\s*(\d{1,2})\s*[月\/\-\.]\s*(\d{1,2})/);
+  if(m)return m[1]+'-'+p2(m[2])+'-'+p2(m[3]);
+  m=t.match(/(\d{1,2})\s*月\s*(\d{1,2})\s*[日号]?/);
+  if(m)return new Date().getFullYear()+'-'+p2(m[1])+'-'+p2(m[2]);
+  m=t.match(/(?:^|\s)(\d{1,2})\s*[日号](?=\s|$)/);
+  if(m)return curYm()+'-'+p2(m[1]);
+  if(/前天/.test(t))return shiftDay(-2);
+  if(/昨天|昨日/.test(t))return shiftDay(-1);
+  if(/今天|今日|当日|刚刚|现在/.test(t))return today();
+  return '';
+}
+function vQty(t){
+  var re=/(\d+(?:\.\d+)?|[一二三四五六七八九十百千两]+)\s*(小盒|大盒|箱|件|盒|瓶|袋|支|板|包|条|桶)/g,m;
+  while((m=re.exec(t))){
+    var n=vNum(m[1]);
+    if(!(n>0))continue;
+    return {n:n,unit:m[2]};
+  }
+  return null;
+}
+/* 数字串的正则片段：阿拉伯数字或中文数字（含 万） */
+var V_NUM_SRC='(?:[0-9]+(?:\\.[0-9]+)?|[一二三四五六七八九十百千万两]+)';
+function vMoney(t){
+  var res={price:NaN,priceKey:'',amount:NaN};
+  var pk=t.match(new RegExp('(单价|供货价|供货单价|开票价?|底价|零售价|价格)\\D{0,5}('+V_NUM_SRC+')'));
+  if(pk){res.price=vNum(pk[2]);res.priceKey=pk[1];}
+  if(!(res.price>0)){
+    var pu=t.match(new RegExp('('+V_NUM_SRC+')\\s*元?\\s*(?:\\/|每)\\s*(盒|瓶|袋|件|支|板)'));
+    if(pu){res.price=vNum(pu[1]);res.priceKey='单价';}
+  }
+  var ak=t.match(new RegExp('(金额|货款|总额|合计|一共|总共|共计|回款|收款|付款|到账|转账|打款|汇款|返款)\\D{0,6}('+V_NUM_SRC+')\\s*(万)?'));
+  if(ak)res.amount=vNum(ak[2])*(ak[3]?10000:1);
+  if(!(res.amount>=0)){
+    var re=new RegExp('('+V_NUM_SRC+')\\s*(万)?\\s*(?:元|块钱|块)','g'),m;
+    while((m=re.exec(t))){
+      var pre=t.slice(Math.max(0,m.index-10),m.index);
+      if(/单价|供货|开票|底价|价格|每盒|每瓶|每袋|每件|每支|每板/.test(pre))continue;
+      res.amount=vNum(m[1])*(m[2]?10000:1);break;
+    }
+  }
+  if(isNaN(res.price))res.price=NaN;
+  if(isNaN(res.amount))res.amount=NaN;
+  return res;
+}
+function vSpecStr(t){
+  var m=t.match(/\d+\s*[丸粒片袋盒瓶支包条克gG毫升mLl]*(?:\s*[*xX×]\s*\d+\s*[丸粒片袋盒瓶支包条克gG毫升mLl]*)+/);
+  return m?m[0].replace(/\s+/g,''):'';
+}
+function vMatchCust(t){
+  var list=(db.customers||[]).slice().sort(function(a,b){return String(b.company||'').length-String(a.company||'').length;});
+  for(var i=0;i<list.length;i++){
+    var c=list[i],nm=String(c.company||'').replace(/\s/g,'');
+    if(nm.length<3)continue;
+    if(t.indexOf(nm)>=0)return c;
+    var short=nm.replace(/(有限责任公司|股份有限公司|有限公司|公司)$/,'');
+    if(short.length>=4&&t.indexOf(short)>=0)return c;
+  }
+  return null;
+}
+function vMatchAgent(t){
+  var seen={},arr=[];
+  (db.customers||[]).forEach(function(c){var a=String(c.agent||'').trim();if(a.length>=2&&!seen[a]){seen[a]=1;arr.push(a);}});
+  arr.sort(function(a,b){return b.length-a.length;});
+  for(var i=0;i<arr.length;i++){
+    var a=arr[i];
+    if(t.indexOf(a.replace(/\s/g,''))>=0)return a;
+    var s=a.replace(/(有限责任公司|股份有限公司|有限公司|公司)$/,'');
+    if(s.length>=3&&t.indexOf(s)>=0)return a;
+  }
+  return '';
+}
+function vMatchProd(t){
+  var tt=t.replace(/[\s（）()]/g,''),td=t.replace(/\D/g,''),best=null;
+  (db.products||[]).forEach(function(p){
+    var nm=String(p.name||'').replace(/[\s（）()]/g,'');
+    if(nm.length<2)return;
+    if(tt.indexOf(nm)<0)return;
+    var score=nm.length*10;
+    var sd=String(p.spec||'').replace(/\D/g,'');
+    if(sd&&td.indexOf(sd)>=0)score+=60;
+    if(!best||score>best.score)best={p:p,score:score};
+  });
+  return best?best.p:null;
+}
+function vPhone(t){var m=t.match(/(1[3-9]\d{9})/);return m?m[1]:'';}
+function vContact(t){
+  var m=t.match(/(?:收货人|收件人|联系人|负责人|对接人)\s*([\u4e00-\u9fa5]{2,4})/);
+  if(m)return m[1];
+  m=t.match(/([\u4e00-\u9fa5]{1,3})(?:总|经理|老板|主任)(?=\s|$|说|要|下|订|拿)/);
+  return m?m[1]:'';
+}
+function vAddr(t){
+  var m=t.match(/(?:地址|送到|发到|寄到|送货到|收货地)\s*([^\s]{4,40})/);
+  return m?m[1]:'';
+}
+/* 没有建档的客户：按「客户名称XX」「给XX下…」「XX有限公司/药店/医院」猜一个名字，
+   只是填进输入框方便修改，不影响已有档案匹配 */
+function vCustGuess(t){
+  var m=t.match(/(?:客户名称|公司名称|店名|客户全称)\s*[:：]?\s*([^\s]{2,30})/);
+  var name=m?m[1]:'';
+  if(!name){
+    m=t.match(/([\u4e00-\u9fa5]{2,20}(?:有限公司|有限责任公司|股份有限公司|大药房|药店|医药|药业|医院|诊所|卫生院|连锁))/);
+    if(m)name=m[1];
+  }
+  if(!name){
+    m=t.match(/(?:给|帮|替)\s*([^\s]{2,24}?)\s*(?:下|要|订|拿|发|报|回款|打款|付)/);
+    if(m)name=m[1];
+  }
+  return name.replace(/^[给帮替和与发到从]+/,'').replace(/(下|要|订|拿|发|报|回款|打款)$/,'').trim();
+}
+function vKindOf(t){
+  if(/回款|收款|打款|到账|汇款|转账|返款|付款|货款/.test(t))return 'pay';
+  if(/新品|开发|立项|打样|包材|包装设计|报价|样盒/.test(t))return 'dev';
+  if(/(新客户|建档|联系方式|电话|收货地址|收货人)/.test(t)&&!/下单|订单|发货|拿货|订货/.test(t))return 'cust';
+  return 'order';
+}
+function vKindName(k){
+  var map={order:'销售订单',pay:'回款明细',dev:'新品开发',cust:'客户档案'};
+  return map[k]||'销售订单';
+}
+/* 回款：先找说到的单号，再找该客户最近一笔未回款订单 */
+function vPayOrderFor(custName,spokenNo){
+  _buildIdx();
+  if(spokenNo&&_ordAgg[spokenNo])return {no:spokenNo,auto:false};
+  if(!custName)return {no:'',auto:false};
+  var best='',bestD='',bestShip=false;
+  for(var no in _ordAgg){
+    var a=_ordAgg[no];
+    if(a.cust!==custName)continue;
+    if(orderPaidCnt(no)>0)continue;
+    var sh=orderShipped(no)>0;
+    if(best&&(bestShip&&!sh))continue;
+    if(a.date>bestD||(sh&&!bestShip)){bestD=a.date;best=no;bestShip=sh;}
+  }
+  return {no:best,auto:!!best};
+}
+/* ---------- 整理：把一句话变成字段 ---------- */
+function voiceAnalyze(raw,kindSel){
+  var t=vClean(raw);
+  if(!t)return null;
+  var k=(kindSel&&kindSel!=='auto')?kindSel:vKindOf(t);
+  var dt=vDate(t),cust=vMatchCust(t),prod=vMatchProd(t),ag=vMatchAgent(t);
+  var q=vQty(vStripSpec(t)),mo=vMoney(t);
+  var per=prod?prodPerBox(prod):0;
+  var qty=0;
+  if(q){qty=(q.unit==='箱'||q.unit==='件')?(per?(q.n*per):q.n):q.n;}
+  var cat=cust?String(cust.cat||''):'';
+  if(!cat){var cm=t.match(/(省总|大包商|零散客户)/);cat=cm?cm[1]:'';}
+  var agentName=cust?String(cust.agent||''):ag;
+  var custName=cust?String(cust.company||''):vCustGuess(t);
+  /* 产品：优先档案匹配；档案里没有的（如新品）按「开发/新品 XX」取名字 */
+  var prodName=prod?String(prod.name||''):'';
+  if(!prodName){
+    var pn=t.match(/(?:开发|新品|新产品|立项|报批|做)\s*([\u4e00-\u9fa5A-Za-z0-9]{2,20})/);
+    if(pn)prodName=pn[1].replace(/(预选规格|规格|报价|打样|包材|包装).*$/,'');
+  }
+  var price=isNaN(mo.price)?NaN:mo.price;
+  var amount=isNaN(mo.amount)?NaN:mo.amount;
+  var sup=NaN,inv=NaN;
+  if(!isNaN(price)){if(/开票/.test(mo.priceKey))inv=price;else sup=price;}
+  var noM=t.match(/(?:订单号|单号|发货单号)\s*[:：]?\s*([A-Za-z0-9\-]{3,})/);
+  var no=noM?noM[1]:'';
+  var payTerm='';
+  if(/承兑/.test(t))payTerm='承兑';else if(/账期|月结|挂账/.test(t))payTerm='账期';
+  else if(/预付|定金/.test(t))payTerm='预付';else if(/现款|现金/.test(t))payTerm='现款';
+  var d={date:dt||today(),cat:cat,agent:agentName,custName:custName,prod:prod,prodName:prodName,unit:q?q.unit:'',
+    qty:qty,supplyPrice:sup,invoicePrice:inv,amount:amount,no:no,payTerm:payTerm,raw:raw};
+  var rows=[],warn=[];
+  if(k==='order'){
+    rows.push(['模板','销售订单']);
+    rows.push(['订单号',no||'未识别（保存前请补填）',!no]);
+    rows.push(['客户分类',cat||'未识别',!cat]);
+    rows.push(['代理商',agentName||'未识别',!agentName]);
+    rows.push(['客户名称',custName||'未识别（表单里可选）',!custName]);
+    rows.push(['发货日期',d.date]);
+    rows.push(['产品',prod?prodLabel(prod):'未识别（表单里请选产品）',!prod]);
+    rows.push(['数量',qty>0?(qty+' 盒'+(q.unit&&q.unit!=='盒'?'（按 '+q.unit+' 折算）':'')):'未识别',!(qty>0)]);
+    if(!isNaN(sup))rows.push(['供货价',fmtN(sup)+' 元/盒']);
+    if(!isNaN(inv))rows.push(['开票价',fmtN(inv)+' 元/盒']);
+    if(!isNaN(amount))rows.push(['金额',fmtN(amount)+' 元']);
+    rows.push(['付款方式',payTerm||'现款']);
+    if(!no)warn.push('没有听出订单号，填入后请补填（订单号必填，可自定义）。');
+    if(!custName&&!agentName)warn.push('没有匹配到客户档案，客户分类/代理商/客户名称请在表单里选择。');
+    else if(!cust&&custName)warn.push('「'+custName+'」不在客户档案里，客户分类/代理商请手动选择。');
+    else if(!custName)warn.push('匹配到了代理商但没有匹配到客户名称，请在表单里选客户。');
+    if(!prod)warn.push('没有听出产品名称，请到表单里选择产品（可先看看产品档案里的叫法）。');
+    if(!(qty>0))warn.push('没有听出数量，请在表单里填数量（盒）。');
+  }else if(k==='pay'){
+    var isPre=/预付|定金/.test(t);
+    var mo2=vPayOrderFor(custName,no);
+    var type=(isPre||!mo2.no)?'prepay':'ship';
+    d.type=type;d.shipNos=type==='ship'?[mo2.no]:[];d.autoShip=!!(type==='ship'&&mo2.auto);
+    rows.push(['模板','回款明细']);
+    rows.push(['回款类型',type==='ship'?'已发货的回款':'未发货的预付款']);
+    rows.push(['客户分类',cat||'未识别',!cat]);
+    rows.push(['代理商',agentName||'未识别',!agentName]);
+    rows.push(['客户名称',custName||'未识别（表单里可选）',!custName]);
+    rows.push(['回款日期',d.date]);
+    rows.push(['回款金额',!isNaN(amount)?(fmtN(amount)+' 元'):'未识别',isNaN(amount)]);
+    if(type==='ship')rows.push(['发货单号',mo2.no||'未匹配（表单里勾选）',!mo2.no]);
+    if(prod)rows.push(['产品',prodLabel(prod)]);
+    if(qty>0)rows.push(['数量',qty+' 盒']);
+    if(!isNaN(amount))rows.push(['回款月份',String(d.date).slice(0,7)]);
+    if(!cust&&!custName)warn.push('没有匹配到客户档案，请在表单里选客户（代理商决定可选单号）。');
+    else if(!cust)warn.push('「'+custName+'」不在客户档案里，请在表单里确认客户与代理商。');
+    if(type==='ship'&&mo2.auto)warn.push('已自动匹配该客户最近一笔未回款订单「'+mo2.no+'」，如不对请在表单里改勾选。');
+    if(type==='prepay'&&!isPre)warn.push('没有匹配到可回款的发货单，已按「未发货的预付款」整理。');
+    if(isNaN(amount))warn.push('没有听出回款金额，请填写（整笔靠返款冲抵可填 0）。');
+  }else if(k==='dev'){
+    rows.push(['模板','新品开发']);
+    rows.push(['客户分类',cat||'未识别',!cat]);
+    rows.push(['代理商',agentName||'未识别',!agentName]);
+    rows.push(['客户名称',custName||'未识别',!custName]);
+    rows.push(['产品名称',prodName||'未识别',!prodName]);
+    rows.push(['预选规格',prod?prod.spec:(vSpecStr(t)||'未识别'),!(prod||vSpecStr(t))]);
+    rows.push(['报价',!isNaN(price)?(fmtN(price)+' 元'):(!isNaN(amount)?(fmtN(amount)+' 元'):'未识别')]);
+    if(!prodName)warn.push('产品名称请在表单里补全（新品可能还没有建档，属于正常）。');
+  }else{
+    rows.push(['模板','客户档案']);
+    rows.push(['客户分类',cat||'未识别',!cat]);
+    rows.push(['代理商',agentName||'未识别',!agentName]);
+    rows.push(['客户名称',custName||'未识别',!custName]);
+    var ct=vContact(t),ph=vPhone(t),ad=vAddr(t);
+    rows.push(['收货人',ct||'未识别']);
+    rows.push(['联系电话',ph||'未识别',!ph]);
+    rows.push(['收货地址',ad||'未识别',!ad]);
+    if(!custName)warn.push('没有匹配到已有客户，可直接在表单里填客户全称新建建档。');
+    if(!ph)warn.push('没有听出手机号，请在表单里补填。');
+  }
+  d.contact=vContact(t);d.phone=vPhone(t);d.addr=vAddr(t);d.spec=vSpecStr(t);
+  return {kind:k,rows:rows,warn:warn,d:d};
+}
+function voiceParse(){
+  var box=document.getElementById('vPrev');
+  var raw=voiceText().trim();
+  if(!raw){box.style.display='none';V.last=null;return null;}
+  var a=voiceAnalyze(raw,document.getElementById('vKind').value);
+  V.last=a;
+  if(!a){box.style.display='none';return null;}
+  var h='<div class="vp-hd"><span>识别为：'+vKindName(a.kind)+'</span><span>'+a.rows.length+' 项</span></div><table>';
+  for(var i=0;i<a.rows.length;i++){
+    var r=a.rows[i];
+    h+='<tr><th>'+esc(r[0])+'</th><td>'+(r[2]?'<span class="v-empty">'+esc(r[1])+'</span>':esc(r[1]))+'</td></tr>';
+  }
+  h+='</table>';
+  if(a.warn.length){
+    h+='<div class="v-warn">';
+    for(var w=0;w<a.warn.length;w++)h+='· '+esc(a.warn[w])+(w<a.warn.length-1?'<br>':'');
+    h+='</div>';
+  }
+  box.innerHTML=h;box.style.display='block';
+  return a;
+}
+/* ---------- 填入对应表单 ---------- */
+function voiceFill(){
+  var a=voiceParse();
+  if(!a){alert('请先说话或输入一句话，再点「填入表单」。');return;}
+  var vm=document.getElementById('vMask');if(vm)vm.classList.remove('show');
+  voiceStop();
+  try{
+    if(a.kind==='order')vFillOrder(a.d);
+    else if(a.kind==='pay')vFillPay(a.d);
+    else if(a.kind==='dev')vFillDev(a.d);
+    else vFillCust(a.d);
+    vToast('已按语音整理填入'+vKindName(a.kind)+'，请核对后保存');
+  }catch(e){
+    alert('整理填入时出错：'+((e&&e.message)||e));
+  }
+}
+function vPickAgent(agEl,agent,cat,rebuild){
+  if(!agEl||!agent)return false;
+  var has=false;
+  for(var i=0;i<agEl.options.length;i++)if(agEl.options[i].value===agent)has=true;
+  if(!has&&rebuild)agEl.innerHTML=rebuild(cat,agent);
+  agEl.value=agent;
+  return true;
+}
+function vFillOrder(d){
+  openOrderForm(null);
+  OF.oldNo=d.no||'';
+  OF.cat=d.cat||'';
+  OF.agent=d.agent||'';
+  OF.custName=d.custName||'';
+  OF.shipDate=d.date||today();
+  OF.payMethod=d.payTerm||'现款';
+  OF.note='';
+  OF.items=[orderNewItem()];
+  renderOrderForm();
+  var catEl=formEl('cat');
+  if(catEl&&d.cat){catEl.value=d.cat;orderCatSel(catEl);}
+  var agEl=formEl('agent');
+  if(agEl&&d.agent){
+    vPickAgent(agEl,d.agent,d.cat,orderAgentOptsHTML);
+    orderAgentSel(agEl);
+  }
+  var cnEl=formEl('custName');
+  if(cnEl&&d.custName)cnEl.value=d.custName;
+  if(d.prod&&d.qty>0){
+    var sel=document.querySelector('.pay-item[data-i="0"] [data-f="prod"]');
+    if(sel){sel.value=d.prod.id;orderItemSel(0,sel);}
+    itSet(0,'qty',d.qty);orderItemCalc(0);
+    if(!isNaN(d.supplyPrice)){OF.items[0].supplyPrice=d.supplyPrice;itSet(0,'supplyPrice',d.supplyPrice);orderItemCalc(0);}
+    if(!isNaN(d.invoicePrice)){OF.items[0].invoicePrice=d.invoicePrice;itSet(0,'invoicePrice',d.invoicePrice);orderItemCalc(0);}
+    else if(!isNaN(d.amount)&&d.qty>0){
+      var ip=r2(d.amount/d.qty);
+      OF.items[0].invoicePrice=ip;itSet(0,'invoicePrice',ip);orderItemCalc(0);
+    }
+  }
+}
+function vFillPay(d){
+  openPayForm(null);
+  d=d||{};
+  PF.type=d.type||'prepay';
+  PF.cat=d.cat||'';
+  PF.agentName=d.agent||'';
+  PF.custName=d.custName||'';
+  PF.payDate=d.date||today();
+  PF.ym=String(PF.payDate).slice(0,7);
+  PF.shipNos=(d.shipNos||[]).slice();
+  PF.shipNo=PF.shipNos[0]||'';
+  PF.amount='';
+  PF.amountManual=false;
+  PF.items=[];
+  if(PF.type==='prepay'&&d.prod){
+    PF.items.push({cat:'',pid:'',name:'',spec:'',qty:'',basePrice:'',supplyPrice:'',invoicePrice:'',subtotal:'',subtotalManual:false,refund:'',rebateOn:false,rebatePer:'',rebate:''});
+  }
+  renderPayForm();
+  if(PF.type==='prepay'&&d.prod){
+    var sel=document.querySelector('.pay-item[data-i="0"] [data-f="prod"]');
+    if(sel){sel.value=d.prod.id;payItemSel(0,sel);}
+    if(d.qty>0){itSet(0,'qty',d.qty);payItemCalc(0);}
+    if(!isNaN(d.supplyPrice)){itSet(0,'supplyPrice',d.supplyPrice);PF.items[0].supplyPrice=d.supplyPrice;payItemCalc(0);}
+    if(!isNaN(d.invoicePrice)){itSet(0,'invoicePrice',d.invoicePrice);PF.items[0].invoicePrice=d.invoicePrice;payItemCalc(0);}
+    payPreTotals();
+  }
+  if(!isNaN(d.amount)&&d.amount>=0){
+    setV('amount',d.amount);
+    PF.amount=d.amount;PF.amountManual=true;
+  }
+}
+function vFillDev(d){
+  openDevForm(null);
+  var catEl=formEl('cat');
+  if(catEl&&d.cat){catEl.value=d.cat;devCatChg(catEl);}
+  var agEl=formEl('agent');
+  if(agEl&&d.agent){agEl.value=d.agent;devAgentChg(agEl);}
+  if(d.custName)setV('custName',d.custName);
+  if(d.prod&&d.prod.cat)setV('prodCat',d.prod.cat);
+  if(d.prodName)setV('name',d.prodName);
+  if(d.prod&&d.prod.spec)setV('preSpec',d.prod.spec);
+  else if(d.spec)setV('preSpec',d.spec);
+  if(!isNaN(d.supplyPrice))setV('quote',d.supplyPrice);
+  else if(!isNaN(d.amount))setV('quote',d.amount);
+}
+function vFillCust(d){
+  openCustForm();
+  var catEl=formEl('cat');
+  if(catEl&&d.cat){catEl.value=d.cat;custFormCatChg(catEl);}
+  if(d.agent)setV('agent',d.agent);
+  if(d.custName)setV('company',d.custName);
+  if(d.contact)setV('contact',d.contact);
+  if(d.phone)setV('phone',d.phone);
+  if(d.addr)setV('addr',d.addr);
+}
+function vToast(msg){
+  var el=document.getElementById('vToast');
+  if(!el){el=document.createElement('div');el.id='vToast';document.body.appendChild(el);}
+  el.textContent=msg;el.className='show';
+  if(V.tt)clearTimeout(V.tt);
+  V.tt=setTimeout(function(){el.className='';},2800);
 }
 
 /* ================= 初始化 ================= */
