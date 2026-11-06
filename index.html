@@ -422,6 +422,14 @@ tbody tr.z2 td.chk-on{background:#e4f7e9!important}
 .v-warn{padding:8px 11px;background:#fff7f7;color:#c0392b;font-size:12.5px;line-height:1.65}
 #vToast{position:fixed;left:50%;bottom:96px;transform:translate(-50%,12px);z-index:210;max-width:86vw;padding:10px 16px;border-radius:12px;background:rgba(29,29,31,.92);color:#fff;font-size:13px;line-height:1.5;box-shadow:0 10px 26px rgba(0,0,0,.24);opacity:0;pointer-events:none;transition:opacity .22s,transform .22s}
 #vToast.show{opacity:1;transform:translate(-50%,0)}
+.v-tools{margin:10px 0 2px}
+.v-tools .btn{width:100%}
+.v-shot{display:none;margin:8px 0 0;text-align:center}
+.v-shot img{max-width:100%;max-height:150px;border:1px solid var(--line);border-radius:8px}
+.v-prog{display:none;margin:8px 0 0;font-size:12.5px;color:var(--sub);text-align:center;line-height:1.5}
+.v-prog.on{display:block}
+.v-bar{height:5px;margin-top:6px;background:#eef0f4;border-radius:99px;overflow:hidden}
+.v-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent-g2),var(--accent));transition:width .2s}
 @media(max-width:900px){#vFab{bottom:88px;right:14px;padding:9px 14px;font-size:13px}#vToast{bottom:150px}}
 
 </style>
@@ -458,12 +466,16 @@ tbody tr.z2 td.chk-on{background:#e4f7e9!important}
 </div></div>
 <div id="hbar"><div></div></div>
 
-<button id="vFab" onclick="voiceOpen()" title="语音录入：说一句话，自动整理成表单"><span class="ico">🎤</span> 语音录入</button>
+<button id="vFab" onclick="voiceOpen()" title="语音 / 图片录入：说一句话或传一张图，自动整理成表单"><span class="ico">🎤</span> 语音/图片录入</button>
 
 <div class="mask" id="vMask" onclick="if(event.target===this)voiceClose()"><div class="modal">
-  <div class="m-hd"><h3>语音录入</h3><span class="x" onclick="voiceClose()">×</span></div>
+  <div class="m-hd"><h3>语音 / 图片录入</h3><span class="x" onclick="voiceClose()">×</span></div>
   <div class="m-bd">
     <button class="v-mic" id="vMic" onclick="voiceToggle()" title="点击开始 / 结束">🎤</button>
+    <div class="v-tools"><button class="btn" onclick="vImgPick()">📷 上传图片识别（聊天截图 / 单据照片）</button>
+      <input type="file" id="vFile" accept="image/*" style="display:none" onchange="vImgPicked(this)"></div>
+    <div class="v-shot" id="vShot"></div>
+    <div class="v-prog" id="vProg"><div id="vProgTxt">准备中…</div><div class="v-bar"><i id="vProgBar"></i></div></div>
     <div class="v-hint" id="vHint"></div>
     <div class="v-live" id="vInterim"></div>
     <textarea class="v-ta" id="vText" placeholder="说一句话，按说的内容整理成工作记录或业务单据：&#10;· 提醒我下周一给长春XX医药张总打电话对账&#10;· 给长春XX医药张总下五福化毒丸 60丸*2袋 20盒，供货价8元，今天发货"></textarea>
@@ -714,7 +726,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261106a',_verChecking=false;
+var APP_VER='20261106b',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -6953,9 +6965,12 @@ function voiceOpen(){
   document.getElementById('vInterim').textContent='';
   document.getElementById('vPrev').style.display='none';
   document.getElementById('vMic').classList.remove('on');
-  document.getElementById('vHint').textContent=voiceSR()
-    ?'点麦克风开始说话，说完可直接点「填入表单」；停顿 5 秒会自动结束'
-    :'当前浏览器不支持语音识别，可直接在下面打字后点「填入表单」（Chrome / Edge / Safari 支持语音）';
+  var sh=document.getElementById('vShot');if(sh){sh.style.display='none';sh.innerHTML='';}
+  var fi=document.getElementById('vFile');if(fi)fi.value='';
+  vProgSet(-1);
+  document.getElementById('vHint').textContent=(voiceSR()
+    ?'点麦克风说话，或上传聊天截图/单据照片；整理结果先核对再「填入表单」'
+    :'可上传图片识别，或直接在下面打字（本浏览器不支持语音识别，Chrome / Edge / Safari 支持）');
   m.classList.add('show');
 }
 function voiceClose(){voiceStop();var m=document.getElementById('vMask');if(m)m.classList.remove('show');}
@@ -6964,6 +6979,9 @@ function voiceClearText(){
   document.getElementById('vText').value='';
   document.getElementById('vInterim').textContent='';
   document.getElementById('vPrev').style.display='none';
+  var sh=document.getElementById('vShot');if(sh){sh.style.display='none';sh.innerHTML='';}
+  var fi=document.getElementById('vFile');if(fi)fi.value='';
+  vProgSet(-1);
 }
 function voiceToggle(){if(V.on)voiceStop();else voiceStart();}
 function voiceStart(){
@@ -7080,6 +7098,9 @@ function vDate(t){
   if(m)return curYm()+'-'+p2(m[1]);
   if(/前天/.test(t))return shiftDay(-2);
   if(/昨天|昨日/.test(t))return shiftDay(-1);
+  if(/大后天/.test(t))return shiftDay(3);
+  if(/后天/.test(t))return shiftDay(2);
+  if(/明天|明日/.test(t))return shiftDay(1);
   if(/今天|今日|当日|刚刚|现在/.test(t))return today();
   return '';
 }
@@ -7518,6 +7539,111 @@ function vFillCust(d){
   if(d.contact)setV('contact',d.contact);
   if(d.phone)setV('phone',d.phone);
   if(d.addr)setV('addr',d.addr);
+}
+/* ---------- 图片识别：拍/传一张图 → OCR 出文字 → 走同一套整理与填表 ---------- */
+var VIMG={busy:false,worker:null,loading:null};
+var V_TESS_CDN=['https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
+  'https://unpkg.com/tesseract.js@5.1.1/dist/tesseract.min.js'];
+function vProgSet(p,txt){
+  var box=document.getElementById('vProg'),bar=document.getElementById('vProgBar'),t=document.getElementById('vProgTxt');
+  if(!box)return;
+  if(p<0){box.classList.remove('on');if(bar)bar.style.width='0';return;}
+  box.classList.add('on');
+  if(txt!=null&&t)t.textContent=txt;
+  if(bar)bar.style.width=Math.max(3,Math.min(100,p))+'%';
+}
+function vScriptLoad(url){
+  return new Promise(function(res,rej){
+    var s=document.createElement('script');s.src=url;s.async=true;
+    s.onload=function(){res();};s.onerror=function(){rej(new Error('load fail'));};
+    document.head.appendChild(s);
+  });
+}
+/* 识别引擎只在点「上传图片」时才下载（约 300KB 脚本 + 2MB 中文模型），不拖慢首屏 */
+function vLoadTess(){
+  if(window.Tesseract)return Promise.resolve();
+  if(VIMG.loading)return VIMG.loading;
+  VIMG.loading=new Promise(function(res,rej){
+    var i=0;
+    function vNext(){
+      if(i>=V_TESS_CDN.length){rej(new Error('识别引擎加载失败'));return;}
+      vScriptLoad(V_TESS_CDN[i++]).then(res).catch(vNext);
+    }
+    vNext();
+  });
+  return VIMG.loading;
+}
+function vOcrWorker(){
+  if(VIMG.worker)return Promise.resolve(VIMG.worker);
+  return vLoadTess().then(function(){
+    vProgSet(10,'正在加载中文识别模型（首次约 2 MB，之后不用再下）…');
+    return Tesseract.createWorker('chi_sim',1,{
+      langPath:'https://tessdata.projectnaptha.com/4.0.0_fast',
+      logger:function(m){
+        var p=Math.round((m.progress||0)*100);
+        if(m.status==='loading language traineddata')vProgSet(12+p*0.28,'正在加载中文识别模型…'+p+'%');
+        else if(m.status==='initializing api')vProgSet(42+p*0.08,'正在初始化识别…');
+        else if(m.status==='recognizing text')vProgSet(55+p*0.43,'正在识别文字…'+p+'%');
+      }
+    });
+  }).then(function(w){VIMG.worker=w;return w;});
+}
+function vImgPick(){
+  if(VIMG.busy){vToast('正在识别上一张，请稍候');return;}
+  var f=document.getElementById('vFile');
+  if(f){f.value='';f.click();}
+}
+function vImgPicked(input){
+  var f=input&&input.files&&input.files[0];
+  if(!f)return;
+  if(f.type&&!/^image\//.test(f.type)){alert('请选择图片文件');return;}
+  var box=document.getElementById('vShot');
+  if(box){box.innerHTML='<img src="'+URL.createObjectURL(f)+'" alt="待识别图片">';box.style.display='block';}
+  VIMG.busy=true;
+  vProgSet(4,'正在准备识别…');
+  document.getElementById('vHint').textContent='正在识别图片里的文字，识别完会自动整理成表单';
+  vOcrWorker().then(function(w){return w.recognize(f);}).then(function(r){
+    VIMG.busy=false;vProgSet(-1);
+    var txt=vOcrFix((r&&r.data&&r.data.text)||'');
+    if(!txt){
+      document.getElementById('vHint').textContent='这张图里没认出文字，换一张清楚点的（或直接在下面打字）';
+      return;
+    }
+    var ta=document.getElementById('vText');
+    if(ta)ta.value=txt;
+    V.text=txt;V.interim='';
+    voiceParse();
+    var n=txt.replace(/\s/g,'').length;
+    var many=vProdHits(txt);
+    document.getElementById('vHint').textContent='识别到 '+n+' 个字'+(many>1?'（图里有 '+many+' 个产品，先按第一个整理）':'')+'，核对无误后点「填入表单」';
+    vToast('图片识别完成，请核对整理结果');
+  }).catch(function(e){
+    VIMG.busy=false;vProgSet(-1);
+    var msg=String((e&&e.message)||e);
+    document.getElementById('vHint').textContent='图片识别失败：'+(/load|network|fetch|Failed/i.test(msg)
+      ?'识别引擎需要联网下载（首次约 2 MB），请检查网络后重试' :msg);
+  });
+}
+/* 图片里出现了几个产品（用于提示「先按第一个整理」） */
+function vProdHits(t){
+  var seen={},n=0;
+  (db.products||[]).forEach(function(p){
+    var nm=String(p.name||'').replace(/\s/g,'');
+    if(nm.length<2||seen[nm])return;
+    if(String(t).replace(/\s/g,'').indexOf(nm)>=0){seen[nm]=1;n++;}
+  });
+  return n;
+}
+/* OCR 结果清洗：汉字之间的空格去掉（中文识别常逐字加空格）、竖线/表格线转空格 */
+function vOcrFix(t){
+  var s=vHalf(String(t||''));
+  s=s.replace(/[|丨]/g,' ').replace(/[_—]{2,}/g,' ');
+  var re=/([\u4e00-\u9fa5])\s+([\u4e00-\u9fa5])/;
+  var guard=0;
+  while(re.test(s)&&guard++<60)s=s.replace(/([\u4e00-\u9fa5])\s+([\u4e00-\u9fa5])/g,'$1$2');
+  s=s.replace(/[ \t]{2,}/g,' ');
+  s=s.replace(/\s*\n\s*/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
+  return s;
 }
 function vToast(msg){
   var el=document.getElementById('vToast');
