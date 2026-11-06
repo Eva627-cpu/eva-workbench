@@ -466,7 +466,7 @@ tbody tr.z2 td.chk-on{background:#e4f7e9!important}
     <button class="v-mic" id="vMic" onclick="voiceToggle()" title="点击开始 / 结束">🎤</button>
     <div class="v-hint" id="vHint"></div>
     <div class="v-live" id="vInterim"></div>
-    <textarea class="v-ta" id="vText" placeholder="例：给长春XX医药张总下五福化毒丸 60丸*2袋 20盒，供货价8元，今天发货"></textarea>
+    <textarea class="v-ta" id="vText" placeholder="说一句话，按说的内容整理成工作记录或业务单据：&#10;· 提醒我下周一给长春XX医药张总打电话对账&#10;· 给长春XX医药张总下五福化毒丸 60丸*2袋 20盒，供货价8元，今天发货"></textarea>
     <div class="fgrid" style="margin-top:10px">
       <div class="fitem"><label>整理成</label><select id="vKind" onchange="voiceParse()"></select></div>
       <div class="fitem"><label>&nbsp;</label><button class="btn" onclick="voiceParse()" style="width:100%">重新整理</button></div>
@@ -714,7 +714,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261105a',_verChecking=false;
+var APP_VER='20261106a',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -1642,6 +1642,14 @@ function setPayTarget(){
   if(!(v>0)){alert('目标金额需大于 0');return;}
   db.payTarget=v;db.payTargetT=Date.now();save();render();
 }
+/* 工作记录提醒标记：今天的、已过期的都醒目提示 */
+function logPlanTag(l){
+  if(!l||!l.planDate)return '';
+  var td=today();
+  if(l.planDate===td)return '<span class="tag warn">今天</span>';
+  if(l.planDate<td)return '<span class="tag warn">已过期</span>';
+  return '<span class="tag c2">'+esc(l.planDate)+'</span>';
+}
 /* 今日待办打卡（含新品开发 / 工作记录 联动待办） */
 function todoHTML(){
   var rows=(db.todos||[]).slice();
@@ -1653,7 +1661,11 @@ function todoHTML(){
   /* ---- 联动待办：新品开发 + 工作记录 + 销售订单工作纪要 未完成项 ---- */
   var devOpen=(db.develop||[]).filter(function(d){return !d.done;});
   var devFin=(db.develop||[]).filter(function(d){return d.done;});
-  var logOpen=(db.logs||[]).filter(function(l){return !l.done;});
+  /* 工作记录按提醒日期排：今天/过期的排最前面 */
+  var logOpen=(db.logs||[]).filter(function(l){return !l.done;}).sort(function(a,b){
+    var pa=String(a.planDate||'9999-12-31'),pb=String(b.planDate||'9999-12-31');
+    return pa<pb?-1:(pa>pb?1:0);
+  });
   var logFin=(db.logs||[]).filter(function(l){return l.done;});
   var wrOpen=(db.wnotes||[]).filter(function(w){return !w.done&&wrText(w);});
   if(devOpen.length||logOpen.length||wrOpen.length||devFin.length||logFin.length){
@@ -1665,7 +1677,8 @@ function todoHTML(){
       h+='<div class="todo-item"><span class="todo-box" onclick="toggleDevDone(\''+d.id+'\')"></span><span class="todo-txt" style="cursor:pointer" onclick="cur=\'dev\';render()" title="点击进入新品开发"><span class="tag c2">新品</span> '+esc((d.custName||d.customer||'')+' · '+(d.name||''))+'</span></div>';
     });
     logOpen.forEach(function(l){
-      h+='<div class="todo-item"><span class="todo-box" onclick="toggleLogDone(\''+l.id+'\')"></span><span class="todo-txt" style="cursor:pointer" onclick="cur=\'log\';render()" title="点击进入工作记录"><span class="tag c3">记录</span> '+esc((l.custName||l.customer||'')+' · '+(l.item||l.type||'其他')+'：'+String(l.content||'').slice(0,26))+(l.planDate?'（预计 '+l.planDate+'）':'')+'</span></div>';
+      var who=String(l.custName||l.customer||'').trim();
+      h+='<div class="todo-item"><span class="todo-box" onclick="toggleLogDone(\''+l.id+'\')"></span><span class="todo-txt" style="cursor:pointer" onclick="cur=\'log\';render()" title="点击进入工作记录"><span class="tag c3">记录</span> '+esc((who?who+' · ':'')+(l.item||l.type||'其他')+'：'+String(l.content||'').slice(0,30))+(l.planDate?' '+logPlanTag(l):'')+'</span></div>';
     });
     devFin.concat(logFin).forEach(function(x){
       var isDev=db.develop.indexOf(x)>=0;
@@ -5575,20 +5588,22 @@ function drawLog(){
     function(r){return logCust(r);});
   document.getElementById('logTbl').innerHTML=smartTableHTML('log',logCols(),rows,function(r){return actB(r.id,'openLogForm','delLog');},drawLog);
 }
-function openLogForm(id){
+function openLogForm(id,pre){
   var r=id?db.logs.filter(function(x){return x.id===id;})[0]:null;
   var itOpts=LOG_ITEMS.map(function(s){return {v:s,t:s};});
-  var curCat=r?r.cat:'',curAg=r?logAg(r):'';
+  var vals=r?{date:r.date,cat:r.cat||'',agent:logAg(r),custName:logCust(r),item:logItem(r),content:r.content||'',planDate:r.planDate||''}
+    :{date:(pre&&pre.date)||today(),cat:(pre&&pre.cat)||'',agent:(pre&&pre.agent)||'',custName:(pre&&pre.custName)||'',
+      item:(pre&&pre.item)||'资料',content:(pre&&pre.content)||'',planDate:(pre&&pre.planDate)||''};
+  var curCat=vals.cat,curAg=vals.agent;
   var fields=[
     {key:'date',label:'日期',type:'date',required:true,def:today()},
-    {key:'cat',label:'客户分类',type:'select',required:true,onchange:'logCatChg',options:[{v:'省总',t:'省总'},{v:'大包商',t:'大包商'},{v:'零散客户',t:'零散客户'}]},
+    {key:'cat',label:'客户分类',type:'select',onchange:'logCatChg',hint:'纯内部事务可以不选',options:[{v:'省总',t:'省总'},{v:'大包商',t:'大包商'},{v:'零散客户',t:'零散客户'}]},
     {key:'agent',label:'代理商',datalist:function(){return custDLOpts('agent',curCat);},oninput:'logAgentChg'},
-    {key:'custName',label:'客户名称',required:true,datalist:function(){return custDLOpts('company',curCat,curAg);}},
+    {key:'custName',label:'客户名称',datalist:function(){return custDLOpts('company',curCat,curAg);},hint:'不关联客户时可留空'},
     {key:'item',label:'事项',type:'select',required:true,options:itOpts},
     {key:'content',label:'纪要',full:true,type:'textarea',required:true},
-    {key:'planDate',label:'预计完成时间',type:'date'}
+    {key:'planDate',label:'预计完成时间',type:'date',hint:'填了这一天起首页会按时间提醒；留空就一直提醒到打勾'}
   ];
-  var vals=r?{date:r.date,cat:r.cat,agent:logAg(r),custName:logCust(r),item:logItem(r),content:r.content,planDate:r.planDate||''}:{date:today(),item:'资料'};
   openForm(id?'编辑记录':'新增工作记录',fields,vals,function(v){
     if(id){var o=db.logs.filter(function(x){return x.id===id;})[0];for(var k in v)o[k]=v[k];touch(o);}
     else{v.id=uid();v.created=today();v.done=false;db.logs.push(v);}
@@ -6925,7 +6940,7 @@ function clearSalesStockData(){
    2) 把口语按关键词整理成 销售订单 / 回款明细 / 新品开发 / 客户档案 需要的字段，
       客户、代理商、产品优先用档案里的真名匹配（含规格数字比对），匹配不到才留空。
    3) 先预览整理结果（哪项没听出来会标红），确认后一键填进对应表单，再核对保存。 */
-var VKINDS=[['auto','自动识别'],['order','销售订单'],['pay','回款明细'],['dev','新品开发'],['cust','客户档案']];
+var VKINDS=[['auto','自动识别'],['log','工作记录/提醒'],['order','销售订单'],['pay','回款明细'],['dev','新品开发'],['cust','客户档案']];
 var V={rec:null,on:false,text:'',interim:'',last:null,silence:null,tt:null};
 function voiceSR(){return window.SpeechRecognition||window.webkitSpeechRecognition||null;}
 function voiceOpen(){
@@ -7167,15 +7182,69 @@ function vCustGuess(t){
   }
   return name.replace(/^[给帮替和与发到从]+/,'').replace(/(下|要|订|拿|发|报|回款|打款)$/,'').trim();
 }
+/* 说「记录一下 / 提醒我 / 记得」这类话时一律当工作记录——
+   即使句子里带着「回款」「订单」字样，也只记成提醒，不再错整理成订单或回款明细 */
 function vKindOf(t){
+  if(/工作记录|工作日志|记录一下|记录下|记一下|记一笔|记个|备忘|提醒|记得|别忘|待办|待跟进/.test(t))return 'log';
   if(/回款|收款|打款|到账|汇款|转账|返款|付款|货款/.test(t))return 'pay';
   if(/新品|开发|立项|打样|包材|包装设计|报价|样盒/.test(t))return 'dev';
   if(/(新客户|建档|联系方式|电话|收货地址|收货人)/.test(t)&&!/下单|订单|发货|拿货|订货/.test(t))return 'cust';
+  /* 「跟一下 / 回访 / 打电话 / 拜访」且没提钱和货 → 也是一条工作记录 */
+  if(/跟进|回访|联系一下|打电话|拜访|约见|沟通一下|催一下/.test(t)&&!/[0-9]+\s*(元|块)|回款|下单|订单|发货|订货/.test(t))return 'log';
   return 'order';
 }
 function vKindName(k){
-  var map={order:'销售订单',pay:'回款明细',dev:'新品开发',cust:'客户档案'};
+  var map={log:'工作记录',order:'销售订单',pay:'回款明细',dev:'新品开发',cust:'客户档案'};
   return map[k]||'销售订单';
+}
+/* 下周/本周/周几 → 具体日期（提醒时间用） */
+function vWeekDate(t){
+  var m=t.match(/(下下|下|这|本)?\s*(?:周|星期|礼拜)([一二三四五六日天1-7])/);
+  if(!m)return '';
+  var map={'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'日':0,'天':0,'1':1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':0};
+  var target=map[m[2]];
+  if(target==null)return '';
+  var diff=target-new Date().getDay();
+  if(m[1]==='下'||m[1]==='下下'){if(diff<=0)diff+=7;if(m[1]==='下下')diff+=7;}
+  else if(diff<0)diff+=7;   /* 本周已过 → 顺延到下一次 */
+  return shiftDay(diff);
+}
+/* 提醒日期：明天/后天/下周X/周X/X月X号 等 */
+function vPlanDate(t){
+  t=String(t==null?'':t).replace(/一下/g,' ');   /* 「记一下 周五」的「下」不能当成「下周」 */
+  if(/大后天/.test(t))return shiftDay(3);
+  if(/后天/.test(t))return shiftDay(2);
+  if(/明天|明日/.test(t))return shiftDay(1);
+  if(/今天|今日|今儿/.test(t))return today();
+  var w=vWeekDate(t);if(w)return w;
+  var m=t.match(/(\d{1,2})\s*月\s*(\d{1,2})\s*[日号]/);
+  if(m){
+    var now=new Date(),y=now.getFullYear();
+    var base=new Date(y,now.getMonth(),now.getDate());
+    var dt=new Date(y,parseInt(m[1],10)-1,parseInt(m[2],10));
+    /* 早于今天 30 天以上才认为是「明年」（如 11 月说「1 月 5 号」）；刚过去几天的按补记处理 */
+    if((dt.getTime()-base.getTime())/86400000<-30)dt=new Date(y+1,parseInt(m[1],10)-1,parseInt(m[2],10));
+    return dt.getFullYear()+'-'+p2(dt.getMonth()+1)+'-'+p2(dt.getDate());
+  }
+  m=t.match(/(?:本月|这个月)\s*(\d{1,2})\s*[日号]/);
+  if(m)return curYm()+'-'+p2(m[1]);
+  return '';
+}
+/* 提醒正文：去掉「工作记录」「提醒我」「明天」这类壳子，只留要记的事 */
+function vLogContent(t){
+  var s=' '+t+' ';
+  s=s.replace(/(工作记录|工作日志|记录一下|记录下|记一下|记一笔|记个|备忘一下|备忘|提醒我一下|提醒我|提醒一下|提醒|别忘了|别忘|待办事项|待办)/g,' ');
+  s=s.replace(/(大后天|后天|明天|明日|今天|今日|今儿|(?:下下|下|这|本)?(?:周|星期|礼拜)[一二三四五六日天]|\d{1,2}\s*月\s*\d{1,2}\s*[日号]|\d{1,2}\s*[日号])/g,' ');
+  s=s.replace(/^(要|需要|去|得|把|再|帮我)\s*/,'');
+  s=s.replace(/^[给跟和与向帮]\s*/,'');
+  s=s.replace(/\s+/g,' ').trim();
+  return s||t;
+}
+/* 工作记录事项：沿用现有三类（资料 / 补盒 / 其他） */
+function vLogItem(t){
+  if(/补盒|补个盒|缺盒|盒子不够/.test(t))return '补盒';
+  if(/资料|资质|开户|首营|证照|备案|合同|发票/.test(t))return '资料';
+  return '其他';
 }
 /* 回款：先找说到的单号，再找该客户最近一笔未回款订单 */
 function vPayOrderFor(custName,spokenNo){
@@ -7222,10 +7291,34 @@ function voiceAnalyze(raw,kindSel){
   var payTerm='';
   if(/承兑/.test(t))payTerm='承兑';else if(/账期|月结|挂账/.test(t))payTerm='账期';
   else if(/预付|定金/.test(t))payTerm='预付';else if(/现款|现金/.test(t))payTerm='现款';
-  var d={date:dt||today(),cat:cat,agent:agentName,custName:custName,prod:prod,prodName:prodName,unit:q?q.unit:'',
-    qty:qty,supplyPrice:sup,invoicePrice:inv,amount:amount,no:no,payTerm:payTerm,raw:raw};
+  /* 工作记录：日期分「记录日期」和「提醒日期」，客户可以没有（纯内部事务） */
+  var recDate=dt||today(),planDate='',logContent='',logItem='其他',logPast=false;
+  if(k==='log'){
+    var isRemind=/提醒|记得|别忘|待办|要跟|需要跟/.test(t);
+    var pd=vPlanDate(t);
+    if(pd&&pd<today()){pd='';logPast=true;}          /* 说的是过去的日子：按补记处理，不设提醒 */
+    if(isRemind&&!pd&&dt&&dt>today()){pd=dt;recDate=today();}
+    planDate=pd||'';
+    logContent=vLogContent(t);
+    logItem=vLogItem(t);
+  }
+  var d={date:(k==='log'?recDate:(dt||today())),cat:cat,agent:agentName,custName:custName,prod:prod,prodName:prodName,unit:q?q.unit:'',
+    qty:qty,supplyPrice:sup,invoicePrice:inv,amount:amount,no:no,payTerm:payTerm,raw:raw,
+    planDate:planDate,content:logContent,item:logItem};
   var rows=[],warn=[];
-  if(k==='order'){
+  if(k==='log'){
+    rows.push(['模板','工作记录（首页提醒）']);
+    rows.push(['记录日期',d.date]);
+    rows.push(['提醒日期',planDate||'不设（一直提醒到打勾）']);
+    rows.push(['客户分类',cat||'—']);
+    rows.push(['代理商',agentName||'—']);
+    rows.push(['客户名称',custName||'—']);
+    rows.push(['事项',logItem]);
+    rows.push(['纪要',logContent]);
+    if(!custName)warn.push('没提到客户，客户那几项留空即可：这条会直接出现在首页「业务待办」里提醒你。');
+    if(logPast)warn.push('话里的日期已经过去了，按「补记」处理（只记录、不设提醒），要提醒请改「预计完成时间」。');
+    else if(!planDate)warn.push('没说提醒时间，可留空：首页会一直显示到打勾为止。');
+  }else if(k==='order'){
     rows.push(['模板','销售订单']);
     rows.push(['订单号',no||'未识别（保存前请补填）',!no]);
     rows.push(['客户分类',cat||'未识别',!cat]);
@@ -7317,7 +7410,8 @@ function voiceFill(){
   var vm=document.getElementById('vMask');if(vm)vm.classList.remove('show');
   voiceStop();
   try{
-    if(a.kind==='order')vFillOrder(a.d);
+    if(a.kind==='log')vFillLog(a.d);
+    else if(a.kind==='order')vFillOrder(a.d);
     else if(a.kind==='pay')vFillPay(a.d);
     else if(a.kind==='dev')vFillDev(a.d);
     else vFillCust(a.d);
@@ -7410,6 +7504,10 @@ function vFillDev(d){
   else if(d.spec)setV('preSpec',d.spec);
   if(!isNaN(d.supplyPrice))setV('quote',d.supplyPrice);
   else if(!isNaN(d.amount))setV('quote',d.amount);
+}
+function vFillLog(d){
+  openLogForm(null,{date:d.date||today(),cat:d.cat||'',agent:d.agent||'',custName:d.custName||'',
+    item:d.item||'其他',content:d.content||'',planDate:d.planDate||''});
 }
 function vFillCust(d){
   openCustForm();
