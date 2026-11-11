@@ -726,7 +726,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261106b',_verChecking=false;
+var APP_VER='20261111a',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -2079,6 +2079,9 @@ function renderDash(c){
     h+=demoBannerHTML();
     h+=dashHero();
 
+    /* 今日待办（向日葵黄卡片）——放在产品一览上面 */
+    h+='<div class="card"><div class="card-hd"><h3>今日待办</h3></div><div class="card-bd">'+todoHTML()+'</div></div>';
+
     /* 产品一览（薄荷绿卡片） */
     h+='<div class="card"><div class="card-hd"><h3>产品一览</h3></div><div class="card-bd">'+prodOverviewHTML()+'</div></div>';
 
@@ -2096,8 +2099,6 @@ function renderDash(c){
         +'</div><div class="card-bd">'+contractAlertHTML()+'</div></div>';
     }
 
-    /* 待办明细（向日葵黄卡片） */
-    h+='<div class="card"><div class="card-hd"><h3>今日待办</h3></div><div class="card-bd">'+todoHTML()+'</div></div>';
 
     /* 年度动态表：自销 / OEM 分开两张（天蓝 / 薰衣草紫卡片） */
     h+='<div class="chart-grid">';
