@@ -271,6 +271,19 @@ tbody tr.z2 td.chk-on{background:#e4f7e9!important}
   .pw-inp{min-width:64px;padding:5px 5px;font-size:12px}
   .pw-range{min-width:96px;font-size:11px}
 }
+/* 首页卡片配色：一张卡一个色系（浅底 + 同色系表头/标签/按钮），便于区分 */
+.card.c-todo{--accent:#c98900;--accent-d:#6b4900;--accent-b:#a06c00;--accent-b2:#6b4900;--accent-soft:#fff6dd;--accent-hv:#ffeab0;--accent-g1:#ffe3a0;--accent-g2:#ffd162;background:#fffdf4;border-color:#f2e3b8;border-top:3px solid #f0c04a}
+.card.c-prod{--accent:#17996b;--accent-d:#0b5c40;--accent-b:#127a55;--accent-b2:#0b5c40;--accent-soft:#eafaf2;--accent-hv:#d3f3e4;--accent-g1:#bdeed6;--accent-g2:#8fdfba;background:#fbfffd;border-color:#cdeee0;border-top:3px solid #5cd0a0}
+.card.c-pw{--accent:#0a7fbf;--accent-d:#064e77;--accent-b:#086a9e;--accent-b2:#064e77;--accent-soft:#e9f6fd;--accent-hv:#d1ecfa;--accent-g1:#b4e0f6;--accent-g2:#83cdef;background:#fbfdff;border-color:#cbe7f5;border-top:3px solid #56bde8}
+.card.c-pol{--accent:#d9592b;--accent-d:#83330f;--accent-b:#a8461f;--accent-b2:#83330f;--accent-soft:#fdeee7;--accent-hv:#fbdccd;--accent-g1:#f8c9b5;--accent-g2:#f3a98c;background:#fffbf9;border-color:#f6d6c7;border-top:3px solid #ef9268}
+.card.c-con{--accent:#6353cd;--accent-d:#3a2f86;--accent-b:#4f42ab;--accent-b2:#3a2f86;--accent-soft:#f1eefc;--accent-hv:#e1dbfa;--accent-g1:#cec6f1;--accent-g2:#b1a5e9;background:#fcfbff;border-color:#ded8f3;border-top:3px solid #9c8ce4}
+.card.c-yw1{--accent:#0d94a8;--accent-d:#045a67;--accent-b:#0a7c8d;--accent-b2:#045a67;--accent-soft:#e8f8fa;--accent-hv:#cef0f5;--accent-g1:#b2e6ee;--accent-g2:#83d5e1;background:#fbfeff;border-color:#cceaf0;border-top:3px solid #4fc6d6}
+.card.c-yw2{--accent:#8657e0;--accent-d:#4a2b8c;--accent-b:#6d44bd;--accent-b2:#4a2b8c;--accent-soft:#f4effe;--accent-hv:#e8dcfd;--accent-g1:#d9c9f8;--accent-g2:#c0a8f1;background:#fdfbff;border-color:#e1d6f4;border-top:3px solid #a985ee}
+.card.c-pay{--accent:#cf3f78;--accent-d:#7d1c44;--accent-b:#a72f5f;--accent-b2:#7d1c44;--accent-soft:#fdeef4;--accent-hv:#fbdbe8;--accent-g1:#f6c3d7;--accent-g2:#f0a0c0;background:#fffbfc;border-color:#f6d3e0;border-top:3px solid #e97fa8}
+.card.c-todo .card-hd,.card.c-prod .card-hd,.card.c-pw .card-hd,.card.c-pol .card-hd,
+.card.c-con .card-hd,.card.c-yw1 .card-hd,.card.c-yw2 .card-hd,.card.c-pay .card-hd{background:var(--accent-soft)}
+.card.c-todo .card-hd h3,.card.c-prod .card-hd h3,.card.c-pw .card-hd h3,.card.c-pol .card-hd h3,
+.card.c-con .card-hd h3,.card.c-yw1 .card-hd h3,.card.c-yw2 .card-hd h3,.card.c-pay .card-hd h3{color:var(--accent-d)}
 /* 年度产品销量 · 横向条形（重设计） */
 .yw-row{display:flex;align-items:center;gap:10px;padding:5px 6px;cursor:pointer;border-radius:9px;transition:background .15s}
 .yw-row:hover{background:var(--accent-soft)}
@@ -758,7 +771,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261116a',_verChecking=false;
+var APP_VER='20261116b',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -1663,7 +1676,7 @@ function prodOverviewHTML(){
   });
   var rows=zx.concat(oem);
   if(!rows.length)return '<div class="empty">暂无产品数据</div>';
-  var h='<div class="tbl-wrap"><div class="tbl-scroll"><table class="pov-tbl"><thead><tr><th style="width:38px">序号</th><th>产品名称</th><th>产品规格</th><th style="width:64px">底价</th><th style="width:92px">库存</th><th style="width:72px">订单件数</th><th style="width:72px">挂网价格</th></tr></thead><tbody>';
+  var h='<div class="tbl-wrap"><div class="tbl-scroll"><table class="pov-tbl"><thead><tr><th style="width:38px">序号</th><th>产品名称</th><th>产品规格</th><th style="width:64px">底价</th><th style="width:92px">库存</th><th style="width:72px">订单件数</th></tr></thead><tbody>';
   for(var r=0;r<rows.length;r++){
     var o3=rows[r];
     var st=o3.stock>0?(Math.floor(o3.stock/o3.per)+'件'+(o3.stock%o3.per)+'盒'):'0';
@@ -1672,8 +1685,7 @@ function prodOverviewHTML(){
       +'<td>'+esc(o3.spec)+'</td>'
       +'<td>'+(o3.basePrice?fmtN(o3.basePrice):'—')+'</td>'
       +'<td>'+st+'</td>'
-      +'<td title="'+o3.orders+' 笔产品订单，合计 '+fmtN(o3.qty)+' 件">'+(o3.qty>0?fmtN(o3.qty):'—')+'</td>'
-      +'<td>'+(o3.net!==''?fmtN(o3.net):'—')+'</td></tr>';
+      +'<td title="'+o3.orders+' 笔产品订单，合计 '+fmtN(o3.qty)+' 件">'+(o3.qty>0?fmtN(o3.qty):'—')+'</td></tr>';
   }
   h+='</tbody></table></div></div>';
   return h;
@@ -1693,6 +1705,34 @@ var PW_PRODS=[
   ['妇洁舒洗液','180*60']
 ];
 var PW={off:0};   /* 0=本周；-1=上周；1=下周 */
+/* 挂网价格调整：一次性同步到产品档案的挂网价格（改过之后不再覆盖，后续可直接在卡片/档案里改） */
+var PW_PRICE_VER='20261116b';
+var PW_PRICES=[
+  ['断血流胶囊','12*2*400',4.2],
+  ['净石灵胶囊','45*300',8.5],
+  ['净石灵胶囊','15*3*300',8.5],
+  ['五福化毒丸','2g*18*160',8.6],
+  ['五福化毒丸','60*2*3*100',8.6],
+  ['咽炎片','12*3*400',3.6],
+  ['康尔心胶囊','12*4*300',7.6],
+  ['妇洁舒洗液','120*90',5.5],
+  ['妇洁舒洗液','180*60',7.5]
+];
+function pwMigratePrices(){
+  if(db.pwPriceVer===PW_PRICE_VER)return false;
+  var n=0;
+  for(var i=0;i<PW_PRICES.length;i++){
+    var nm=PW_PRICES[i][0],sp=PW_PRICES[i][1],pv=PW_PRICES[i][2];
+    var p=pwFindProd(nm,sp);
+    if(!p)continue;
+    if(Number(p.netPrice)!==Number(pv)){p.netPrice=pv;touch(p);n++;}
+  }
+  db.pwPriceVer=PW_PRICE_VER;
+  if(n){
+    try{localStorage.setItem(DB_KEY,JSON.stringify(db));}catch(e){}
+  }
+  return n>0;
+}
 function pwNormSpec(s){return String(s==null?'':s).replace(/[^\d]/g,'');}
 function pwFindProd(name,spec){
   var hit=null,ns=pwNormSpec(spec);
@@ -2251,13 +2291,13 @@ function renderDash(c){
     h+=dashHero();
 
     /* 今日待办（向日葵黄卡片）——放在产品一览上面 */
-    h+='<div class="card"><div class="card-hd"><h3>今日待办</h3></div><div class="card-bd">'+todoHTML()+'</div></div>';
+    h+='<div class="card c-todo"><div class="card-hd"><h3>今日待办</h3></div><div class="card-bd">'+todoHTML()+'</div></div>';
 
     /* 产品一览（薄荷绿卡片） */
-    h+='<div class="card"><div class="card-hd"><h3>产品一览</h3></div><div class="card-bd">'+prodOverviewHTML()+'</div></div>';
+    h+='<div class="card c-prod"><div class="card-hd"><h3>产品一览</h3></div><div class="card-bd">'+prodOverviewHTML()+'</div></div>';
 
     /* 挂网价格维护（每周维价情况，每天手填；日期自动跟着本周滚动） */
-    h+='<div class="card"><div class="card-hd"><h3>挂网价格维护</h3>'
+    h+='<div class="card c-pw"><div class="card-hd"><h3>挂网价格维护</h3>'
       +'<div class="sp pw-nav">'
       +'<button class="btn ghost sm" onclick="pwNav(-1)">‹ 上周</button>'
       +'<span class="pw-range" id="pwRange">'+pwRange()+'</span>'
@@ -2268,14 +2308,14 @@ function renderDash(c){
 
     /* 政策提醒（到达阈值或临近结束才提示，避免长期挂一堆不痛不痒的条目） */
     var paHTML=policyAlertHTML();
-    if(paHTML)h+='<div class="card"><div class="card-hd"><h3>政策提醒</h3><div class="sp"><span class="tag warn">需关注</span></div></div><div class="card-bd">'+paHTML+'</div></div>';
+    if(paHTML)h+='<div class="card c-pol"><div class="card-hd"><h3>政策提醒</h3><div class="sp"><span class="tag warn">需关注</span></div></div><div class="card-bd">'+paHTML+'</div></div>';
 
     /* 合同到期提醒（OEM 销售合同到期前 1 个月预警；没有 OEM 产品时不显示） */
     var oemCnt=0;
     for(var oi=0;oi<db.products.length;oi++)if(db.products[oi].cat==='OEM')oemCnt++;
     if(oemCnt){
       var ar=contractAlertRows();
-      h+='<div class="card"><div class="card-hd"><h3>合同到期提醒</h3>'
+      h+='<div class="card c-con"><div class="card-hd"><h3>合同到期提醒</h3>'
         +(ar.length?'<span class="sp"><span class="tag warn">'+ar.length+' 个临近到期</span></span>':'')
         +'</div><div class="card-bd">'+contractAlertHTML()+'</div></div>';
     }
@@ -2283,10 +2323,10 @@ function renderDash(c){
 
     /* 年度动态表：自销 / OEM 分开两张（天蓝 / 薰衣草紫卡片） */
     h+='<div class="chart-grid">';
-    h+='<div class="card"><div class="card-hd"><h3>年度产品销量 · 自销</h3></div><div class="card-bd">'+yearProdWave('自销')+'</div></div>';
-    h+='<div class="card"><div class="card-hd"><h3>年度产品销量 · OEM</h3></div><div class="card-bd">'+yearProdWave('OEM')+'</div></div>';
+    h+='<div class="card c-yw1"><div class="card-hd"><h3>年度产品销量 · 自销</h3></div><div class="card-bd">'+yearProdWave('自销')+'</div></div>';
+    h+='<div class="card c-yw2"><div class="card-hd"><h3>年度产品销量 · OEM</h3></div><div class="card-bd">'+yearProdWave('OEM')+'</div></div>';
     h+='</div>';
-    h+='<div class="card"><div class="card-hd"><h3>月度回款</h3></div><div class="card-bd">'+yearPayTrend()+'</div></div>';
+    h+='<div class="card c-pay"><div class="card-hd"><h3>月度回款</h3></div><div class="card-bd">'+yearPayTrend()+'</div></div>';
 
     if(!db.customers.length&&!db.products.length){
       h+='<div class="card"><div class="card-bd" style="text-align:center"><p style="color:var(--sub);margin-bottom:12px">当前还没有任何数据。请先录入客户和产品，再创建订单。</p><button class="btn pri" onclick="loadDemo()">载入示例数据（了解功能）</button></div></div>';
@@ -7837,8 +7877,10 @@ function vToast(msg){
 
 /* ================= 初始化 ================= */
 initDocInput();
+var _pwPriced=pwMigratePrices();   /* 挂网价格调整：只跑一次，之后以最后一次改动为准 */
 render();
 initCloud();
+if(_pwPriced)setTimeout(function(){_dirty=true;if(cloudReady)flushPush();},900);
 </script>
 </body>
 </html>
