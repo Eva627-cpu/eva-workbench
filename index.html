@@ -239,6 +239,38 @@ tbody tr.z2 td.chk-on{background:#e4f7e9!important}
 .pov-agent{font-size:11px;color:var(--sub);margin-left:6px}
 /* 产品一览紧凑表格（挂网价格为自动取产品档案的只读展示） */
 .pov-tbl th,.pov-tbl td{padding:5px 8px;font-size:13px}
+/* 挂网价格维护（每周维价情况，每天手填） */
+.pw-nav{display:flex;align-items:center;gap:6px}
+.pw-range{font-size:12px;color:var(--sub);min-width:150px;text-align:center;white-space:nowrap;font-weight:600}
+.pw-tbl{width:100%;border-collapse:collapse;min-width:820px}
+.pw-tbl th,.pw-tbl td{padding:5px 6px;font-size:12.5px;vertical-align:middle;text-align:left;border-bottom:1px solid var(--accent-soft);white-space:nowrap}
+.pw-tbl thead th{background:var(--accent-g1);color:var(--accent-d);font-weight:600;font-size:12px;border-bottom:1px solid var(--accent-g1)}
+.pw-tbl thead th small{display:block;font-size:10.5px;font-weight:400;opacity:.85}
+.pw-tbl .pw-c1{position:sticky;left:0;z-index:2;background:var(--card);box-shadow:1px 0 0 var(--line)}
+.pw-tbl thead .pw-c1{background:var(--accent-g1);z-index:3}
+.pw-tbl .pw-c2{min-width:86px;color:var(--sub);font-size:11.5px}
+.pw-tbl .pw-c3{min-width:78px;text-align:left}
+.pw-tbl .pw-c3 b{color:var(--accent-d)}
+.pw-na{color:var(--sub);font-size:11.5px}
+.pw-tbl .pw-day{text-align:center;min-width:78px}
+.pw-tbl td.pw-cell{text-align:center;padding:3px 4px}
+.pw-tbl .pw-today{background:var(--accent-soft)}
+.pw-tbl thead th.pw-today{background:var(--accent-g2);color:#fff}
+.pw-inp{width:100%;box-sizing:border-box;min-width:70px;border:1px solid transparent;background:transparent;border-radius:7px;padding:5px 7px;font-size:12.5px;font-family:inherit;color:var(--txt);text-align:left}
+.pw-inp::placeholder{color:#b9b9c0}
+.pw-inp:hover{border-color:var(--line)}
+.pw-inp:focus{outline:none;border-color:var(--accent-g2);background:#fff;box-shadow:0 0 0 3px var(--accent-soft)}
+.pw-inp.filled{background:#fff;border-color:var(--accent-g1);color:var(--accent-d);font-weight:600}
+.pw-foot{margin-top:10px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.pw-prog{font-size:12px;color:var(--sub)}
+.pw-prog b{color:var(--accent-d)}
+@media(max-width:520px){
+  .pw-tbl{min-width:760px}
+  .pw-tbl th,.pw-tbl td{padding:4px 3px;font-size:12px}
+  .pw-tbl .pw-c1{min-width:96px}
+  .pw-inp{min-width:64px;padding:5px 5px;font-size:12px}
+  .pw-range{min-width:96px;font-size:11px}
+}
 /* 年度产品销量 · 横向条形（重设计） */
 .yw-row{display:flex;align-items:center;gap:10px;padding:5px 6px;cursor:pointer;border-radius:9px;transition:background .15s}
 .yw-row:hover{background:var(--accent-soft)}
@@ -491,7 +523,7 @@ tbody tr.z2 td.chk-on{background:#e4f7e9!important}
 <script>
 /* ================= 存储 ================= */
 var DB_KEY='pharmaSalesWorkbench';
-var DB_TABLES=['customers','products','batches','orders','shipments','payments','logs','prodOrders','develop','todos','prodPolicies','docs','wnotes'];
+var DB_TABLES=['customers','products','batches','orders','shipments','payments','logs','prodOrders','develop','todos','prodPolicies','docs','wnotes','priceWatch'];
 /* 历史数据自愈用到的字段表（必须在 load() 之前初始化，否则打开瞬间的自愈会空跑） */
 var DATE_FIELDS={orders:['shipDate'],shipments:['shipDate'],payments:['payDate','ym'],batches:['inDate','prodDate','expire'],prodOrders:['date','shipDate'],develop:['date','orderDate'],logs:['date','planDate']};
 var _HEALED=0;
@@ -588,7 +620,7 @@ function localIsEmpty(){
     &&db.batches.length===0&&db.payments.length===0&&db.shipments.length===0
     &&db.prodOrders.length===0&&db.develop.length===0&&(db.docs||[]).length===0;
 }
-var MERGE_KEYS=['orders','customers','products','batches','payments','shipments','prodOrders','develop','logs','todos','prodPolicies','docs','wnotes'];
+var MERGE_KEYS=['orders','customers','products','batches','payments','shipments','prodOrders','develop','logs','todos','prodPolicies','docs','wnotes','priceWatch'];
 /* 空值判定：''/null/undefined/0 都视为"未填"（本工作台价格与数量字段 0 即未填） */
 function isBlank(v){return v===undefined||v===null||v===''||v===0||v==='0'||(typeof v==='number'&&isNaN(v));}
 /* 字段级补空：本机为空而云端有值的字段，采用云端值（避免"A设备填了字段、B设备本地为空"时永远同步不过来） */
@@ -726,7 +758,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261111a',_verChecking=false;
+var APP_VER='20261116a',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -1646,6 +1678,145 @@ function prodOverviewHTML(){
   h+='</tbody></table></div></div>';
   return h;
 }
+/* ================= 首页挂网价格维护（每周维价情况） =================
+   固定品种清单 → 自动到「产品档案」取 自销 对应规格的挂网价格（只读，改档案即同步）；
+   每天在当天那列手填维价情况，存 db.priceWatch（多设备同步）。 */
+var PW_PRODS=[
+  ['断血流胶囊','12*2*400'],
+  ['净石灵胶囊','45*300'],
+  ['净石灵胶囊','15*3*300'],
+  ['五福化毒丸','2g*18*160'],
+  ['五福化毒丸','60*2*3*100'],
+  ['咽炎片','12*3*400'],
+  ['康尔心胶囊','12*4*300'],
+  ['妇洁舒洗液','120*90'],
+  ['妇洁舒洗液','180*60']
+];
+var PW={off:0};   /* 0=本周；-1=上周；1=下周 */
+function pwNormSpec(s){return String(s==null?'':s).replace(/[^\d]/g,'');}
+function pwFindProd(name,spec){
+  var hit=null,ns=pwNormSpec(spec);
+  for(var i=0;i<db.products.length;i++){
+    var p=db.products[i];
+    if(String(p.name||'').trim()!==name)continue;
+    if(pwNormSpec(p.spec)!==ns)continue;
+    if(p.cat==='自销')return p;
+    if(!hit)hit=p;
+  }
+  return hit;
+}
+function pwKeyOf(name,spec){var p=pwFindProd(name,spec);return p?p.id:('K:'+name+'|'+spec);}
+/* 本周日期（周一为第一天，自动跟着当天滚动） */
+function pwWeekDays(off){
+  var d=new Date(),dow=(d.getDay()+6)%7;
+  var mon=new Date(d.getFullYear(),d.getMonth(),d.getDate()-dow+(Number(off)||0)*7),out=[];
+  for(var i=0;i<7;i++){
+    var x=new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+i);
+    out.push({date:x.getFullYear()+'-'+p2(x.getMonth()+1)+'-'+p2(x.getDate()),m:x.getMonth()+1,d:x.getDate()});
+  }
+  return out;
+}
+function pwRange(){
+  var ds=pwWeekDays(PW.off),a=ds[0],b=ds[6],tag;
+  if(PW.off===0)tag='本周';
+  else if(PW.off===-1)tag='上周';
+  else if(PW.off===1)tag='下周';
+  else tag=(PW.off<0?(-PW.off)+' 周前':PW.off+' 周后');
+  return tag+' '+p2(a.m)+'-'+p2(a.d)+' ~ '+p2(b.m)+'-'+p2(b.d);
+}
+/* 取某品种某天的记录（同键多台设备各写一条时取最新） */
+function pwRec(pid,date){
+  var hit=null,ht=-1,list=db.priceWatch||[];
+  for(var i=0;i<list.length;i++){
+    var r=list[i];
+    if(r.pid!==pid||r.date!==date)continue;
+    var t=Number(r._t)||0;
+    if(t>ht){ht=t;hit=r;}
+  }
+  return hit;
+}
+function pwBodyHTML(){
+  var days=pwWeekDays(PW.off),td=today(),h='',filled=0,total=0;
+  var WN=['周一','周二','周三','周四','周五','周六','周日'];
+  h+='<div class="tbl-wrap"><div class="tbl-scroll" id="pwScroll"><table class="pw-tbl"><thead><tr>'
+    +'<th class="pw-c1">产品名称</th><th class="pw-c2">产品规格</th><th class="pw-c3">要求挂网价</th>';
+  for(var i=0;i<7;i++){
+    var dd=days[i];
+    h+='<th class="pw-day'+(dd.date===td?' pw-today':'')+'">'+WN[i]+'<small>'+p2(dd.m)+'-'+p2(dd.d)+'</small></th>';
+  }
+  h+='</tr></thead><tbody>';
+  for(var r=0;r<PW_PRODS.length;r++){
+    var nm=PW_PRODS[r][0],sp=PW_PRODS[r][1],p=pwFindProd(nm,sp),pid=p?p.id:('K:'+nm+'|'+sp);
+    var net=(p&&p.netPrice!==undefined&&p.netPrice!==null&&p.netPrice!=='')?Number(p.netPrice):NaN;
+    h+='<tr><td class="pw-c1"><span class="pw-name">'+esc(nm)+'</span></td>'
+      +'<td class="pw-c2 mono" title="产品档案规格">'+esc(p?p.spec:sp)+'</td>'
+      +'<td class="pw-c3">'+(isNaN(net)?'<span class="pw-na">待填</span>':'<b>'+fmtN(net)+'</b> 元')+'</td>';
+    for(var d=0;d<7;d++){
+      var day=days[d],rec=pwRec(pid,day.date),v=rec?(rec.val||''):'';
+      total++;if(v)filled++;
+      h+='<td class="pw-cell'+(day.date===td?' pw-today':'')+'">'
+        +'<input class="pw-inp'+(v?' filled':'')+'" data-pid="'+esc(pid)+'" data-date="'+day.date+'" value="'+esc(v)+'" placeholder="—"'
+        +' onchange="pwSet(this)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();this.blur();}"></td>';
+    }
+    h+='</tr>';
+  }
+  h+='</tbody></table></div></div>'
+    +'<div class="pw-foot"><span class="pw-prog">本周已填 <b id="pwFillN">'+filled+'</b> / '+total+' 格</span>'
+    +'<span class="hint" style="margin:0">每天点当天那格填维价情况（如「正常」「已调到 8 元」「超价 11.2 未处理」），回车或点别处即自动保存</span></div>';
+  return h;
+}
+function pwSet(el){
+  var pid=el.getAttribute('data-pid'),date=el.getAttribute('data-date'),val=String(el.value||'').trim();
+  if(!db.priceWatch)db.priceWatch=[];
+  var rec=pwRec(pid,date);
+  if(!val){
+    if(rec){
+      markDel(rec.id);
+      db.priceWatch=db.priceWatch.filter(function(x){return x.id!==rec.id;});
+      save();
+    }
+    el.classList.remove('filled');
+  }else{
+    if(rec){
+      if(rec.val===val){el.classList.add('filled');return;}
+      rec.val=val;touch(rec);
+    }else{
+      db.priceWatch.push(touch({id:uid(),pid:pid,date:date,val:val}));
+    }
+    save();
+    el.classList.add('filled');
+  }
+  pwStat();
+}
+function pwStat(){
+  var n=document.getElementById('pwFillN');
+  if(!n)return;
+  var days=pwWeekDays(PW.off),c=0;
+  for(var i=0;i<PW_PRODS.length;i++){
+    var pid=pwKeyOf(PW_PRODS[i][0],PW_PRODS[i][1]);
+    for(var d=0;d<7;d++){var r=pwRec(pid,days[d].date);if(r&&r.val)c++;}
+  }
+  n.textContent=c;
+}
+function pwNav(n){
+  PW.off=(n==='now')?0:(Number(PW.off)||0)+Number(n||0);
+  var body=document.getElementById('pwBody');
+  if(body)body.innerHTML=pwBodyHTML();
+  var rg=document.getElementById('pwRange');
+  if(rg)rg.textContent=pwRange();
+  pwScrollToday();
+}
+/* 首次渲染后把当天那列滚到可视区中间（手机端 7 列放不下时不至于看不到今天） */
+function pwScrollToday(){
+  setTimeout(function(){
+    var box=document.getElementById('pwScroll');
+    if(!box)return;
+    var th=box.querySelector('th.pw-today');
+    if(!th)return;
+    var left=th.offsetLeft-box.clientWidth/2+th.offsetWidth/2;
+    if(left>0)box.scrollLeft=left;
+  },40);
+}
 function setPayTarget(){
   var cur=Number(db.payTarget)||PAY_TARGET;
   var v=prompt('本月回款目标（元）',cur);
@@ -2084,6 +2255,16 @@ function renderDash(c){
 
     /* 产品一览（薄荷绿卡片） */
     h+='<div class="card"><div class="card-hd"><h3>产品一览</h3></div><div class="card-bd">'+prodOverviewHTML()+'</div></div>';
+
+    /* 挂网价格维护（每周维价情况，每天手填；日期自动跟着本周滚动） */
+    h+='<div class="card"><div class="card-hd"><h3>挂网价格维护</h3>'
+      +'<div class="sp pw-nav">'
+      +'<button class="btn ghost sm" onclick="pwNav(-1)">‹ 上周</button>'
+      +'<span class="pw-range" id="pwRange">'+pwRange()+'</span>'
+      +'<button class="btn ghost sm" onclick="pwNav(1)">下周 ›</button>'
+      +'<button class="btn ghost sm" onclick="pwNav(\'now\')">回到本周</button>'
+      +'</div></div><div class="card-bd" id="pwBody">'+pwBodyHTML()+'</div></div>';
+    setTimeout(pwScrollToday,60);
 
     /* 政策提醒（到达阈值或临近结束才提示，避免长期挂一堆不痛不痒的条目） */
     var paHTML=policyAlertHTML();
