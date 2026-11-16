@@ -769,7 +769,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261116c',_verChecking=false;
+var APP_VER='20261116d',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -1739,6 +1739,35 @@ function pwMigratePrices(){
   }
   return n>0;
 }
+/* 一次性清理：删除不再销售的规格（连同其库存批次与已上传产品资料，已发生的订单/发货记录保留不动）。
+   只跑一次（db.purgeVer 记录版本），删除会写墓碑，保证云端/其他设备同步删除而不是被旧数据补回来。 */
+var PURGE_VER='20261116d';
+var PURGE_DROP=[['康尔心胶囊','12*2*400']];
+function purgeDropProds(){
+  if(db.purgeVer===PURGE_VER)return false;
+  var pids={},i,n=0,k;
+  for(i=0;i<db.products.length;i++){
+    var p=db.products[i];
+    for(var j=0;j<PURGE_DROP.length;j++){
+      if(String(p.name||'').trim()===PURGE_DROP[j][0]&&pwNormSpec(p.spec)===pwNormSpec(PURGE_DROP[j][1])){pids[p.id]=1;break;}
+    }
+  }
+  var del=[];
+  for(k in pids){del.push(k);n++;}
+  for(i=0;i<db.batches.length;i++)if(pids[db.batches[i].pid])del.push(db.batches[i].id);
+  var docs=db.docs||[];
+  for(i=0;i<docs.length;i++)if(docs[i].scope==='prod'&&pids[docs[i].refId])del.push(docs[i].id);
+  if(n){
+    markDel(del);
+    db.products=db.products.filter(function(x){return !pids[x.id];});
+    db.batches=db.batches.filter(function(x){return !pids[x.pid];});
+    db.docs=(db.docs||[]).filter(function(x){return !(x.scope==='prod'&&pids[x.refId]);});
+    _IDX_VER++;
+    try{localStorage.setItem(DB_KEY,JSON.stringify(db));}catch(e){}
+  }
+  db.purgeVer=PURGE_VER;
+  return n>0;
+}
 function pwNormSpec(s){return String(s==null?'':s).replace(/[^\d]/g,'');}
 function pwFindProd(name,spec){
   var hit=null,ns=pwNormSpec(spec);
@@ -1752,7 +1781,7 @@ function pwFindProd(name,spec){
   return hit;
 }
 function pwKeyOf(name,spec){var p=pwFindProd(name,spec);return p?p.id:('K:'+name+'|'+spec);}
-/* 卡片固定的要求挂网品种（自销规格）→ 带出该品种的产品档案信息；清单里没有但已填挂网价的自销品种排在其后，保证不丢品种 */
+/* 卡片品种 = 固定要求挂网品种（PW_PRODS）+ 已填挂网价的其他自销品种；整表按产品名称拼音首字母排序 */
 function pwRows(){
   var list=povAgg(),idx={},used={},out=[],i;
   for(i=0;i<list.length;i++){
@@ -1774,12 +1803,13 @@ function pwRows(){
     if(!(Number(o3.net)>0))continue;   /* 自销产品没有挂网价的不进维价卡 */
     ex.push(o3);
   }
-  ex.sort(function(a,b){var c=pyCmp(a.name,b.name);if(c)return c;return natCmp(a.spec,b.spec);});
   for(i=0;i<ex.length;i++){
     var e=ex[i];
     out.push({name:e.name,spec:e.spec,base:e.basePrice,net:e.net,stock:e.stock,per:e.per,
               orders:e.orders,qty:e.qty,pid:pwKeyOf(e.name,e.spec)});
   }
+  /* 首字母（拼音）排序：同品种内规格按数字小到大 */
+  out.sort(function(a,b){var c=pyCmp(a.name,b.name);if(c)return c;return natCmp(a.spec,b.spec);});
   return out;
 }
 /* 本周日期（周一为第一天，自动跟着当天滚动） */
@@ -6481,13 +6511,14 @@ function prodColsS(){
     {key:'contractEnd',label:'合同到期',fmt:function(r){return prodExpCell(r);}}
   ];
 }
-/* 产品档案统一排序：分类（自销→OEM）→ 代理商拼音 → 产品名称拼音 → 规格数字小到大 */
+/* 产品档案统一排序（列表与导出同源）：产品名称拼音首字母 → 规格数字小到大 → 分类 → 代理商拼音 */
 function prodArchiveSort(rows){
+  /* 按产品名称拼音首字母排序（同名称内规格数字小到大）；分类/代理商只作同规格时的兜底，不再先分组 */
   return rows.slice().sort(function(a,b){
-    var c=prodCatIdx(a.cat)-prodCatIdx(b.cat);if(c)return c;
-    c=pyCmp(a.agent||'',b.agent||'');if(c)return c;
-    c=pyCmp(a.name||'',b.name||'');if(c)return c;
-    return natCmp(a.spec||'',b.spec||'');
+    var c=pyCmp(a.name||'',b.name||'');if(c)return c;
+    c=natCmp(a.spec||'',b.spec||'');if(c)return c;
+    c=prodCatIdx(a.cat)-prodCatIdx(b.cat);if(c)return c;
+    return pyCmp(a.agent||'',b.agent||'');
   });
 }
 function drawProd(){
@@ -7916,9 +7947,10 @@ function vToast(msg){
 /* ================= 初始化 ================= */
 initDocInput();
 var _pwPriced=pwMigratePrices();   /* 挂网价格调整：只跑一次，之后以最后一次改动为准 */
+var _purged=purgeDropProds();      /* 一次性清理停售规格：只跑一次，删除走墓碑同步 */
 render();
 initCloud();
-if(_pwPriced)setTimeout(function(){_dirty=true;if(cloudReady)flushPush();},900);
+if(_pwPriced||_purged)setTimeout(function(){_dirty=true;if(cloudReady)flushPush();},900);
 </script>
 </body>
 </html>
