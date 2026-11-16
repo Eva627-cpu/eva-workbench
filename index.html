@@ -238,37 +238,40 @@ tbody tr.z2 td.chk-on{background:#e4f7e9!important}
 /* 挂网价格维护（每周维价情况，每天手填） */
 .pw-nav{display:flex;align-items:center;gap:6px}
 .pw-range{font-size:12px;color:var(--sub);min-width:150px;text-align:center;white-space:nowrap;font-weight:600}
-.pw-tbl{width:100%;border-collapse:collapse;min-width:980px}
+.pw-tbl{border-collapse:collapse;table-layout:fixed}   /* 固定列宽：列宽完全按 colgroup 走，长文本只换行不改列宽，两端都不跑版 */
 .pw-tbl th,.pw-tbl td{padding:5px 6px;font-size:12.5px;vertical-align:middle;text-align:left;border-bottom:1px solid var(--accent-soft);white-space:nowrap}
 .pw-tbl thead th{background:var(--accent-g1);color:var(--accent-d);font-weight:600;font-size:12px;border-bottom:1px solid var(--accent-g1)}
 .pw-tbl thead th small{display:block;font-size:10.5px;font-weight:400;opacity:.85}
 .pw-tbl .pw-c1{position:sticky;left:0;z-index:2;background:var(--card);box-shadow:1px 0 0 var(--line)}
 .pw-tbl thead .pw-c1{background:var(--accent-g1);z-index:3}
-.pw-tbl .pw-c2{min-width:86px;color:var(--sub);font-size:11.5px}
+.pw-tbl .pw-c1,.pw-tbl .pw-c2{overflow:hidden;text-overflow:ellipsis}
+.pw-tbl .pw-c2{color:var(--sub);font-size:11.5px}
 .pw-tbl .pw-c3{min-width:78px;text-align:left}
 .pw-tbl .pw-c3 b{color:var(--accent-d)}
 /* 自销产品信息（取自产品档案/库存/产品订单，只读） */
-.pw-tbl .pw-c4,.pw-tbl .pw-c5,.pw-tbl .pw-c6{min-width:62px;font-size:12px;color:var(--sub)}
-.pw-tbl .pw-c5{min-width:84px}
+.pw-tbl .pw-c4,.pw-tbl .pw-c5,.pw-tbl .pw-c6{font-size:12px;color:var(--sub);overflow:hidden;text-overflow:ellipsis}
 .pw-na{color:var(--sub);font-size:11.5px}
-.pw-tbl .pw-day{text-align:center;min-width:78px}
-.pw-tbl td.pw-cell{text-align:center;padding:3px 4px}
+.pw-tbl .pw-day{text-align:center}
+.pw-tbl .pw-day .pw-tnow{display:block;font-style:normal;font-size:10px;font-weight:700;letter-spacing:1px;opacity:.9}
+.pw-tbl td.pw-cell{text-align:left;padding:3px 4px;white-space:normal}
 .pw-tbl .pw-today{background:var(--accent-soft)}
 .pw-tbl thead th.pw-today{background:var(--accent-g2);color:#fff}
-.pw-inp{width:100%;box-sizing:border-box;min-width:70px;border:1px solid transparent;background:transparent;border-radius:7px;padding:5px 7px;font-size:12.5px;font-family:inherit;color:var(--txt);text-align:left}
+/* 维价输入框：用 textarea 自适应高度，长文本（多行）也能完整显示，不再被单行输入框截断 */
+.pw-inp{display:block;width:100%;box-sizing:border-box;min-width:0;min-height:28px;border:1px solid transparent;background:transparent;border-radius:7px;padding:5px 7px;font-size:12.5px;line-height:1.45;font-family:inherit;color:var(--txt);text-align:left;resize:none;overflow:hidden;white-space:pre-wrap;word-break:break-word}
 .pw-inp::placeholder{color:#b9b9c0}
 .pw-inp:hover{border-color:var(--line)}
 .pw-inp:focus{outline:none;border-color:var(--accent-g2);background:#fff;box-shadow:0 0 0 3px var(--accent-soft)}
 .pw-inp.filled{background:#fff;border-color:var(--accent-g1);color:var(--accent-d);font-weight:600}
+/* 手机端维价格：只显示两行摘要（行高固定不乱），点一下弹层编辑 */
+.pw-view{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;font-size:12px;line-height:1.4;padding:4px 6px;border-radius:7px;border:1px solid transparent;min-height:26px;color:var(--txt)}
+.pw-view.filled{background:#fff;border-color:var(--accent-g1);color:var(--accent-d);font-weight:600}
+.pw-plus{color:#b9b9c0}
 .pw-foot{margin-top:10px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .pw-prog{font-size:12px;color:var(--sub)}
 .pw-prog b{color:var(--accent-d)}
 @media(max-width:520px){
-  .pw-tbl{min-width:900px}
   .pw-tbl th,.pw-tbl td{padding:4px 3px;font-size:12px}
-  .pw-tbl .pw-c1{min-width:96px}
-  .pw-tbl .pw-c4{display:none}
-  .pw-inp{min-width:64px;padding:5px 5px;font-size:12px}
+  .pw-inp{min-height:26px;padding:4px 5px;font-size:12px;line-height:1.4}
   .pw-range{min-width:96px;font-size:11px}
 }
 /* 首页卡片配色：一张卡一个色系（浅底 + 同色系表头/标签/按钮），便于区分 */
@@ -769,7 +772,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261116d',_verChecking=false;
+var APP_VER='20261116g',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -1842,60 +1845,126 @@ function pwRec(pid,date){
   return hit;
 }
 function pwBodyHTML(){
-  var days=pwWeekDays(PW.off),td=today(),h='',filled=0,total=0,rows=pwRows();
+  var days=pwWeekDays(PW.off),td=today(),h='',filled=0,total=0,rows=pwRows(),i,d;
   var WN=['周一','周二','周三','周四','周五','周六','周日'];
-  h+='<div class="tbl-wrap"><div class="tbl-scroll" id="pwScroll"><table class="pw-tbl"><thead><tr>'
-    +'<th class="pw-c1">产品名称</th><th class="pw-c2">产品规格</th><th class="pw-c3">要求挂网价</th>'
-    +'<th class="pw-c4">底价</th><th class="pw-c5">库存</th><th class="pw-c6">订单件数</th>';
-  for(var i=0;i<7;i++){
+  var mob=window.innerWidth<=520,narrow=window.innerWidth<=900;
+  /* 静态列（窄屏/手机端不渲染底价列，省宽度；不渲染整列，避免固定布局下 cells 错列） */
+  var stat=[['pw-c1','产品名称',mob?96:112],['pw-c2','产品规格',mob?84:92],['pw-c3','要求挂网价',mob?76:80]];
+  if(!narrow)stat.push(['pw-c4','底价',48]);
+  stat.push(['pw-c5','库存',mob?80:84],['pw-c6','订单件数',mob?62:60]);
+  var tw=0;
+  for(i=0;i<stat.length;i++)tw+=stat[i][2];
+  /* 今天列按今天那列的实际字数加宽（电脑端 150~200，手机端固定 126 摘要两行） */
+  var todayW=126;
+  if(!mob){
+    var mxl=0;
+    for(i=0;i<rows.length;i++){
+      var rcl=pwRec(rows[i].pid,td),vl=rcl&&rcl.val?String(rcl.val):'',ln=0,cj;
+      for(cj=0;cj<vl.length;cj++)ln+=(vl.charCodeAt(cj)>255?1:0.6);
+      if(ln>mxl)mxl=ln;
+    }
+    todayW=Math.min(200,Math.max(150,mxl*7.5+30));
+  }
+  var dayW=mob?74:80,dw=[];
+  for(d=0;d<7;d++){var dwv=days[d].date===td?todayW:dayW;dw.push(dwv);tw+=dwv;}
+  h+='<div class="tbl-wrap"><div class="tbl-scroll" id="pwScroll">'
+    +'<table class="pw-tbl" style="width:'+tw+'px;min-width:100%"><colgroup>';
+  for(i=0;i<stat.length;i++)h+='<col style="width:'+stat[i][2]+'px">';
+  for(d=0;d<7;d++)h+='<col style="width:'+dw[d]+'px">';
+  h+='</colgroup><thead><tr>';
+  for(i=0;i<stat.length;i++)h+='<th class="'+stat[i][0]+'">'+stat[i][1]+'</th>';
+  for(i=0;i<7;i++){
     var dd=days[i];
-    h+='<th class="pw-day'+(dd.date===td?' pw-today':'')+'">'+WN[i]+'<small>'+p2(dd.m)+'-'+p2(dd.d)+'</small></th>';
+    h+='<th class="pw-day'+(dd.date===td?' pw-today':'')+'">'
+      +(dd.date===td?'<i class="pw-tnow">今天</i>':'')+WN[i]+'<small>'+p2(dd.m)+'-'+p2(dd.d)+'</small></th>';
   }
   h+='</tr></thead><tbody>';
   for(var r=0;r<rows.length;r++){
     var o=rows[r],net=(o.net!==''&&o.net!==null&&o.net!==undefined)?Number(o.net):NaN;
-    h+='<tr><td class="pw-c1"><span class="pw-name">'+esc(o.name)+'</span></td>'
-      +'<td class="pw-c2 mono" title="产品档案规格">'+esc(o.spec)+'</td>'
-      +'<td class="pw-c3">'+(isNaN(net)?'<span class="pw-na">待填</span>':'<b>'+fmtN(net)+'</b> 元')+'</td>'
-      +'<td class="pw-c4">'+(Number(o.base)>0?fmtN(o.base):'—')+'</td>'
-      +'<td class="pw-c5">'+povStockTxt(o.stock,o.per)+'</td>'
-      +'<td class="pw-c6" title="'+o.orders+' 笔产品订单，合计 '+fmtN(o.qty)+' 件">'+(o.qty>0?fmtN(o.qty):'—')+'</td>';
-    for(var d=0;d<7;d++){
-      var day=days[d],rec=pwRec(o.pid,day.date),v=rec?(rec.val||''):'';
+    var cm={
+      'pw-c1':'<span class="pw-name">'+esc(o.name)+'</span>',
+      'pw-c2':esc(o.spec),
+      'pw-c3':(isNaN(net)?'<span class="pw-na">待填</span>':'<b>'+fmtN(net)+'</b> 元'),
+      'pw-c4':(Number(o.base)>0?fmtN(o.base):'—'),
+      'pw-c5':povStockTxt(o.stock,o.per),
+      'pw-c6':(o.qty>0?fmtN(o.qty):'—')
+    };
+    h+='<tr>';
+    for(i=0;i<stat.length;i++){
+      var cls=stat[i][0],extra='',tit='';
+      if(cls==='pw-c2'){extra=' mono';tit=' title="产品档案规格"';}
+      if(cls==='pw-c6')tit=' title="'+o.orders+' 笔产品订单，合计 '+fmtN(o.qty)+' 件"';
+      h+='<td class="'+cls+extra+'"'+tit+'>'+cm[cls]+'</td>';
+    }
+    for(var d2=0;d2<7;d2++){
+      var day=days[d2],rec=pwRec(o.pid,day.date),v=rec?(rec.val||''):'';
       total++;if(v)filled++;
-      h+='<td class="pw-cell'+(day.date===td?' pw-today':'')+'">'
-        +'<input class="pw-inp'+(v?' filled':'')+'" data-pid="'+esc(o.pid)+'" data-date="'+day.date+'" value="'+esc(v)+'" placeholder="—"'
-        +' onchange="pwSet(this)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();this.blur();}"></td>';
+      if(mob){
+        h+='<td class="pw-cell'+(day.date===td?' pw-today':'')+'" data-pid="'+esc(o.pid)+'" data-date="'+day.date+'" onclick="pwEditCell(this)">'
+          +'<div class="pw-view'+(v?' filled':'')+'">'+(v?esc(v):'<span class="pw-plus">＋</span>')+'</div></td>';
+      }else{
+        h+='<td class="pw-cell'+(day.date===td?' pw-today':'')+'">'
+          +'<textarea class="pw-inp'+(v?' filled':'')+'" rows="1" data-pid="'+esc(o.pid)+'" data-date="'+day.date+'"'
+          +' placeholder="—" title="回车保存 · Shift+回车换行"'
+          +' oninput="pwFit(this)" onchange="pwSet(this)"'
+          +' onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();this.blur();}">'+esc(v)+'</textarea></td>';
+      }
     }
     h+='</tr>';
   }
   h+='</tbody></table></div></div>'
     +'<div class="pw-foot"><span class="pw-prog">本周已填 <b id="pwFillN">'+filled+'</b> / '+total+' 格</span>'
-    +'<span class="hint" style="margin:0">品种挂网价/底价/库存/订单件数取自产品档案与产品订单；每天点当天那格填维价情况（如「正常」「已调到 8 元」「超价 11.2 未处理」），回车或点别处即自动保存</span></div>';
+    +'<span class="hint" style="margin:0">品种挂网价/底价/库存/订单件数取自产品档案与产品订单；'
+    +(mob?'点当天那格填维价情况（可多行），保存即同步':'每天在当天那格填维价情况，回车保存、Shift+回车换行')+'</span></div>';
   return h;
 }
-function pwSet(el){
-  var pid=el.getAttribute('data-pid'),date=el.getAttribute('data-date'),val=String(el.value||'').trim();
+/* 维价输入框高度自适应内容（电脑端长文本换行后不遮挡下一行） */
+function pwFit(el){
+  if(!el||el.tagName!=='TEXTAREA')return;
+  el.style.height='auto';
+  el.style.height=Math.max(26,el.scrollHeight)+'px';
+}
+function pwFitAll(){
+  var as=document.querySelectorAll('#pwBody .pw-inp');
+  for(var i=0;i<as.length;i++)pwFit(as[i]);
+}
+/* 写一条维价记录（false=没变化不必重绘） */
+function pwSave(pid,date,val){
   if(!db.priceWatch)db.priceWatch=[];
   var rec=pwRec(pid,date);
   if(!val){
-    if(rec){
-      markDel(rec.id);
-      db.priceWatch=db.priceWatch.filter(function(x){return x.id!==rec.id;});
-      save();
-    }
-    el.classList.remove('filled');
-  }else{
-    if(rec){
-      if(rec.val===val){el.classList.add('filled');return;}
-      rec.val=val;touch(rec);
-    }else{
-      db.priceWatch.push(touch({id:uid(),pid:pid,date:date,val:val}));
-    }
-    save();
-    el.classList.add('filled');
+    if(rec){markDel(rec.id);db.priceWatch=db.priceWatch.filter(function(x){return x.id!==rec.id;});save();return true;}
+    return false;
   }
-  pwStat();
+  if(rec){
+    if(rec.val===val)return false;
+    rec.val=val;touch(rec);
+  }else db.priceWatch.push(touch({id:uid(),pid:pid,date:date,val:val}));
+  save();return true;
+}
+/* 手机端：点格子弹出大输入框编辑（表格里只显示两行摘要，行高不会被长文本撑开） */
+function pwEditCell(el){
+  var pid=el.getAttribute('data-pid'),date=el.getAttribute('data-date');
+  var rows=pwRows(),label='';
+  for(var i=0;i<rows.length;i++)if(rows[i].pid===pid){label=rows[i].name+' '+rows[i].spec;break;}
+  var rec=pwRec(pid,date);
+  openForm('维价情况 · '+(label||'该品种'),[
+    {key:'val',label:date+' 维价情况（可多行）',type:'textarea',full:true,ph:'如：4.2 已调；药师帮 4.3 有 3 家未改'}
+  ],{val:rec?rec.val:''},function(v){
+    pwSave(pid,date,String(v.val||'').trim());
+    var box=document.getElementById('pwScroll'),sl=box?box.scrollLeft:0;
+    var body=document.getElementById('pwBody');
+    if(body){body.innerHTML=pwBodyHTML();pwFitAll();}
+    var box2=document.getElementById('pwScroll');
+    if(box2)box2.scrollLeft=sl;
+    pwStat();
+  });
+}
+function pwSet(el){
+  var pid=el.getAttribute('data-pid'),date=el.getAttribute('data-date'),val=String(el.value||'').trim();
+  pwSave(pid,date,val);
+  if(val)el.classList.add('filled');else el.classList.remove('filled');
+  pwFit(el);pwStat();
 }
 function pwStat(){
   var n=document.getElementById('pwFillN');
@@ -1917,6 +1986,7 @@ function pwNav(n){
 /* 首次渲染后把当天那列滚到可视区中间（手机端 7 列放不下时不至于看不到今天） */
 function pwScrollToday(){
   setTimeout(function(){
+    pwFitAll();
     var box=document.getElementById('pwScroll');
     if(!box)return;
     var th=box.querySelector('th.pw-today');
@@ -1925,6 +1995,16 @@ function pwScrollToday(){
     if(left>0)box.scrollLeft=left;
   },40);
 }
+/* 窗口尺寸变化：跨过手机/电脑断点时按新宽度重排列宽，否则只重新适配输入框高度 */
+var _pwMob=(window.innerWidth<=520);
+window.addEventListener('resize',debounce(function(){
+  var m=(window.innerWidth<=520);
+  var body=document.getElementById('pwBody');
+  if(m!==_pwMob){
+    _pwMob=m;
+    if(body){body.innerHTML=pwBodyHTML();pwFitAll();pwScrollToday();}
+  }else pwFitAll();
+},200));
 function setPayTarget(){
   var cur=Number(db.payTarget)||PAY_TARGET;
   var v=prompt('本月回款目标（元）',cur);
