@@ -57,8 +57,6 @@ td{padding:9px 10px;border-bottom:1px solid var(--accent-soft);vertical-align:mi
 .tag{display:inline-block;padding:2px 9px;border-radius:10px;font-size:12px}
 .tag.c1{background:var(--accent-soft);color:var(--accent-d)}.tag.c2{background:#fff4e5;color:#c2500a}.tag.c3{background:#e6f9ec;color:#1d7a34}
 .tag.warn{background:#ffe9e7;color:#d70015}.tag.ok{background:#e6f9ec;color:#1d7a34}.tag.pend{background:#fff4e5;color:#c2500a}
-.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media(max-width:1100px){.chart-grid{grid-template-columns:1fr}}
 .bar-row{display:flex;align-items:center;gap:9px;margin-bottom:9px;font-size:12.5px}
 .bar-row .bl{width:110px;text-align:right;color:var(--sub);flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bar-row .bt{flex:1;background:var(--accent-soft);border-radius:4px;height:18px;position:relative}
@@ -232,8 +230,13 @@ tbody tr.z2 td.chk-on{background:#e4f7e9!important}
 .hero-card.sm .hero-foot{margin-top:4px}
 .hero-tgt{font-size:13px;font-weight:600;opacity:.95;margin-top:3px}
 .hero-tgt small{font-size:11.5px;opacity:.85;font-weight:500}
-/* OEM 产品一览（首页卡片）：代理商名 + 产品名称 */
+/* 产品一览（首页卡片）：分类标签 + OEM 代理商名 + 可点击的年销量 */
+.pov-tag{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;vertical-align:1px;margin-right:6px}
+.pov-tag.zx{background:var(--accent-soft);color:var(--accent-d)}
+.pov-tag.oem{background:#fff1e3;color:#c2500a}
 .pov-agent{display:block;font-size:11px;color:var(--sub)}
+.pov-sold{color:var(--accent-d);font-weight:700;cursor:pointer}
+.pov-sold:hover{text-decoration:underline}
 .pov-tbl th,.pov-tbl td{padding:5px 8px;font-size:13px}
 /* 挂网价格维护（每周维价情况，每天手填） */
 .pw-nav{display:flex;align-items:center;gap:6px}
@@ -280,45 +283,11 @@ tbody tr.z2 td.chk-on{background:#e4f7e9!important}
 .card.c-pw{--accent:#0a7fbf;--accent-d:#064e77;--accent-b:#086a9e;--accent-b2:#064e77;--accent-soft:#e9f6fd;--accent-hv:#d1ecfa;--accent-g1:#b4e0f6;--accent-g2:#83cdef;background:#fbfdff;border-color:#cbe7f5;border-top:3px solid #56bde8}
 .card.c-pol{--accent:#d9592b;--accent-d:#83330f;--accent-b:#a8461f;--accent-b2:#83330f;--accent-soft:#fdeee7;--accent-hv:#fbdccd;--accent-g1:#f8c9b5;--accent-g2:#f3a98c;background:#fffbf9;border-color:#f6d6c7;border-top:3px solid #ef9268}
 .card.c-con{--accent:#6353cd;--accent-d:#3a2f86;--accent-b:#4f42ab;--accent-b2:#3a2f86;--accent-soft:#f1eefc;--accent-hv:#e1dbfa;--accent-g1:#cec6f1;--accent-g2:#b1a5e9;background:#fcfbff;border-color:#ded8f3;border-top:3px solid #9c8ce4}
-.card.c-yw1{--accent:#0d94a8;--accent-d:#045a67;--accent-b:#0a7c8d;--accent-b2:#045a67;--accent-soft:#e8f8fa;--accent-hv:#cef0f5;--accent-g1:#b2e6ee;--accent-g2:#83d5e1;background:#fbfeff;border-color:#cceaf0;border-top:3px solid #4fc6d6}
-.card.c-yw2{--accent:#8657e0;--accent-d:#4a2b8c;--accent-b:#6d44bd;--accent-b2:#4a2b8c;--accent-soft:#f4effe;--accent-hv:#e8dcfd;--accent-g1:#d9c9f8;--accent-g2:#c0a8f1;background:#fdfbff;border-color:#e1d6f4;border-top:3px solid #a985ee}
 .card.c-pay{--accent:#cf3f78;--accent-d:#7d1c44;--accent-b:#a72f5f;--accent-b2:#7d1c44;--accent-soft:#fdeef4;--accent-hv:#fbdbe8;--accent-g1:#f6c3d7;--accent-g2:#f0a0c0;background:#fffbfc;border-color:#f6d3e0;border-top:3px solid #e97fa8}
 .card.c-todo .card-hd,.card.c-prod .card-hd,.card.c-pw .card-hd,.card.c-pol .card-hd,
-.card.c-con .card-hd,.card.c-yw1 .card-hd,.card.c-yw2 .card-hd,.card.c-pay .card-hd{background:var(--accent-soft)}
+.card.c-con .card-hd,.card.c-pay .card-hd{background:var(--accent-soft)}
 .card.c-todo .card-hd h3,.card.c-prod .card-hd h3,.card.c-pw .card-hd h3,.card.c-pol .card-hd h3,
-.card.c-con .card-hd h3,.card.c-yw1 .card-hd h3,.card.c-yw2 .card-hd h3,.card.c-pay .card-hd h3{color:var(--accent-d)}
-/* 年度产品销量 · 横向条形（重设计） */
-.yw-row{display:flex;align-items:center;gap:10px;padding:5px 6px;cursor:pointer;border-radius:9px;transition:background .15s}
-.yw-row:hover{background:var(--accent-soft)}
-.yw-name{width:200px;flex-shrink:0;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.yw-name small{display:block;font-size:11px;color:var(--sub);font-weight:400}
-.yw-track{flex:1;height:14px;border-radius:999px;background:var(--accent-soft);overflow:hidden}
-.yw-fill{height:100%;border-radius:999px;width:0;animation:ywGrow 1.1s cubic-bezier(.25,.8,.35,1) forwards}
-@keyframes ywGrow{to{width:var(--w)}}
-.yw-val{width:92px;flex-shrink:0;text-align:right;font-size:12.5px;font-weight:700;color:var(--txt)}
-.yw-val small{font-size:10.5px;color:var(--sub);font-weight:400}
-.yw-ag{display:flex;align-items:baseline;gap:8px;margin:12px 0 3px;padding-left:6px;font-size:13px;font-weight:700;color:var(--txt)}
-.yw-ag i{width:14px;height:4px;border-radius:2px;display:inline-block;flex:none;align-self:center}
-.yw-ag .sub{font-size:11.5px;font-weight:400;color:var(--sub)}
-.yw-ag .sub b{color:var(--accent-d)}
-.yw-ag.yw-hit{cursor:pointer;border-radius:8px;padding:4px 8px 4px 6px;margin-left:-2px}
-.yw-ag.yw-hit:hover{background:var(--accent-soft)}
-@media(max-width:640px){.yw-name{width:130px}.yw-val{width:78px}}
-/* 待办明细 */
-.todo-add{display:flex;gap:8px;margin-bottom:12px}
-.todo-add input{flex:1;border-radius:999px;padding:9px 16px;border:1px solid var(--accent-g1);background:var(--accent-soft);font-size:14px;min-width:0}
-.todo-add input:focus{outline:none;border-color:var(--accent);background:#fff}
-.todo-list{display:flex;flex-direction:column;gap:6px}
-.todo-item{display:flex;align-items:center;gap:11px;padding:11px 14px;border-radius:13px;background:linear-gradient(90deg,var(--accent-soft) 0%,#f7f7f9 60%);border:1px solid #ececf0;transition:all .25s}
-.todo-box{width:24px;height:24px;border-radius:8px;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:800;cursor:pointer;background:#fff;flex-shrink:0;transition:all .2s}
-.todo-box:hover{background:var(--accent-soft)}
-.todo-item.done{opacity:.55;background:#f2f2f7;order:10}
-.todo-item.done .todo-box{background:var(--accent-b);border-color:var(--accent-b)}
-.todo-item.done .todo-txt{text-decoration:line-through;color:var(--sub)}
-.todo-txt{flex:1;font-size:13.5px;word-break:break-all}
-.todo-del{font-size:12px;color:var(--sub);cursor:pointer;padding:2px 9px;border-radius:999px}
-.todo-del:hover{color:var(--red);background:#ffe9e7}
-/* 动态表 */
+.card.c-con .card-hd h3,.card.c-pay .card-hd h3{color:var(--accent-d)}
 .dyn-tool{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
 .dyn-tool label{font-size:12.5px;color:var(--sub)}
 .dyn-tool select{padding:6px 12px;border-radius:10px;border:1px solid var(--accent-g1);background:var(--accent-soft);font-size:13px;color:var(--accent-d)}
@@ -355,7 +324,6 @@ tbody tr.z2 td.chk-on{background:#e4f7e9!important}
   .main{padding-bottom:78px;min-width:0}
   .topbar{padding:11px 14px}
   .content{padding:12px 12px 20px}
-  .chart-grid{grid-template-columns:1fr}
   .fgrid{grid-template-columns:1fr}
   .search{width:100%;border-radius:999px}
   .hero-target{font-size:28px}
@@ -397,10 +365,6 @@ tbody tr.z2 td.chk-on{background:#e4f7e9!important}
   .pov-tbl th:nth-child(1),.pov-tbl td:nth-child(1),
   .pov-tbl th:nth-child(4),.pov-tbl td:nth-child(4){display:none}
   .pov-tbl th,.pov-tbl td{padding:5px 1px;font-size:12px;white-space:nowrap}
-  /* 年度销量条形行收窄 */
-  .yw-name{width:104px;font-size:12px}
-  .yw-name small{font-size:10px}
-  .yw-val{width:68px;font-size:11.5px}
   /* Hero 回款卡紧凑化 */
   .hero-card.sm{padding:13px 14px;border-radius:18px}
   .hero-card.sm .hero-target{font-size:24px}
@@ -772,7 +736,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261116l',_verChecking=false;
+var APP_VER='20261116m',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -1611,9 +1575,9 @@ function dashHero(){
   h+='</div>';
   return h;
 }
-/* ================= 首页产品概览（自销并入维价卡 / OEM 单独一张） =================
+/* ================= 首页产品一览（全部产品：年销量 / 订单件数 / 库存） =================
    口径：库存 = 销售库存各批号合计（件/盒）；订单件数 = 产品订单中同分类同名称同规格（OEM 再按代理商）合计件数；
-   底价/供货价/挂网价 = 自动取「产品档案」（只读展示，改档案即同步）。 */
+   年销量 = 当年发货合计折件（点数字看年度明细）；供货价 = 自动取「产品档案」（只读展示，改档案即同步）。 */
 function povKey(p){return (p.name||'')+'｜'+(p.spec||'')+'｜'+(p.cat||'')+'｜'+(p.agent||'');}
 var _povCache=null,_povVer=-1;
 /* 产品聚合（自销卡与 OEM 一览共用一份，按 _IDX_VER 缓存，避免同一屏算两遍） */
@@ -1670,30 +1634,56 @@ function povStockTxt(stock,per){
   if(!u)return fmtN(s)+'盒';
   return Math.floor(s/u)+'件'+(s%u)+'盒';
 }
-/* OEM 产品一览：代理商拼音（未关联排最后）→ 名称拼音 → 规格数字 */
-function oemOverviewHTML(){
-  var list=povAgg(),rows=[];
-  for(var i=0;i<list.length;i++)if(list[i].cat==='OEM')rows.push(list[i]);
-  if(!rows.length)return '<div class="empty">暂无 OEM 产品（在「产品档案」新增分类为 OEM 的产品后显示）</div>';
-  rows.sort(function(a,b){
-    var a1=String(a.agent||'').trim(),b1=String(b.agent||'').trim();
-    if(!a1&&b1)return 1;
-    if(!b1&&a1)return -1;
-    var c=pyCmp(a1,b1);
-    if(c)return c;
-    c=pyCmp(a.name,b.name);
-    if(c)return c;
-    return natCmp(a.spec,b.spec);
+/* 产品一览（自销+OEM 合一表）：名称拼音首字母 → 规格 → 分类；年销量列点击看年度明细（明细缓存与原年度销量卡同口径） */
+function prodOverviewHTML(){
+  var y=String(viewState.salesYear||new Date().getFullYear());
+  var yc=yearShipMap(y);
+  var list=povAgg().slice();
+  if(!list.length)return '<div class="empty">暂无产品</div>';
+  /* 年度销量明细缓存（waveDetail 按产品档案逐条算，供点击下钻） */
+  var wr={'自销':[],'OEM':[]},i,c,pid;
+  for(i=0;i<db.products.length;i++){
+    var pp=db.products[i];
+    var t=Math.floor((yc.map[pp.id+'|'+y]||0)/prodPerBox(pp));
+    if(t>0)wr[pp.cat==='OEM'?'OEM':'自销'].push({p:pp,total:t,agent:pp.agent||''});
+  }
+  WAVE_CACHE['自销']={year:y,rows:wr['自销']};
+  WAVE_CACHE['OEM']={year:y,rows:wr['OEM']};
+  var wIdx={};
+  for(c in wr)for(i=0;i<wr[c].length;i++)wIdx[wr[c][i].p.id]=i;
+  var grand=0;
+  for(c in wr)for(i=0;i<wr[c].length;i++)grand+=wr[c][i].total;
+  /* 聚合行销量 = 行内各产品档案件数之和；点击取行内第一个有明细的产品 */
+  for(i=0;i<list.length;i++){
+    var o=list[i],tot=0,click=-1,ck=o.cat==='OEM'?'OEM':'自销';
+    for(pid in o.pids){
+      tot+=Math.floor((yc.map[pid+'|'+y]||0)/prodPerBox(findProd(pid)));
+      if(click<0&&wIdx[pid]!==undefined)click=wIdx[pid];
+    }
+    o.ysold=tot;o.wcat=ck;o.widx=click;
+  }
+  list.sort(function(a,b){
+    var c2=pyCmp(a.name,b.name);if(c2)return c2;
+    c2=natCmp(a.spec,b.spec);if(c2)return c2;
+    return prodCatIdx(a.cat)-prodCatIdx(b.cat);
   });
-  var h='<div class="tbl-wrap"><div class="tbl-scroll"><table class="pov-tbl"><thead><tr><th style="width:38px">序号</th><th>产品名称</th><th>产品规格</th><th style="width:70px">供货价</th><th style="width:92px">库存</th><th style="width:72px">订单件数</th></tr></thead><tbody>';
-  for(var r=0;r<rows.length;r++){
-    var o=rows[r];
-    h+='<tr'+(((r+1)%2===0)?' class="z2"':'')+' data-key="'+esc(o._key)+'"><td>'+(r+1)+'</td>'
-      +'<td><span class="pov-agent">'+esc(String(o.agent||'').trim()||'未关联代理商')+'</span><span class="pov-name">'+esc(o.name)+'</span></td>'
-      +'<td>'+esc(o.spec)+'</td>'
-      +'<td>'+(Number(o.supplyPrice)>0?fmtN(o.supplyPrice):'—')+'</td>'
-      +'<td>'+povStockTxt(o.stock,o.per)+'</td>'
-      +'<td title="'+o.orders+' 笔产品订单，合计 '+fmtN(o.qty)+' 件">'+(o.qty>0?fmtN(o.qty):'—')+'</td></tr>';
+  var opt=yc.years.map(function(yy){return '<option'+(yy===y?' selected':'')+'>'+yy+'</option>';}).join('');
+  var h='<div class="dyn-tool"><label>年份</label><select onchange="prodYearSel(this)">'+opt+'</select><span class="sub2">'+y+' 年合计 <b>'+fmtN(grand)+'</b> 件</span></div>';
+  h+='<div class="tbl-wrap"><div class="tbl-scroll"><table class="pov-tbl"><thead><tr><th style="width:38px">序号</th><th>产品名称</th><th>产品规格</th><th style="width:70px">供货价</th><th style="width:80px">年销量(件)</th><th style="width:72px">订单件数</th><th style="width:92px">库存</th></tr></thead><tbody>';
+  for(var r=0;r<list.length;r++){
+    var o2=list[r],isO=o2.cat==='OEM';
+    var sold=(o2.ysold>0&&o2.widx>=0)
+      ?'<span class="pov-sold" onclick="waveDetail(\''+o2.wcat+'\','+o2.widx+')" title="点击查看 '+y+' 年度明细">'+fmtN(o2.ysold)+'</span>'
+      :'—';
+    h+='<tr'+(((r+1)%2===0)?' class="z2"':'')+' data-key="'+esc(o2._key)+'"><td>'+(r+1)+'</td>'
+      +'<td><span class="pov-tag '+(isO?'oem':'zx')+'">'+(isO?'OEM':'自销')+'</span>'
+      +(isO?'<span class="pov-agent">'+esc(String(o2.agent||'').trim()||'未关联代理商')+'</span>':'')
+      +'<span class="pov-name">'+esc(o2.name)+'</span></td>'
+      +'<td>'+esc(o2.spec)+'</td>'
+      +'<td>'+(Number(o2.supplyPrice)>0?fmtN(o2.supplyPrice):'—')+'</td>'
+      +'<td>'+sold+'</td>'
+      +'<td title="'+o2.orders+' 笔产品订单，合计 '+fmtN(o2.qty)+' 件">'+(o2.qty>0?fmtN(o2.qty):'—')+'</td>'
+      +'<td>'+povStockTxt(o2.stock,o2.per)+'</td></tr>';
   }
   h+='</tbody></table></div></div>';
   return h;
@@ -1955,9 +1945,7 @@ function pwBodyHTML(){
     h+='</tr>';
   }
   h+='</tbody></table></div></div>'
-    +'<div class="pw-foot"><span class="pw-prog">本周已填 <b id="pwFillN">'+filled+'</b> / '+total+' 格</span>'
-    +'<span class="hint" style="margin:0">品种挂网价/底价/库存/订单件数取自产品档案与产品订单；'
-    +(mob?'点当天那格填维价情况（可多行），保存即同步':'每天在当天那格填维价情况，回车保存、Shift+回车换行')+'</span></div>';
+    +'<div class="pw-foot"><span class="pw-prog">本周已填 <b id="pwFillN">'+filled+'</b> / '+total+' 格</span></div>';
   return h;
 }
 /* 维价输入框高度自适应内容（电脑端长文本换行后不遮挡下一行） */
@@ -2159,9 +2147,7 @@ function delTodo(id){
 function prodYearSel(el){viewState.salesYear=el.value;render();}
 /* 年度销量条形图行缓存：点击条形查看明细时取用 */
 var WAVE_CACHE={};
-/* 代理商分组配色（OEM 图按代理商分组） */
-var AG_COLORS=['#007AFF','#FF9500','#34C759','#AF52DE','#FF3B30','#32ADE6','#FF2D55','#5856D6','#A2845E','#00C7BE'];
-/* 发货量按「产品|年份」汇总一次缓存，年度销量图两张卡共用（避免逐产品逐发货单双重扫描） */
+/* 发货量按「产品|年份」汇总一次缓存（产品一览年销量列与年度明细共用） */
 var _ywYear='',_ywYears=[],_ywMap=null,_ywVer=-1;
 function yearShipMap(y){
   if(_ywMap&&_ywYear===y&&_ywVer===_IDX_VER)return {map:_ywMap,years:_ywYears};
@@ -2177,63 +2163,6 @@ function yearShipMap(y){
   _ywYear=y;_ywYears=years.length?years:[String(new Date().getFullYear())];_ywMap=m;_ywVer=_IDX_VER;
   return {map:_ywMap,years:_ywYears};
 }
-function yearProdWave(cat){
-  var y=String(viewState.salesYear||new Date().getFullYear());
-  var yc=yearShipMap(y);
-  var opt=yc.years.map(function(yy){return '<option'+(yy===y?' selected':'')+'>'+yy+'</option>';}).join('');
-  var rows=[];
-  for(var i=0;i<db.products.length;i++){
-    var p=db.products[i];
-    if(p.cat!==cat)continue;
-    var total=Math.floor((yc.map[p.id+'|'+y]||0)/prodPerBox(p));
-    if(total>0)rows.push({p:p,total:total,agent:p.agent||''});
-  }
-  /* OEM：按代理商分组，代理商与组内产品均按拼音首字排序 */
-  var grouped=(cat==='OEM'),groups=[];
-  if(grouped){
-    var gmap={};
-    for(var g0=0;g0<rows.length;g0++){
-      var an=rows[g0].agent||'（未关联代理商）';
-      if(!gmap[an]){gmap[an]={name:an,rows:[],total:0};groups.push(gmap[an]);}
-      gmap[an].rows.push(rows[g0]);gmap[an].total+=rows[g0].total;
-    }
-    groups.sort(function(a,b){return pyCmp(a.name,b.name);});
-    rows=[];
-    for(var g1=0;g1<groups.length;g1++){
-      groups[g1].rows.sort(function(a,b){return pyCmp((a.p.name||'')+(a.p.spec||''),(b.p.name||'')+(b.p.spec||''));});
-      rows=rows.concat(groups[g1].rows);
-    }
-  }else{
-    rows.sort(function(a,b){return pyCmp((a.p.name||'')+(a.p.spec||''),(b.p.name||'')+(b.p.spec||''));});
-  }
-  WAVE_CACHE[cat]={year:y,rows:rows};
-  var grand=0;for(var g=0;g<rows.length;g++)grand+=rows[g].total;
-  var h='<div class="dyn-tool"><label>年份</label><select onchange="prodYearSel(this)">'+opt+'</select><span class="sub2">'+y+' 年'+esc(cat)+'合计 <b>'+fmtN(grand)+'</b> 件 · '+rows.length+' 个品种'+(grouped?' · '+groups.length+' 个代理商':'')+' </span></div>';
-  if(!rows.length)return h+'<div class="empty">'+y+' 年暂无'+esc(cat)+'发货数据</div>';
-  var maxV=1;for(var mm=0;mm<rows.length;mm++)if(rows[mm].total>maxV)maxV=rows[mm].total;
-  var rowIdx={};for(var r0=0;r0<rows.length;r0++)rowIdx[rows[r0].p.id]=r0;
-  function ywBar(row,color,delay){
-    var idx=rowIdx[row.p.id];
-    var pctW=Math.max(2,Math.round(row.total/maxV*100));
-    return '<div class="yw-row" onclick="waveDetail(\''+cat+'\','+idx+')" title="'+esc(row.p.name+' '+(row.p.spec||''))+' · '+row.total+' 件 · 点击查看明细">'
-      +'<div class="yw-name">'+esc(row.p.name)+'<small>'+esc(row.p.spec||'')+'</small></div>'
-      +'<div class="yw-track"><div class="yw-fill" style="--w:'+pctW+'%;background:'+color+';animation-delay:'+delay+'s"></div></div>'
-      +'<div class="yw-val">'+fmtN(row.total)+' <small>件</small></div></div>';
-  }
-  var body='';
-  if(grouped){
-    for(var gi=0;gi<groups.length;gi++){
-      var col=AG_COLORS[gi%AG_COLORS.length];
-      var firstIdx=rowIdx[groups[gi].rows[0].p.id];
-      body+='<div class="yw-ag yw-hit" onclick="waveDetail(\''+cat+'\','+firstIdx+')" title="点击查看该代理商全部产品明细"><i style="background:'+col+'"></i>'+esc(groups[gi].name)+'<span class="sub">合计 <b>'+fmtN(groups[gi].total)+'</b> 件 · '+groups[gi].rows.length+' 个品种</span></div>';
-      for(var ri=0;ri<groups[gi].rows.length;ri++)body+=ywBar(groups[gi].rows[ri],col,(gi*0.15+ri*0.05).toFixed(2));
-    }
-  }else{
-    for(var r1=0;r1<rows.length;r1++)body+=ywBar(rows[r1],'linear-gradient(90deg,var(--accent-g1),var(--accent))',(r1*0.06).toFixed(2));
-  }
-  return h+body;
-}
-
 /* OEM：点击 → 该代理商客户分布（同一客户的产品放在一起） */
 function oemAgentDetail(agRaw,y){
   var cache=WAVE_CACHE['OEM'];if(!cache)return;
@@ -2499,11 +2428,11 @@ function renderDash(c){
     /* 今日待办（向日葵黄卡片）——放在产品一览上面 */
     h+='<div class="card c-todo"><div class="card-hd"><h3>今日待办</h3></div><div class="card-bd">'+todoHTML()+'</div></div>';
 
-    /* OEM 产品一览（薄荷绿卡片；自销产品已并入下面的维价卡，不再重复） */
-    h+='<div class="card c-prod"><div class="card-hd"><h3>OEM 产品一览</h3></div><div class="card-bd">'+oemOverviewHTML()+'</div></div>';
+    /* 产品一览（薄荷绿卡片：全部产品 + 年销量/订单件数/库存，点销量看年度明细） */
+    h+='<div class="card c-prod"><div class="card-hd"><h3>产品一览 · 销量/订单/库存</h3></div><div class="card-bd">'+prodOverviewHTML()+'</div></div>';
 
-    /* 自销产品 · 挂网价格维护（品种信息 + 每周维价，每天手填；日期自动跟着本周滚动） */
-    h+='<div class="card c-pw"><div class="card-hd"><h3>自销产品 · 挂网价格维护</h3>'
+    /* 挂网价格维护（每周维价，每天手填；日期自动跟着本周滚动） */
+    h+='<div class="card c-pw"><div class="card-hd"><h3>挂网价格维护</h3>'
       +'<div class="sp pw-nav">'
       +'<button class="btn ghost sm" onclick="pwNav(-1)">‹ 上周</button>'
       +'<span class="pw-range" id="pwRange">'+pwRange()+'</span>'
@@ -2527,11 +2456,6 @@ function renderDash(c){
     }
 
 
-    /* 年度动态表：自销 / OEM 分开两张（天蓝 / 薰衣草紫卡片） */
-    h+='<div class="chart-grid">';
-    h+='<div class="card c-yw1"><div class="card-hd"><h3>年度产品销量 · 自销</h3></div><div class="card-bd">'+yearProdWave('自销')+'</div></div>';
-    h+='<div class="card c-yw2"><div class="card-hd"><h3>年度产品销量 · OEM</h3></div><div class="card-bd">'+yearProdWave('OEM')+'</div></div>';
-    h+='</div>';
     h+='<div class="card c-pay"><div class="card-hd"><h3>月度回款</h3></div><div class="card-bd">'+yearPayTrend()+'</div></div>';
 
     if(!db.customers.length&&!db.products.length){
