@@ -277,6 +277,21 @@ tbody tr.z2 td.chk-on{background:#e4f7e9!important}
   .pw-inp{min-height:26px;padding:4px 5px;font-size:12px;line-height:1.4}
   .pw-range{min-width:96px;font-size:11px}
 }
+/* 今日待办列表（业务待办 + 手动待办共用）：未办=空心打卡方格，已办=灰色划线；手动待办隔天自动清掉 */
+.todo-list{margin-top:4px}
+.todo-item{display:flex;align-items:flex-start;gap:10px;padding:7px 4px;border-bottom:1px dashed var(--line);font-size:13.5px}
+.todo-item:last-child{border-bottom:none}
+.todo-box{flex:none;width:18px;height:18px;border:1.5px solid var(--accent-g2);border-radius:5px;margin-top:1px;cursor:pointer;background:#fff;text-align:center;line-height:16px;font-size:12px;font-weight:700;color:#fff;transition:background .15s}
+.todo-box:hover{background:var(--accent-hv)}
+.todo-item.done{opacity:.45;filter:grayscale(1)}
+.todo-item.done .todo-box{background:var(--accent-g2);border-color:var(--accent-g2)}
+.todo-item.done .todo-txt{text-decoration:line-through;color:var(--sub)}
+.todo-txt{flex:1;min-width:0;word-break:break-word}
+.todo-txt .tag{margin-right:2px}
+.todo-del{flex:none;font-size:11.5px;color:#c2500a;cursor:pointer;padding:2px 4px;align-self:center}
+.todo-del:hover{text-decoration:underline}
+.todo-add{display:flex;gap:8px;align-items:center}
+.todo-add input{flex:1;min-width:0;padding:7px 10px;border:1px solid var(--line);border-radius:9px;font-size:13px}
 /* 首页卡片配色：一张卡一个色系（浅底 + 同色系表头/标签/按钮），便于区分 */
 .card.c-todo{--accent:#c98900;--accent-d:#6b4900;--accent-b:#a06c00;--accent-b2:#6b4900;--accent-soft:#fff6dd;--accent-hv:#ffeab0;--accent-g1:#ffe3a0;--accent-g2:#ffd162;background:#fffdf4;border-color:#f2e3b8;border-top:3px solid #f0c04a}
 .card.c-prod{--accent:#17996b;--accent-d:#0b5c40;--accent-b:#127a55;--accent-b2:#0b5c40;--accent-soft:#eafaf2;--accent-hv:#d3f3e4;--accent-g1:#bdeed6;--accent-g2:#8fdfba;background:#fbfffd;border-color:#cdeee0;border-top:3px solid #5cd0a0}
@@ -736,7 +751,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261116m',_verChecking=false;
+var APP_VER='20261116n',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -2072,7 +2087,8 @@ function todoHTML(){
   var rows=(db.todos||[]).slice();
   var td=today();
   var dirty=false;
-  for(var i=rows.length-1;i>=0;i--){if(rows[i].done&&rows[i].doneDate&&rows[i].doneDate!==td){markDel(rows[i].id);rows.splice(i,1);dirty=true;}}
+  /* 已办完的项只保留当天，隔天（含 doneDate 缺失的旧数据）自动清掉，不再占位 */
+  for(var i=rows.length-1;i>=0;i--){if(rows[i].done&&rows[i].doneDate!==td){markDel(rows[i].id);rows.splice(i,1);dirty=true;}}
   if(dirty){db.todos=rows;save();}
   var h='';
   /* ---- 联动待办：新品开发 + 工作记录 + 销售订单工作纪要 未完成项 ---- */
