@@ -166,6 +166,12 @@ tbody tr td{background:#fff}
 tbody tr.z2 td{background:var(--accent-soft)}
 tbody tr.z2:hover td{background:var(--accent-hv)}
 tfoot td{background:#fff}
+/* 明细表横向滚动冻结左侧核心列：核对方格(left 0) → 序号(left 62) → 第一个内容列(left 106)，背景沿用行底色规则 */
+.tbl-scroll th.stk,.tbl-scroll td.stk{position:sticky;z-index:3;box-shadow:1px 0 0 var(--line)}
+.tbl-scroll td.stk{z-index:2}
+.tbl-scroll th.stk-chk,.tbl-scroll td.stk-chk{left:0}
+.tbl-scroll th.stk-seq,.tbl-scroll td.stk-seq{left:62px;width:44px}
+.tbl-scroll th.stk-1,.tbl-scroll td.stk-1{left:106px}
 /* 核对勾选列（销售订单 / 回款明细）：序号前的小方格，点一下打勾✅ */
 td.chk-th,th.chk-th{width:62px;text-align:center;white-space:nowrap}
 th.chk-th .flt{margin-left:2px}
@@ -751,7 +757,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261116o',_verChecking=false;
+var APP_VER='20261116p',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -1083,9 +1089,9 @@ function chkRec(mod,id){
   return null;
 }
 function chkCellHTML(mod,row){
-  if(row&&row.chkHide)return '<td class="chk-th"></td>';  /* 同一笔记录拆多行时只在首行给勾选 */
+  if(row&&row.chkHide)return '<td class="chk-th stk stk-chk"></td>';  /* 同一笔记录拆多行时只在首行给勾选 */
   var on=!!row.chk;
-  return '<td class="chk-th'+(on?' chk-on':'')+'"><input type="checkbox" class="chkbox"'+(on?' checked':'')+' onchange="toggleChk(\''+mod+'\',\''+row.id+'\',this)"></td>';
+  return '<td class="chk-th stk stk-chk'+(on?' chk-on':'')+'"><input type="checkbox" class="chkbox"'+(on?' checked':'')+' onchange="toggleChk(\''+mod+'\',\''+row.id+'\',this)"></td>';
 }
 function toggleChk(mod,id,el){
   var rec=chkRec(mod,id);
@@ -1218,13 +1224,15 @@ function smartTableHTML(mod,cols,rows,actionsFn,redraw,grp){
   var h='<div class="tbl-wrap"><div class="tbl-scroll"><table><thead><tr>';
   if(chkIdx>=0){
     var ckOn=st[cols[chkIdx].key]?' on':'';
-    h+='<th class="chk-th" title="点表头可把当前筛选结果一键全选/取消"><input type="checkbox" class="chkbox" onchange="toggleChkAll(\''+mod+'\',this)"> <span class="flt'+ckOn+'" onclick="openColFilter(\''+mod+'\',\''+cols[chkIdx].key+'\',this)" title="筛选">▾</span></th>';
+    h+='<th class="chk-th stk stk-chk" title="点表头可把当前筛选结果一键全选/取消"><input type="checkbox" class="chkbox" onchange="toggleChkAll(\''+mod+'\',this)"> <span class="flt'+ckOn+'" onclick="openColFilter(\''+mod+'\',\''+cols[chkIdx].key+'\',this)" title="筛选">▾</span></th>';
   }
-  h+='<th style="width:44px">序号</th>';
+  h+='<th class="stk stk-seq" style="width:44px">序号</th>';
+  var stk1=-1;   /* 第一个内容列（横向滚动时与核对方格、序号一起冻结） */
+  for(var i=0;i<cols.length;i++){if(i!==chkIdx){stk1=i;break;}}
   for(var i=0;i<cols.length;i++){
     if(i===chkIdx)continue;
     var on=st[cols[i].key]?' on':'';
-    h+='<th>'+cols[i].label+' <span class="flt'+on+'" onclick="openColFilter(\''+mod+'\',\''+cols[i].key+'\',this)" title="筛选">▾</span></th>';
+    h+='<th'+(i===stk1?' class="stk stk-1"':'')+'>'+cols[i].label+' <span class="flt'+on+'" onclick="openColFilter(\''+mod+'\',\''+cols[i].key+'\',this)" title="筛选">▾</span></th>';
   }
   if(actionsFn)h+='<th style="width:130px">操作</th>';
   h+='</tr></thead><tbody>';
@@ -1240,30 +1248,31 @@ function smartTableHTML(mod,cols,rows,actionsFn,redraw,grp){
     cls=cls.replace(/\s+$/,'');
     h+='<tr'+(cls?' class="'+cls+'"':'')+'>';
     if(chkIdx>=0)h+=chkCellHTML(mod,rows[r]);
-    if(grouped&&first)h+='<td class="mg" rowspan="'+gcnt[gg]+'">'+rn+'</td>';
-    else if(!grouped)h+='<td>'+rn+'</td>';
+    if(grouped&&first)h+='<td class="mg stk stk-seq" rowspan="'+gcnt[gg]+'">'+rn+'</td>';
+    else if(!grouped)h+='<td class="stk stk-seq">'+rn+'</td>';
     for(var c=0;c<cols.length;c++){
       var cc=cols[c];
       if(cc.chk)continue;
+      var stkc=(c===stk1)?' stk stk-1':'';
       if(grouped&&gsame[gg][c]){
-        if(first)h+='<td class="mg" rowspan="'+gcnt[gg]+'">'+ccell(r,c)+'</td>';
+        if(first)h+='<td class="mg'+stkc+'" rowspan="'+gcnt[gg]+'">'+ccell(r,c)+'</td>';
       }else{
-        h+='<td>'+ccell(r,c)+'</td>';
+        h+='<td'+(stkc?' class="'+stkc+'"':'')+'>'+ccell(r,c)+'</td>';
       }
     }
     if(actionsFn)h+='<td class="act">'+actionsFn(rows[r])+'</td>';
     h+='</tr>';
   }
   h+='</tbody><tfoot><tr>';
-  if(chkIdx>=0)h+='<td class="chk-th"></td>';   /* 核对列占位，保证「合计」仍落在序号列 */
-  h+='<td><b>合计</b></td>';
+  if(chkIdx>=0)h+='<td class="chk-th stk stk-chk"></td>';   /* 核对列占位，保证「合计」仍落在序号列 */
+  h+='<td class="stk stk-seq"><b>合计</b></td>';
   var fcol=0;
   for(var c2=0;c2<cols.length;c2++){
     var cf=cols[c2];
     if(cf.chk)continue;
-    if(cf.sum===true)h+='<td><b>'+fmtN(sumCol(rows,cf.key))+'</b></td>';
-    else if(cf.sumFn)h+='<td><b>'+cf.sumFn(rows)+'</b></td>';
-    else if(!fcol)h+='<td>共 '+rows.length+' 条</td>';
+    if(cf.sum===true)h+='<td'+(fcol===0?' class="stk stk-1"':'')+'><b>'+fmtN(sumCol(rows,cf.key))+'</b></td>';
+    else if(cf.sumFn)h+='<td'+(fcol===0?' class="stk stk-1"':'')+'><b>'+cf.sumFn(rows)+'</b></td>';
+    else if(!fcol)h+='<td class="stk stk-1">共 '+rows.length+' 条</td>';
     else h+='<td></td>';
     fcol++;
   }
@@ -4518,7 +4527,6 @@ function payCols(){
     chkColDef(),
     {key:'ym',label:'回款年/月'},
     {key:'shipNo',label:'发货单号',fmt:function(r){return r.shipNo?'<span class="mono">'+esc(r.shipNo)+'</span>':'—';}},
-    {key:'match',label:'订单匹配',fmt:function(r){var m=payMatchInfo(r);return '<span class="tag '+m.c+'" title="'+esc(m.tip)+'">'+m.t+'</span>';}},
     {key:'payDate',label:'回款日期'},
     {key:'cat',label:'客户分类',fmt:function(r){return r.cat?custCatTag(r.cat):'—';}},
     {key:'agentName',label:'代理商'},
@@ -4533,7 +4541,8 @@ function payCols(){
     {key:'rebate',label:'返利金额',fmt:function(r){return fmtN(r.rebate);},sumFn:function(rs){return fmtN(sumByPay(rs,'rebate'));}},
     {key:'refund',label:'返款金额',fmt:function(r){return fmtN(r.refund);},sumFn:function(rs){return fmtN(sumByPay(rs,'refund'));}},
     {key:'invoice',label:'发票',fmt:function(r){return r.invoice==='是'?'<span class="tag ok">☑</span>':'<span class="tag warn">☒</span>';}},
-    {key:'shipStatus',label:'发货状态',fmt:function(r){return r.shipStatus==='未发货'?'<span class="tag warn">未发货</span>':'<span class="tag ok">已发货</span>';}}
+    {key:'shipStatus',label:'发货状态',fmt:function(r){return r.shipStatus==='未发货'?'<span class="tag warn">未发货</span>':'<span class="tag ok">已发货</span>';}},
+    {key:'match',label:'订单匹配',fmt:function(r){var m=payMatchInfo(r);return '<span class="tag '+m.c+'" title="'+esc(m.tip)+'">'+m.t+'</span>';}}
   ];
 }
 /* 明细行：一笔回款里有几个产品就拆几行（赠品单独一行、价格默认 0），同笔回款的行保持相邻便于合并 */
