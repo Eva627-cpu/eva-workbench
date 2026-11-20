@@ -166,20 +166,14 @@ tbody tr td{background:#fff}
 tbody tr.z2 td{background:var(--accent-soft)}
 tbody tr.z2:hover td{background:var(--accent-hv)}
 tfoot td{background:#fff}
-/* 明细表横向滚动冻结左侧核心列：核对方格(left 0) → 序号(left 62) → 第一个内容列(left 106)，背景沿用行底色规则 */
+/* 明细表横向滚动冻结左侧核心列：序号(left 0) → 第一个内容列(left 44)，背景沿用行底色规则 */
 .tbl-scroll th.stk,.tbl-scroll td.stk{position:sticky;z-index:3;box-shadow:1px 0 0 var(--line)}
 .tbl-scroll td.stk{z-index:2}
-.tbl-scroll th.stk-chk,.tbl-scroll td.stk-chk{left:0}
-.tbl-scroll th.stk-seq,.tbl-scroll td.stk-seq{left:62px;width:44px}
-.tbl-scroll th.stk-1,.tbl-scroll td.stk-1{left:106px}
-/* 核对勾选列（销售订单 / 回款明细）：序号前的小方格，点一下打勾✅ */
-td.chk-th,th.chk-th{width:62px;text-align:center;white-space:nowrap}
-th.chk-th .flt{margin-left:2px}
+.tbl-scroll th.stk-seq,.tbl-scroll td.stk-seq{left:0;width:44px}
+.tbl-scroll th.stk-1,.tbl-scroll td.stk-1{left:44px}
 input.chkbox{appearance:none;-webkit-appearance:none;width:19px;height:19px;margin:0;padding:0;border:1.5px solid #c7c7cc;border-radius:5px;background:#fff;cursor:pointer;vertical-align:middle;position:relative;transition:background .15s,border-color .15s}
 input.chkbox:checked{background:var(--accent-b);border-color:var(--accent-b)}
 input.chkbox:checked::after{content:'✓';color:#fff;font-size:13px;font-weight:700;line-height:19px;position:absolute;left:0;top:0;right:0;bottom:0;text-align:center}
-tbody td.chk-on{background:#f0fbf2!important}
-tbody tr.z2 td.chk-on{background:#e4f7e9!important}
 /* 订单 ↔ 回款 匹配面板 */
 .mch-sum{display:flex;flex-wrap:wrap;gap:4px 20px;padding:10px 12px;background:#f5f5f7;border-radius:10px;font-size:12.5px;line-height:1.7}
 .mch-sum em{font-style:normal;color:var(--sub)}
@@ -757,7 +751,7 @@ setInterval(autoPull,20000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)autoPull();});
 window.addEventListener('focus',function(){autoPull();});
 /* ---- 版本自检：发布新版后自动刷新本机页面，避免手机浏览器缓存旧版（改 APP_VER 即发布新版标记） ---- */
-var APP_VER='20261116p',_verChecking=false;
+var APP_VER='20261119a',_verChecking=false;
 function checkVer(){
   if(_verChecking||!/github\.io$/.test(location.hostname))return;
   _verChecking=true;
@@ -1079,46 +1073,7 @@ function actB(id,editFn,delFn){
   return h;
 }
 /* ================= 核对打勾列（销售订单 / 回款明细） =================
-   列表最左侧（序号前）一个小方格，核对完点一下即打勾✅；
-   勾选结果写进该条记录的 chk 字段，随记录一起多设备云同步，不会因刷新丢失 */
-var CHK_TABLE={order:'orders',pay:'payments'};
-function chkColDef(){return {key:'chk',label:'核对',chk:true,fmt:function(r){return r.chk?'已核对':'未核对';}};}
-function chkRec(mod,id){
-  var t=CHK_TABLE[mod];if(!t)return null;
-  for(var i=0;i<db[t].length;i++)if(db[t][i].id===id)return db[t][i];
-  return null;
-}
-function chkCellHTML(mod,row){
-  if(row&&row.chkHide)return '<td class="chk-th stk stk-chk"></td>';  /* 同一笔记录拆多行时只在首行给勾选 */
-  var on=!!row.chk;
-  return '<td class="chk-th stk stk-chk'+(on?' chk-on':'')+'"><input type="checkbox" class="chkbox"'+(on?' checked':'')+' onchange="toggleChk(\''+mod+'\',\''+row.id+'\',this)"></td>';
-}
-function toggleChk(mod,id,el){
-  var rec=chkRec(mod,id);
-  if(!rec){if(el)el.checked=false;return;}
-  rec.chk=!!(el?el.checked:!rec.chk);
-  touch(rec);save();
-  if(el&&el.parentNode)el.parentNode.className='chk-th'+(rec.chk?' chk-on':'');
-  chkHeadSync();
-}
-/* 表头方格：把当前筛选出来的记录一键全选 / 取消全选 */
-function toggleChkAll(mod,el){
-  var d=colFilterData[mod],t=CHK_TABLE[mod];
-  if(!d||!t)return;
-  var on=!!el.checked,hit={},n=0;
-  smartFiltered(mod,d.cols,(d.rows||[]).slice()).forEach(function(r){if(r&&r.id)hit[r.id]=1;});
-  for(var i=0;i<db[t].length;i++){var rec=db[t][i];if(hit[rec.id]&&!!rec.chk!==on){rec.chk=on;touch(rec);n++;}}
-  if(n)save();
-  var bs=document.querySelectorAll('.tbl-scroll td.chk-th input.chkbox');
-  for(var b=0;b<bs.length;b++){bs[b].checked=on;bs[b].parentNode.className='chk-th'+(on?' chk-on':'');}
-  chkHeadSync();
-}
-function chkHeadSync(){
-  var hd=document.querySelector('.tbl-scroll th.chk-th input.chkbox');if(!hd)return;
-  var bs=document.querySelectorAll('.tbl-scroll td.chk-th input.chkbox'),all=bs.length>0;
-  for(var i=0;i<bs.length;i++)if(!bs[i].checked)all=false;
-  hd.checked=all;
-}
+   已按需求移除：明细列表不再显示最左侧的核对方格列（chk 数据字段保留在记录里，不影响云同步） */
 function showBig(src){document.getElementById('bigPhotoImg').src=src;document.getElementById('bigPhoto').classList.add('show');}
 function tabsHTML(name,items){
   var vs=viewState[name]||items[0].k;
@@ -1212,25 +1167,17 @@ function smartTableHTML(mod,cols,rows,actionsFn,redraw,grp){
     for(var g=0;g<gn;g++){
       var s0=gstart[g],n0=gcnt[g],flags=[];
       for(var mc=0;mc<cols.length;mc++){
-        var cd=cols[mc],same=n0>1&&!cd.chk&&!cd.noMerge,v0=ccell(s0,mc);   /* 核对列、noMerge 列逐行独立，不参与合并 */
+        var cd=cols[mc],same=n0>1&&!cd.noMerge,v0=ccell(s0,mc);   /* noMerge 列逐行独立，不参与合并 */
         for(var mz=1;same&&mz<n0;mz++){if(ccell(s0+mz,mc)!==v0)same=false;}
         flags.push(same);
       }
       gsame.push(flags);
     }
   }
-  var chkIdx=-1;
-  for(var ci=0;ci<cols.length;ci++)if(cols[ci].chk)chkIdx=ci;
   var h='<div class="tbl-wrap"><div class="tbl-scroll"><table><thead><tr>';
-  if(chkIdx>=0){
-    var ckOn=st[cols[chkIdx].key]?' on':'';
-    h+='<th class="chk-th stk stk-chk" title="点表头可把当前筛选结果一键全选/取消"><input type="checkbox" class="chkbox" onchange="toggleChkAll(\''+mod+'\',this)"> <span class="flt'+ckOn+'" onclick="openColFilter(\''+mod+'\',\''+cols[chkIdx].key+'\',this)" title="筛选">▾</span></th>';
-  }
   h+='<th class="stk stk-seq" style="width:44px">序号</th>';
-  var stk1=-1;   /* 第一个内容列（横向滚动时与核对方格、序号一起冻结） */
-  for(var i=0;i<cols.length;i++){if(i!==chkIdx){stk1=i;break;}}
+  var stk1=0;   /* 第一个内容列（横向滚动时与序号一起冻结） */
   for(var i=0;i<cols.length;i++){
-    if(i===chkIdx)continue;
     var on=st[cols[i].key]?' on':'';
     h+='<th'+(i===stk1?' class="stk stk-1"':'')+'>'+cols[i].label+' <span class="flt'+on+'" onclick="openColFilter(\''+mod+'\',\''+cols[i].key+'\',this)" title="筛选">▾</span></th>';
   }
@@ -1247,12 +1194,10 @@ function smartTableHTML(mod,cols,rows,actionsFn,redraw,grp){
     var cls=(zebra?'z2 ':'')+(grouped?'grp ':'')+(first?'grp-first ':'')+(last?'grp-last':'');
     cls=cls.replace(/\s+$/,'');
     h+='<tr'+(cls?' class="'+cls+'"':'')+'>';
-    if(chkIdx>=0)h+=chkCellHTML(mod,rows[r]);
     if(grouped&&first)h+='<td class="mg stk stk-seq" rowspan="'+gcnt[gg]+'">'+rn+'</td>';
     else if(!grouped)h+='<td class="stk stk-seq">'+rn+'</td>';
     for(var c=0;c<cols.length;c++){
       var cc=cols[c];
-      if(cc.chk)continue;
       var stkc=(c===stk1)?' stk stk-1':'';
       if(grouped&&gsame[gg][c]){
         if(first)h+='<td class="mg'+stkc+'" rowspan="'+gcnt[gg]+'">'+ccell(r,c)+'</td>';
@@ -1264,12 +1209,10 @@ function smartTableHTML(mod,cols,rows,actionsFn,redraw,grp){
     h+='</tr>';
   }
   h+='</tbody><tfoot><tr>';
-  if(chkIdx>=0)h+='<td class="chk-th stk stk-chk"></td>';   /* 核对列占位，保证「合计」仍落在序号列 */
   h+='<td class="stk stk-seq"><b>合计</b></td>';
   var fcol=0;
   for(var c2=0;c2<cols.length;c2++){
     var cf=cols[c2];
-    if(cf.chk)continue;
     if(cf.sum===true)h+='<td'+(fcol===0?' class="stk stk-1"':'')+'><b>'+fmtN(sumCol(rows,cf.key))+'</b></td>';
     else if(cf.sumFn)h+='<td'+(fcol===0?' class="stk stk-1"':'')+'><b>'+cf.sumFn(rows)+'</b></td>';
     else if(!fcol)h+='<td class="stk stk-1">共 '+rows.length+' 条</td>';
@@ -3176,7 +3119,6 @@ function filterOrder(){
 }
 function orderCols(){
   return [
-    chkColDef(),
     {key:'no',label:'订单编号',fmt:function(r){return '<span class="mono">'+esc(r.no)+'</span>';}},
     {key:'cat',label:'客户分类',fmt:function(r){var c=r.cat||((findCust(r.agentId)||{}).cat)||'';return c?custCatTag(c):'—';}},
     {key:'agentName',label:'代理商'},
@@ -4524,7 +4466,6 @@ function sumByPay(rs,key){
 }
 function payCols(){
   return [
-    chkColDef(),
     {key:'ym',label:'回款年/月'},
     {key:'shipNo',label:'发货单号',fmt:function(r){return r.shipNo?'<span class="mono">'+esc(r.shipNo)+'</span>':'—';}},
     {key:'payDate',label:'回款日期'},
@@ -4557,7 +4498,7 @@ function payOutRows(rows){
       var iv=Number(it.invoicePrice)||0,sp=Number(it.supplyPrice)||0,q=Number(it.qty)||0;
       var sub=Number(it.subtotal)||0;
       if(!sub&&iv&&q)sub=r2(iv*q);
-      out.push({id:r.id,seq:i+1,chk:!!r.chk,chkHide:j>0,
+      out.push({id:r.id,seq:i+1,chkHide:j>0,
         ym:payYm(r).replace('-','/'),shipNo:payShipNo(r),payDate:r.payDate||'',
         matchBy:r.matchBy||'',matchLevel:r.matchLevel||'',
         cat:r.cat||'',agentName:r.agentName||'',custName:r.custName||'',
